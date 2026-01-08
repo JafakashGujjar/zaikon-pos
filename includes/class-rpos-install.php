@@ -144,6 +144,19 @@ class RPOS_Install {
             UNIQUE KEY setting_key (setting_key)
         ) $charset_collate;";
         
+        // Product recipes table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_product_recipes (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            product_id bigint(20) unsigned NOT NULL,
+            inventory_item_id bigint(20) unsigned NOT NULL,
+            quantity_required decimal(10,3) NOT NULL,
+            unit varchar(20),
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY product_id (product_id),
+            KEY inventory_item_id (inventory_item_id)
+        ) $charset_collate;";
+        
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         foreach ($tables as $table) {

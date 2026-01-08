@@ -33,6 +33,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_product_nonce'])
         $product_id = RPOS_Products::create($data);
         
         if ($product_id) {
+            // Save recipe if provided
+            if (isset($_POST['recipe_ingredients']) && is_array($_POST['recipe_ingredients'])) {
+                $recipe_data = array();
+                foreach ($_POST['recipe_ingredients'] as $index => $ingredient_id) {
+                    if (!empty($ingredient_id) && !empty($_POST['recipe_quantities'][$index])) {
+                        $recipe_data[] = array(
+                            'inventory_item_id' => absint($ingredient_id),
+                            'quantity_required' => floatval($_POST['recipe_quantities'][$index]),
+                            'unit' => sanitize_text_field($_POST['recipe_units'][$index] ?? '')
+                        );
+                    }
+                }
+                if (!empty($recipe_data)) {
+                    RPOS_Recipes::save_recipe($product_id, $recipe_data);
+                }
+            }
+            
             echo '<div class="notice notice-success"><p>' . esc_html__('Product created successfully!', 'restaurant-pos') . '</p></div>';
         } else {
             echo '<div class="notice notice-error"><p>' . esc_html__('Failed to create product.', 'restaurant-pos') . '</p></div>';
@@ -52,6 +69,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_product_nonce'])
         $result = RPOS_Products::update($product_id, $data);
         
         if ($result !== false) {
+            // Save recipe
+            if (isset($_POST['recipe_ingredients']) && is_array($_POST['recipe_ingredients'])) {
+                $recipe_data = array();
+                foreach ($_POST['recipe_ingredients'] as $index => $ingredient_id) {
+                    if (!empty($ingredient_id) && !empty($_POST['recipe_quantities'][$index])) {
+                        $recipe_data[] = array(
+                            'inventory_item_id' => absint($ingredient_id),
+                            'quantity_required' => floatval($_POST['recipe_quantities'][$index]),
+                            'unit' => sanitize_text_field($_POST['recipe_units'][$index] ?? '')
+                        );
+                    }
+                }
+                RPOS_Recipes::save_recipe($product_id, $recipe_data);
+            }
+            
             echo '<div class="notice notice-success"><p>' . esc_html__('Product updated successfully!', 'restaurant-pos') . '</p></div>';
         } else {
             echo '<div class="notice notice-error"><p>' . esc_html__('Failed to update product.', 'restaurant-pos') . '</p></div>';
@@ -70,12 +102,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_product_nonce'])
 
 // Get edit product if editing
 $editing_product = null;
+$existing_recipe = array();
 if (isset($_GET['edit']) && absint($_GET['edit'])) {
     $editing_product = RPOS_Products::get(absint($_GET['edit']));
+    $existing_recipe = RPOS_Recipes::get_by_product($editing_product->id);
 }
 
 // Get all categories
 $categories = RPOS_Categories::get_all();
+
+// Get all inventory items for recipe dropdown
+$inventory_items = RPOS_Inventory::get_all();
 
 // Get all products
 $products = RPOS_Products::get_all();
@@ -155,6 +192,81 @@ $products = RPOS_Products::get_all();
                     </tr>
                 </table>
                 
+                <h3><?php echo esc_html__('Recipe / Ingredients', 'restaurant-pos'); ?></h3>
+                <p class="description"><?php echo esc_html__('Define ingredients required to make this product. When sold, inventory will be automatically deducted.', 'restaurant-pos'); ?></p>
+                
+                <table class="wp-list-table widefat fixed striped" id="rpos-recipe-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;"><?php echo esc_html__('Ingredient (Inventory Item)', 'restaurant-pos'); ?></th>
+                            <th style="width: 25%;"><?php echo esc_html__('Quantity Required', 'restaurant-pos'); ?></th>
+                            <th style="width: 15%;"><?php echo esc_html__('Unit', 'restaurant-pos'); ?></th>
+                            <th style="width: 10%;"><?php echo esc_html__('Action', 'restaurant-pos'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rpos-recipe-rows">
+                        <?php if (!empty($existing_recipe)): ?>
+                            <?php foreach ($existing_recipe as $recipe_item): ?>
+                            <tr class="rpos-recipe-row">
+                                <td>
+                                    <select name="recipe_ingredients[]" class="regular-text" required>
+                                        <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
+                                        <?php foreach ($inventory_items as $inv_item): ?>
+                                        <option value="<?php echo esc_attr($inv_item->id); ?>" 
+                                            <?php selected($recipe_item->inventory_item_id, $inv_item->id); ?>>
+                                            <?php echo esc_html($inv_item->product_name); ?>
+                                            <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" name="recipe_quantities[]" step="0.001" min="0.001" 
+                                           value="<?php echo esc_attr($recipe_item->quantity_required); ?>" required>
+                                </td>
+                                <td>
+                                    <input type="text" name="recipe_units[]" value="<?php echo esc_attr($recipe_item->unit); ?>" 
+                                           placeholder="e.g., pcs, kg, g">
+                                </td>
+                                <td>
+                                    <button type="button" class="button rpos-remove-recipe-row">×</button>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                        <tr class="rpos-recipe-row">
+                            <td>
+                                <select name="recipe_ingredients[]" class="regular-text">
+                                    <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
+                                    <?php foreach ($inventory_items as $inv_item): ?>
+                                    <option value="<?php echo esc_attr($inv_item->id); ?>">
+                                        <?php echo esc_html($inv_item->product_name); ?>
+                                        <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" name="recipe_quantities[]" step="0.001" min="0.001" placeholder="0.000">
+                            </td>
+                            <td>
+                                <input type="text" name="recipe_units[]" placeholder="e.g., pcs, kg, g">
+                            </td>
+                            <td>
+                                <button type="button" class="button rpos-remove-recipe-row">×</button>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+                
+                <p>
+                    <button type="button" class="button" id="rpos-add-recipe-row">
+                        <span class="dashicons dashicons-plus-alt" style="margin-top: 3px;"></span>
+                        <?php echo esc_html__('Add Ingredient', 'restaurant-pos'); ?>
+                    </button>
+                </p>
+                
                 <p class="submit">
                     <button type="submit" class="button button-primary">
                         <?php echo $editing_product ? esc_html__('Update Product', 'restaurant-pos') : esc_html__('Add Product', 'restaurant-pos'); ?>
@@ -225,3 +337,46 @@ $products = RPOS_Products::get_all();
         </div>
     </div>
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+    // Add recipe row
+    $('#rpos-add-recipe-row').on('click', function() {
+        var newRow = '<tr class="rpos-recipe-row">' +
+            '<td>' +
+                '<select name="recipe_ingredients[]" class="regular-text">' +
+                    '<option value=""><?php echo esc_js(__('Select ingredient', 'restaurant-pos')); ?></option>' +
+                    <?php foreach ($inventory_items as $inv_item): ?>
+                    '<option value="<?php echo esc_attr($inv_item->id); ?>">' +
+                        '<?php echo esc_js($inv_item->product_name); ?>' +
+                        '<?php echo $inv_item->sku ? ' (' . esc_js($inv_item->sku) . ')' : ''; ?>' +
+                    '</option>' +
+                    <?php endforeach; ?>
+                '</select>' +
+            '</td>' +
+            '<td>' +
+                '<input type="number" name="recipe_quantities[]" step="0.001" min="0.001" placeholder="0.000">' +
+            '</td>' +
+            '<td>' +
+                '<input type="text" name="recipe_units[]" placeholder="e.g., pcs, kg, g">' +
+            '</td>' +
+            '<td>' +
+                '<button type="button" class="button rpos-remove-recipe-row">×</button>' +
+            '</td>' +
+        '</tr>';
+        
+        $('#rpos-recipe-rows').append(newRow);
+    });
+    
+    // Remove recipe row
+    $(document).on('click', '.rpos-remove-recipe-row', function() {
+        if ($('.rpos-recipe-row').length > 1) {
+            $(this).closest('.rpos-recipe-row').remove();
+        } else {
+            // If it's the last row, just clear it
+            $(this).closest('.rpos-recipe-row').find('select').val('');
+            $(this).closest('.rpos-recipe-row').find('input').val('');
+        }
+    });
+});
+</script>
