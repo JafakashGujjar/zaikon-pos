@@ -132,6 +132,9 @@ class Restaurant_POS {
     
     /**
      * AJAX handler to get inventory item details
+     * Note: Currently using data attributes in the form, but this handler
+     * is available for future use when dynamic inventory data is needed
+     * (e.g., when adding ingredients via AJAX without page reload)
      */
     public function ajax_get_inventory_item_details() {
         check_ajax_referer('rpos-admin-nonce', 'nonce');

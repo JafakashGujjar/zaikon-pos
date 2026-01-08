@@ -494,16 +494,23 @@ jQuery(document).ready(function($) {
         recalculateTotals();
     });
     
-    // Recalculate when quantity changes
+    // Recalculate when quantity changes (with debouncing)
+    var recalculateTimer;
     $(document).on('input', '.ingredient-qty', function() {
-        recalculateTotals();
+        clearTimeout(recalculateTimer);
+        recalculateTimer = setTimeout(function() {
+            recalculateTotals();
+        }, 300); // 300ms debounce
     });
     
     // Recalculate when selling price changes
     $('#selling_price').on('input', function() {
         var sellingPrice = parseFloat($(this).val()) || 0;
         $('#display-selling-price').text(currencySymbol + sellingPrice.toFixed(2));
-        recalculateTotals();
+        clearTimeout(recalculateTimer);
+        recalculateTimer = setTimeout(function() {
+            recalculateTotals();
+        }, 300); // 300ms debounce
     });
     
     function recalculateTotals() {
@@ -511,11 +518,15 @@ jQuery(document).ready(function($) {
         
         $('.rpos-recipe-row').each(function() {
             var $row = $(this);
-            var qty = parseFloat($row.find('.ingredient-qty').val()) || 0;
-            var costPerUnit = parseFloat($row.find('.cost-per-unit').data('value')) || 0;
+            var $qtyInput = $row.find('.ingredient-qty');
+            var $costPerUnit = $row.find('.cost-per-unit');
+            var $ingredientCost = $row.find('.ingredient-cost');
+            
+            var qty = parseFloat($qtyInput.val()) || 0;
+            var costPerUnit = parseFloat($costPerUnit.data('value')) || 0;
             var lineCost = qty * costPerUnit;
             
-            $row.find('.ingredient-cost').text(currencySymbol + lineCost.toFixed(2));
+            $ingredientCost.text(currencySymbol + lineCost.toFixed(2));
             totalCost += lineCost;
         });
         
