@@ -90,12 +90,12 @@ class RPOS_Recipes {
             if (!empty($recipe)) {
                 foreach ($recipe as $ingredient) {
                     // Calculate amount to deduct
-                    $deduct_qty = $sold_qty * floatval($ingredient->quantity_required);
+                    $deduct_qty = floatval($sold_qty) * floatval($ingredient->quantity_required);
                     
                     // Deduct from inventory
                     RPOS_Inventory::adjust_stock(
                         $ingredient->ingredient_product_id,
-                        -intval($deduct_qty),
+                        -$deduct_qty,
                         'Consumption - Order #' . $order_id,
                         $order_id
                     );

@@ -79,7 +79,7 @@ class RPOS_Install {
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_inventory (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             product_id bigint(20) unsigned NOT NULL,
-            quantity int(11) NOT NULL DEFAULT 0,
+            quantity decimal(10,3) NOT NULL DEFAULT 0.000,
             cost_price decimal(10,2) DEFAULT 0.00,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -90,7 +90,7 @@ class RPOS_Install {
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_stock_movements (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             product_id bigint(20) unsigned NOT NULL,
-            change_amount int(11) NOT NULL,
+            change_amount decimal(10,3) NOT NULL,
             reason varchar(255),
             order_id bigint(20) unsigned,
             user_id bigint(20) unsigned,

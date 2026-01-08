@@ -338,34 +338,38 @@ $products = RPOS_Products::get_all();
     </div>
 </div>
 
+<!-- Recipe row template -->
+<script type="text/template" id="rpos-recipe-row-template">
+    <tr class="rpos-recipe-row">
+        <td>
+            <select name="recipe_ingredients[]" class="regular-text">
+                <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
+                <?php foreach ($inventory_items as $inv_item): ?>
+                <option value="<?php echo esc_attr($inv_item->id); ?>">
+                    <?php echo esc_html($inv_item->product_name); ?>
+                    <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </td>
+        <td>
+            <input type="number" name="recipe_quantities[]" step="0.001" min="0.001" placeholder="0.000">
+        </td>
+        <td>
+            <input type="text" name="recipe_units[]" placeholder="e.g., pcs, kg, g">
+        </td>
+        <td>
+            <button type="button" class="button rpos-remove-recipe-row">×</button>
+        </td>
+    </tr>
+</script>
+
 <script>
 jQuery(document).ready(function($) {
     // Add recipe row
     $('#rpos-add-recipe-row').on('click', function() {
-        var newRow = '<tr class="rpos-recipe-row">' +
-            '<td>' +
-                '<select name="recipe_ingredients[]" class="regular-text">' +
-                    '<option value=""><?php echo esc_js(__('Select ingredient', 'restaurant-pos')); ?></option>' +
-                    <?php foreach ($inventory_items as $inv_item): ?>
-                    '<option value="<?php echo esc_attr($inv_item->id); ?>">' +
-                        '<?php echo esc_js($inv_item->product_name); ?>' +
-                        '<?php echo $inv_item->sku ? ' (' . esc_js($inv_item->sku) . ')' : ''; ?>' +
-                    '</option>' +
-                    <?php endforeach; ?>
-                '</select>' +
-            '</td>' +
-            '<td>' +
-                '<input type="number" name="recipe_quantities[]" step="0.001" min="0.001" placeholder="0.000">' +
-            '</td>' +
-            '<td>' +
-                '<input type="text" name="recipe_units[]" placeholder="e.g., pcs, kg, g">' +
-            '</td>' +
-            '<td>' +
-                '<button type="button" class="button rpos-remove-recipe-row">×</button>' +
-            '</td>' +
-        '</tr>';
-        
-        $('#rpos-recipe-rows').append(newRow);
+        var template = $('#rpos-recipe-row-template').html();
+        $('#rpos-recipe-rows').append(template);
     });
     
     // Remove recipe row

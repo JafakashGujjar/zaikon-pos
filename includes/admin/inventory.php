@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
             // Increase stock
             RPOS_Inventory::adjust_stock(
                 $product_id, 
-                intval($quantity), 
+                $quantity, 
                 'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased
             );
             
