@@ -89,8 +89,8 @@ class RPOS_Inventory {
         $format = array();
         
         if (isset($data['quantity'])) {
-            $update_data['quantity'] = intval($data['quantity']);
-            $format[] = '%d';
+            $update_data['quantity'] = floatval($data['quantity']);
+            $format[] = '%f';
         }
         
         if (isset($data['cost_price'])) {
@@ -126,14 +126,14 @@ class RPOS_Inventory {
         }
         
         // Calculate new quantity
-        $new_quantity = $inventory->quantity + $change_amount;
+        $new_quantity = floatval($inventory->quantity) + floatval($change_amount);
         
         // Update inventory
         $wpdb->update(
             $wpdb->prefix . 'rpos_inventory',
             array('quantity' => $new_quantity),
             array('product_id' => $product_id),
-            array('%d'),
+            array('%f'),
             array('%d')
         );
         
@@ -146,12 +146,12 @@ class RPOS_Inventory {
             $wpdb->prefix . 'rpos_stock_movements',
             array(
                 'product_id' => $product_id,
-                'change_amount' => $change_amount,
+                'change_amount' => floatval($change_amount),
                 'reason' => sanitize_text_field($reason),
                 'order_id' => $order_id,
                 'user_id' => $user_id
             ),
-            array('%d', '%d', '%s', '%d', '%d')
+            array('%d', '%f', '%s', '%d', '%d')
         );
         
         return $new_quantity;

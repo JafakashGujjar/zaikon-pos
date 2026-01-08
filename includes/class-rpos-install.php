@@ -79,7 +79,7 @@ class RPOS_Install {
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_inventory (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             product_id bigint(20) unsigned NOT NULL,
-            quantity int(11) NOT NULL DEFAULT 0,
+            quantity decimal(10,3) NOT NULL DEFAULT 0.000,
             cost_price decimal(10,2) DEFAULT 0.00,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -90,7 +90,7 @@ class RPOS_Install {
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_stock_movements (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             product_id bigint(20) unsigned NOT NULL,
-            change_amount int(11) NOT NULL,
+            change_amount decimal(10,3) NOT NULL,
             reason varchar(255),
             order_id bigint(20) unsigned,
             user_id bigint(20) unsigned,
@@ -142,6 +142,21 @@ class RPOS_Install {
             setting_value longtext,
             PRIMARY KEY (id),
             UNIQUE KEY setting_key (setting_key)
+        ) $charset_collate;";
+        
+        // Product recipes table
+        // Note: Foreign key constraints are intentionally not used to maintain compatibility
+        // with various MySQL storage engines and follow WordPress best practices
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_product_recipes (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            product_id bigint(20) unsigned NOT NULL,
+            inventory_item_id bigint(20) unsigned NOT NULL,
+            quantity_required decimal(10,3) NOT NULL,
+            unit varchar(20),
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY product_id (product_id),
+            KEY inventory_item_id (inventory_item_id)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

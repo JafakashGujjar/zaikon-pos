@@ -245,7 +245,7 @@
                 total: total,
                 cash_received: cashReceived,
                 change_due: changeDue,
-                status: 'completed',
+                status: 'new',
                 items: this.cart.map(function(item) {
                     return {
                         product_id: item.product.id,

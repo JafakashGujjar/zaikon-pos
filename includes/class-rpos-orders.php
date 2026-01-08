@@ -76,6 +76,7 @@ class RPOS_Orders {
             // Deduct inventory if order is completed
             if (($data['status'] ?? 'new') === 'completed') {
                 RPOS_Inventory::deduct_for_order($order_id, $data['items']);
+                RPOS_Recipes::deduct_ingredients_for_order($order_id, $data['items']);
             }
         }
         
@@ -198,7 +199,11 @@ class RPOS_Orders {
         
         // If status changed to completed and inventory wasn't deducted yet
         if ($result && $status === 'completed' && $old_order && $old_order->status !== 'completed') {
+            // Deduct regular inventory
             RPOS_Inventory::deduct_for_order($id, $old_order->items);
+            
+            // Deduct recipe ingredients
+            RPOS_Recipes::deduct_ingredients_for_order($id, $old_order->items);
         }
         
         return $result;

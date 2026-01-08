@@ -32,6 +32,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
         
         RPOS_Inventory::update($product_id, array('cost_price' => $cost_price));
         echo '<div class="notice notice-success"><p>' . esc_html__('Cost price updated successfully!', 'restaurant-pos') . '</p></div>';
+    } elseif ($action === 'add_purchase' && isset($_POST['product_id'])) {
+        $product_id = absint($_POST['product_id']);
+        $quantity = floatval($_POST['quantity'] ?? 0);
+        $unit = sanitize_text_field($_POST['unit'] ?? 'pcs');
+        $cost_per_unit = floatval($_POST['cost_per_unit'] ?? 0);
+        $supplier = sanitize_text_field($_POST['supplier'] ?? '');
+        $date_purchased = sanitize_text_field($_POST['date_purchased'] ?? date('Y-m-d'));
+        
+        if ($quantity > 0 && $supplier) {
+            // Increase stock
+            RPOS_Inventory::adjust_stock(
+                $product_id, 
+                $quantity, 
+                'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased
+            );
+            
+            // Update cost price if provided
+            if ($cost_per_unit > 0) {
+                RPOS_Inventory::update($product_id, array('cost_price' => $cost_per_unit));
+            }
+            
+            echo '<div class="notice notice-success"><p>' . esc_html__('Purchase recorded successfully!', 'restaurant-pos') . '</p></div>';
+        } else {
+            echo '<div class="notice notice-error"><p>' . esc_html__('Please provide quantity and supplier name.', 'restaurant-pos') . '</p></div>';
+        }
     }
 }
 
@@ -47,7 +72,13 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
     <h1><?php echo esc_html__('Inventory Management', 'restaurant-pos'); ?></h1>
     
     <div class="rpos-inventory-list">
-        <h2><?php echo esc_html__('Current Stock Levels', 'restaurant-pos'); ?></h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin: 0;"><?php echo esc_html__('Current Stock Levels', 'restaurant-pos'); ?></h2>
+            <button type="button" class="button button-primary" id="rpos-add-purchase-btn">
+                <span class="dashicons dashicons-plus-alt" style="margin-top: 3px;"></span>
+                <?php echo esc_html__('Add Purchase', 'restaurant-pos'); ?>
+            </button>
+        </div>
         
         <?php if (!empty($inventory_items)): ?>
         <table class="wp-list-table widefat fixed striped">
@@ -203,6 +234,66 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
     </div>
 </div>
 
+<!-- Add Purchase Modal -->
+<div id="rpos-add-purchase-modal" style="display:none;">
+    <div class="rpos-modal-content">
+        <h3><?php echo esc_html__('Add Purchase', 'restaurant-pos'); ?></h3>
+        <form method="post" id="rpos-add-purchase-form">
+            <?php wp_nonce_field('rpos_inventory_action', 'rpos_inventory_nonce'); ?>
+            <input type="hidden" name="action" value="add_purchase">
+            
+            <p>
+                <label for="purchase_product_id"><?php echo esc_html__('Inventory Item:', 'restaurant-pos'); ?> *</label><br>
+                <select id="purchase_product_id" name="product_id" class="regular-text" required>
+                    <option value=""><?php echo esc_html__('Select an item', 'restaurant-pos'); ?></option>
+                    <?php foreach ($inventory_items as $item): ?>
+                    <option value="<?php echo esc_attr($item->product_id); ?>">
+                        <?php echo esc_html($item->product_name); ?>
+                        <?php echo $item->sku ? ' (' . esc_html($item->sku) . ')' : ''; ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </p>
+            
+            <p>
+                <label for="purchase_quantity"><?php echo esc_html__('Quantity Purchased:', 'restaurant-pos'); ?> *</label><br>
+                <input type="number" id="purchase_quantity" name="quantity" step="0.001" min="0.001" required class="regular-text">
+            </p>
+            
+            <p>
+                <label for="purchase_unit"><?php echo esc_html__('Unit:', 'restaurant-pos'); ?></label><br>
+                <select id="purchase_unit" name="unit" class="regular-text">
+                    <option value="pcs"><?php echo esc_html__('Pieces (pcs)', 'restaurant-pos'); ?></option>
+                    <option value="kg"><?php echo esc_html__('Kilograms (kg)', 'restaurant-pos'); ?></option>
+                    <option value="g"><?php echo esc_html__('Grams (g)', 'restaurant-pos'); ?></option>
+                    <option value="l"><?php echo esc_html__('Liters (l)', 'restaurant-pos'); ?></option>
+                    <option value="ml"><?php echo esc_html__('Milliliters (ml)', 'restaurant-pos'); ?></option>
+                </select>
+            </p>
+            
+            <p>
+                <label for="purchase_cost"><?php echo esc_html__('Purchase Cost per Unit (optional):', 'restaurant-pos'); ?></label><br>
+                <input type="number" id="purchase_cost" name="cost_per_unit" step="0.01" min="0" class="regular-text">
+            </p>
+            
+            <p>
+                <label for="purchase_supplier"><?php echo esc_html__('Supplier Name:', 'restaurant-pos'); ?> *</label><br>
+                <input type="text" id="purchase_supplier" name="supplier" class="regular-text" required>
+            </p>
+            
+            <p>
+                <label for="purchase_date"><?php echo esc_html__('Date Purchased:', 'restaurant-pos'); ?></label><br>
+                <input type="date" id="purchase_date" name="date_purchased" value="<?php echo date('Y-m-d'); ?>" class="regular-text">
+            </p>
+            
+            <p>
+                <button type="submit" class="button button-primary"><?php echo esc_html__('Record Purchase', 'restaurant-pos'); ?></button>
+                <button type="button" class="button rpos-close-modal"><?php echo esc_html__('Cancel', 'restaurant-pos'); ?></button>
+            </p>
+        </form>
+    </div>
+</div>
+
 <script>
 jQuery(document).ready(function($) {
     // Adjust stock modal
@@ -231,6 +322,18 @@ jQuery(document).ready(function($) {
         $('#cost_price').val(costPrice);
         
         $('#rpos-update-cost-modal').fadeIn();
+    });
+    
+    // Add purchase modal
+    $('#rpos-add-purchase-btn').on('click', function() {
+        $('#purchase_product_id').val('');
+        $('#purchase_quantity').val('');
+        $('#purchase_unit').val('pcs');
+        $('#purchase_cost').val('');
+        $('#purchase_supplier').val('');
+        $('#purchase_date').val('<?php echo date('Y-m-d'); ?>');
+        
+        $('#rpos-add-purchase-modal').fadeIn();
     });
     
     // Close modal
