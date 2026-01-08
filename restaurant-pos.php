@@ -84,6 +84,9 @@ class Restaurant_POS {
         add_action('init', array($this, 'init'), 0);
         add_action('admin_enqueue_scripts', array($this, 'admin_scripts'));
         add_action('wp_enqueue_scripts', array($this, 'frontend_scripts'));
+        
+        // AJAX handlers
+        add_action('wp_ajax_rpos_get_inventory_item_details', array($this, 'ajax_get_inventory_item_details'));
     }
     
     /**
@@ -125,6 +128,37 @@ class Restaurant_POS {
     public function frontend_scripts() {
         wp_enqueue_style('rpos-frontend', RPOS_PLUGIN_URL . 'assets/css/frontend.css', array(), RPOS_VERSION);
         wp_enqueue_script('rpos-frontend', RPOS_PLUGIN_URL . 'assets/js/frontend.js', array('jquery'), RPOS_VERSION, true);
+    }
+    
+    /**
+     * AJAX handler to get inventory item details
+     */
+    public function ajax_get_inventory_item_details() {
+        check_ajax_referer('rpos-admin-nonce', 'nonce');
+        
+        if (!current_user_can('rpos_manage_products')) {
+            wp_send_json_error(array('message' => 'Permission denied'));
+            return;
+        }
+        
+        $item_id = isset($_POST['item_id']) ? absint($_POST['item_id']) : 0;
+        
+        if (!$item_id) {
+            wp_send_json_error(array('message' => 'Invalid item ID'));
+            return;
+        }
+        
+        $item = RPOS_Inventory::get_by_id($item_id);
+        
+        if (!$item) {
+            wp_send_json_error(array('message' => 'Item not found'));
+            return;
+        }
+        
+        wp_send_json_success(array(
+            'unit' => $item->unit ?: 'pcs',
+            'cost_per_unit' => floatval($item->cost_price)
+        ));
     }
 }
 

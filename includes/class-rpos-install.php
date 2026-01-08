@@ -80,6 +80,7 @@ class RPOS_Install {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             product_id bigint(20) unsigned NOT NULL,
             quantity decimal(10,3) NOT NULL DEFAULT 0.000,
+            unit varchar(20) DEFAULT 'pcs',
             cost_price decimal(10,2) DEFAULT 0.00,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),

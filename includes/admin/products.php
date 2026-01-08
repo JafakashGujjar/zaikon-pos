@@ -192,27 +192,36 @@ $products = RPOS_Products::get_all();
                     </tr>
                 </table>
                 
-                <h3><?php echo esc_html__('Recipe / Ingredients', 'restaurant-pos'); ?></h3>
-                <p class="description"><?php echo esc_html__('Define ingredients required to make this product. When sold, inventory will be automatically deducted.', 'restaurant-pos'); ?></p>
+                <h3><?php echo esc_html__('Ingredients / Recipe & Costing', 'restaurant-pos'); ?></h3>
+                <p class="description"><?php echo esc_html__('Define ingredients required to make this product. When sold, inventory will be automatically deducted based on the recipe.', 'restaurant-pos'); ?></p>
                 
                 <table class="wp-list-table widefat fixed striped" id="rpos-recipe-table">
                     <thead>
                         <tr>
-                            <th style="width: 50%;"><?php echo esc_html__('Ingredient (Inventory Item)', 'restaurant-pos'); ?></th>
-                            <th style="width: 25%;"><?php echo esc_html__('Quantity Required', 'restaurant-pos'); ?></th>
-                            <th style="width: 15%;"><?php echo esc_html__('Unit', 'restaurant-pos'); ?></th>
-                            <th style="width: 10%;"><?php echo esc_html__('Action', 'restaurant-pos'); ?></th>
+                            <th style="width: 35%;"><?php echo esc_html__('Ingredient (Inventory Item)', 'restaurant-pos'); ?></th>
+                            <th style="width: 15%;"><?php echo esc_html__('Quantity Used', 'restaurant-pos'); ?></th>
+                            <th style="width: 12%;"><?php echo esc_html__('Unit', 'restaurant-pos'); ?></th>
+                            <th style="width: 15%;"><?php echo esc_html__('Cost per Unit', 'restaurant-pos'); ?></th>
+                            <th style="width: 15%;"><?php echo esc_html__('Ingredient Cost', 'restaurant-pos'); ?></th>
+                            <th style="width: 8%;"><?php echo esc_html__('Action', 'restaurant-pos'); ?></th>
                         </tr>
                     </thead>
                     <tbody id="rpos-recipe-rows">
                         <?php if (!empty($existing_recipe)): ?>
-                            <?php foreach ($existing_recipe as $recipe_item): ?>
+                            <?php foreach ($existing_recipe as $recipe_item): 
+                                $inv_item = RPOS_Inventory::get_by_id($recipe_item->inventory_item_id);
+                                $unit = $inv_item ? $inv_item->unit : '';
+                                $cost_per_unit = $inv_item ? floatval($inv_item->cost_price) : 0;
+                                $ingredient_cost = floatval($recipe_item->quantity_required) * $cost_per_unit;
+                            ?>
                             <tr class="rpos-recipe-row">
                                 <td>
-                                    <select name="recipe_ingredients[]" class="regular-text" required>
+                                    <select name="recipe_ingredients[]" class="ingredient-select regular-text" required>
                                         <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
                                         <?php foreach ($inventory_items as $inv_item): ?>
                                         <option value="<?php echo esc_attr($inv_item->id); ?>" 
+                                            data-unit="<?php echo esc_attr($inv_item->unit ?: 'pcs'); ?>"
+                                            data-cost="<?php echo esc_attr($inv_item->cost_price ?: 0); ?>"
                                             <?php selected($recipe_item->inventory_item_id, $inv_item->id); ?>>
                                             <?php echo esc_html($inv_item->product_name); ?>
                                             <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
@@ -221,25 +230,37 @@ $products = RPOS_Products::get_all();
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="number" name="recipe_quantities[]" step="0.001" min="0.001" 
+                                    <input type="number" name="recipe_quantities[]" class="ingredient-qty" step="0.001" min="0.001" 
                                            value="<?php echo esc_attr($recipe_item->quantity_required); ?>" required>
                                 </td>
                                 <td>
-                                    <input type="text" name="recipe_units[]" value="<?php echo esc_attr($recipe_item->unit); ?>" 
-                                           placeholder="e.g., pcs, kg, g">
+                                    <span class="unit-display"><?php echo esc_html($unit); ?></span>
+                                    <input type="hidden" name="recipe_units[]" class="unit-input" value="<?php echo esc_attr($unit); ?>">
                                 </td>
                                 <td>
-                                    <button type="button" class="button rpos-remove-recipe-row">×</button>
+                                    <span class="cost-per-unit" data-value="<?php echo esc_attr($cost_per_unit); ?>">
+                                        <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?><?php echo number_format($cost_per_unit, 2); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="ingredient-cost">
+                                        <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?><?php echo number_format($ingredient_cost, 2); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button type="button" class="button rpos-remove-recipe-row" title="<?php echo esc_attr__('Remove', 'restaurant-pos'); ?>">×</button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                         <tr class="rpos-recipe-row">
                             <td>
-                                <select name="recipe_ingredients[]" class="regular-text">
+                                <select name="recipe_ingredients[]" class="ingredient-select regular-text">
                                     <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
                                     <?php foreach ($inventory_items as $inv_item): ?>
-                                    <option value="<?php echo esc_attr($inv_item->id); ?>">
+                                    <option value="<?php echo esc_attr($inv_item->id); ?>"
+                                        data-unit="<?php echo esc_attr($inv_item->unit ?: 'pcs'); ?>"
+                                        data-cost="<?php echo esc_attr($inv_item->cost_price ?: 0); ?>">
                                         <?php echo esc_html($inv_item->product_name); ?>
                                         <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
                                     </option>
@@ -247,13 +268,24 @@ $products = RPOS_Products::get_all();
                                 </select>
                             </td>
                             <td>
-                                <input type="number" name="recipe_quantities[]" step="0.001" min="0.001" placeholder="0.000">
+                                <input type="number" name="recipe_quantities[]" class="ingredient-qty" step="0.001" min="0.001" placeholder="0.000">
                             </td>
                             <td>
-                                <input type="text" name="recipe_units[]" placeholder="e.g., pcs, kg, g">
+                                <span class="unit-display">-</span>
+                                <input type="hidden" name="recipe_units[]" class="unit-input" value="">
                             </td>
                             <td>
-                                <button type="button" class="button rpos-remove-recipe-row">×</button>
+                                <span class="cost-per-unit" data-value="0">
+                                    <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>0.00
+                                </span>
+                            </td>
+                            <td>
+                                <span class="ingredient-cost">
+                                    <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>0.00
+                                </span>
+                            </td>
+                            <td>
+                                <button type="button" class="button rpos-remove-recipe-row" title="<?php echo esc_attr__('Remove', 'restaurant-pos'); ?>">×</button>
                             </td>
                         </tr>
                         <?php endif; ?>
@@ -266,6 +298,46 @@ $products = RPOS_Products::get_all();
                         <?php echo esc_html__('Add Ingredient', 'restaurant-pos'); ?>
                     </button>
                 </p>
+                
+                <!-- Cost Summary Box -->
+                <div class="rpos-cost-summary-box">
+                    <h4><?php echo esc_html__('Cost Summary', 'restaurant-pos'); ?></h4>
+                    <table class="rpos-cost-summary-table">
+                        <tr>
+                            <td><?php echo esc_html__('Total Ingredient Cost:', 'restaurant-pos'); ?></td>
+                            <td class="amount">
+                                <span id="total-ingredient-cost">
+                                    <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>0.00
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><?php echo esc_html__('Selling Price:', 'restaurant-pos'); ?></td>
+                            <td class="amount">
+                                <span id="display-selling-price">
+                                    <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?><?php echo number_format($editing_product->selling_price ?? 0, 2); ?>
+                                </span>
+                            </td>
+                        </tr>
+                        <tr class="separator">
+                            <td colspan="2"><hr></td>
+                        </tr>
+                        <tr class="highlight">
+                            <td><?php echo esc_html__('Gross Profit:', 'restaurant-pos'); ?></td>
+                            <td class="amount">
+                                <span id="gross-profit">
+                                    <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>0.00
+                                </span>
+                            </td>
+                        </tr>
+                        <tr class="highlight">
+                            <td><?php echo esc_html__('Gross Margin:', 'restaurant-pos'); ?></td>
+                            <td class="amount">
+                                <span id="gross-margin">0.0%</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
                 
                 <p class="submit">
                     <button type="submit" class="button button-primary">
@@ -342,10 +414,12 @@ $products = RPOS_Products::get_all();
 <script type="text/template" id="rpos-recipe-row-template">
     <tr class="rpos-recipe-row">
         <td>
-            <select name="recipe_ingredients[]" class="regular-text">
+            <select name="recipe_ingredients[]" class="ingredient-select regular-text">
                 <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
                 <?php foreach ($inventory_items as $inv_item): ?>
-                <option value="<?php echo esc_attr($inv_item->id); ?>">
+                <option value="<?php echo esc_attr($inv_item->id); ?>"
+                    data-unit="<?php echo esc_attr($inv_item->unit ?: 'pcs'); ?>"
+                    data-cost="<?php echo esc_attr($inv_item->cost_price ?: 0); ?>">
                     <?php echo esc_html($inv_item->product_name); ?>
                     <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
                 </option>
@@ -353,19 +427,32 @@ $products = RPOS_Products::get_all();
             </select>
         </td>
         <td>
-            <input type="number" name="recipe_quantities[]" step="0.001" min="0.001" placeholder="0.000">
+            <input type="number" name="recipe_quantities[]" class="ingredient-qty" step="0.001" min="0.001" placeholder="0.000">
         </td>
         <td>
-            <input type="text" name="recipe_units[]" placeholder="e.g., pcs, kg, g">
+            <span class="unit-display">-</span>
+            <input type="hidden" name="recipe_units[]" class="unit-input" value="">
         </td>
         <td>
-            <button type="button" class="button rpos-remove-recipe-row">×</button>
+            <span class="cost-per-unit" data-value="0">
+                <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>0.00
+            </span>
+        </td>
+        <td>
+            <span class="ingredient-cost">
+                <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>0.00
+            </span>
+        </td>
+        <td>
+            <button type="button" class="button rpos-remove-recipe-row" title="<?php echo esc_attr__('Remove', 'restaurant-pos'); ?>">×</button>
         </td>
     </tr>
 </script>
 
 <script>
 jQuery(document).ready(function($) {
+    var currencySymbol = '<?php echo esc_js(RPOS_Settings::get('currency_symbol', '$')); ?>';
+    
     // Add recipe row
     $('#rpos-add-recipe-row').on('click', function() {
         var template = $('#rpos-recipe-row-template').html();
@@ -376,11 +463,72 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.rpos-remove-recipe-row', function() {
         if ($('.rpos-recipe-row').length > 1) {
             $(this).closest('.rpos-recipe-row').remove();
+            recalculateTotals();
         } else {
             // If it's the last row, just clear it
-            $(this).closest('.rpos-recipe-row').find('select').val('');
-            $(this).closest('.rpos-recipe-row').find('input').val('');
+            var $row = $(this).closest('.rpos-recipe-row');
+            $row.find('select').val('');
+            $row.find('input').val('');
+            $row.find('.unit-display').text('-');
+            $row.find('.cost-per-unit').text(currencySymbol + '0.00').data('value', 0);
+            $row.find('.ingredient-cost').text(currencySymbol + '0.00');
+            recalculateTotals();
         }
     });
+    
+    // When ingredient dropdown changes, fetch unit and cost
+    $(document).on('change', '.ingredient-select', function() {
+        var $row = $(this).closest('tr');
+        var $option = $(this).find('option:selected');
+        var unit = $option.data('unit') || 'pcs';
+        var cost = parseFloat($option.data('cost')) || 0;
+        
+        // Update unit display
+        $row.find('.unit-display').text(unit);
+        $row.find('.unit-input').val(unit);
+        
+        // Update cost per unit display
+        $row.find('.cost-per-unit').text(currencySymbol + cost.toFixed(2)).data('value', cost);
+        
+        // Recalculate totals
+        recalculateTotals();
+    });
+    
+    // Recalculate when quantity changes
+    $(document).on('input', '.ingredient-qty', function() {
+        recalculateTotals();
+    });
+    
+    // Recalculate when selling price changes
+    $('#selling_price').on('input', function() {
+        var sellingPrice = parseFloat($(this).val()) || 0;
+        $('#display-selling-price').text(currencySymbol + sellingPrice.toFixed(2));
+        recalculateTotals();
+    });
+    
+    function recalculateTotals() {
+        var totalCost = 0;
+        
+        $('.rpos-recipe-row').each(function() {
+            var $row = $(this);
+            var qty = parseFloat($row.find('.ingredient-qty').val()) || 0;
+            var costPerUnit = parseFloat($row.find('.cost-per-unit').data('value')) || 0;
+            var lineCost = qty * costPerUnit;
+            
+            $row.find('.ingredient-cost').text(currencySymbol + lineCost.toFixed(2));
+            totalCost += lineCost;
+        });
+        
+        var sellingPrice = parseFloat($('#selling_price').val()) || 0;
+        var grossProfit = sellingPrice - totalCost;
+        var grossMargin = sellingPrice > 0 ? (grossProfit / sellingPrice * 100) : 0;
+        
+        $('#total-ingredient-cost').text(currencySymbol + totalCost.toFixed(2));
+        $('#gross-profit').text(currencySymbol + grossProfit.toFixed(2));
+        $('#gross-margin').text(grossMargin.toFixed(1) + '%');
+    }
+    
+    // Initial calculation on page load
+    recalculateTotals();
 });
 </script>
