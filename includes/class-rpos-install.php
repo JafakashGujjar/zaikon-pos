@@ -16,6 +16,9 @@ class RPOS_Install {
         // Create database tables
         self::create_tables();
         
+        // Run upgrades if needed
+        self::maybe_upgrade();
+        
         // Create user roles
         RPOS_Roles::create_roles();
         
@@ -28,6 +31,23 @@ class RPOS_Install {
         
         // Flush rewrite rules
         flush_rewrite_rules();
+    }
+    
+    /**
+     * Check and run upgrades if needed
+     */
+    private static function maybe_upgrade() {
+        $current_version = get_option('rpos_version', '0.0.0');
+        
+        // Check if unit column exists in inventory table
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'rpos_inventory';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'unit'");
+        
+        if (empty($column_exists)) {
+            // Add unit column
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `unit` varchar(20) DEFAULT 'pcs' AFTER `quantity`");
+        }
     }
     
     /**
