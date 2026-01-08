@@ -52,7 +52,7 @@ class RPOS_Recipes {
                             'product_id' => $product_id,
                             'inventory_item_id' => absint($ingredient['inventory_item_id']),
                             'quantity_required' => floatval($ingredient['quantity_required']),
-                            'unit' => sanitize_text_field($ingredient['unit'] ?? '')
+                            'unit' => isset($ingredient['unit']) ? sanitize_text_field($ingredient['unit']) : ''
                         ),
                         array('%d', '%d', '%f', '%s')
                     );

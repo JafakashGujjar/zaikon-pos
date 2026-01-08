@@ -145,6 +145,8 @@ class RPOS_Install {
         ) $charset_collate;";
         
         // Product recipes table
+        // Note: Foreign key constraints are intentionally not used to maintain compatibility
+        // with various MySQL storage engines and follow WordPress best practices
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_product_recipes (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             product_id bigint(20) unsigned NOT NULL,
