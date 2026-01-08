@@ -22,6 +22,21 @@ class RPOS_Inventory {
     }
     
     /**
+     * Get inventory item by inventory ID
+     */
+    public static function get_by_id($id) {
+        global $wpdb;
+        
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT i.*, p.name as product_name, p.sku
+             FROM {$wpdb->prefix}rpos_inventory i
+             LEFT JOIN {$wpdb->prefix}rpos_products p ON i.product_id = p.id
+             WHERE i.id = %d",
+            $id
+        ));
+    }
+    
+    /**
      * Get all inventory items with product details
      */
     public static function get_all($args = array()) {
@@ -59,7 +74,7 @@ class RPOS_Inventory {
     /**
      * Create inventory record for product
      */
-    public static function create_for_product($product_id, $quantity = 0, $cost_price = 0) {
+    public static function create_for_product($product_id, $quantity = 0, $cost_price = 0, $unit = 'pcs') {
         global $wpdb;
         
         // Check if already exists
@@ -73,9 +88,10 @@ class RPOS_Inventory {
             array(
                 'product_id' => $product_id,
                 'quantity' => $quantity,
+                'unit' => $unit,
                 'cost_price' => $cost_price
             ),
-            array('%d', '%d', '%f')
+            array('%d', '%d', '%s', '%f')
         );
     }
     
@@ -91,6 +107,11 @@ class RPOS_Inventory {
         if (isset($data['quantity'])) {
             $update_data['quantity'] = floatval($data['quantity']);
             $format[] = '%f';
+        }
+        
+        if (isset($data['unit'])) {
+            $update_data['unit'] = sanitize_text_field($data['unit']);
+            $format[] = '%s';
         }
         
         if (isset($data['cost_price'])) {

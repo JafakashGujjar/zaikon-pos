@@ -772,3 +772,85 @@
         max-width: 100%;
     }
 }
+
+/* Recipe & Costing Section */
+.rpos-cost-summary-box {
+    background: #f6f7f7;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+    max-width: 500px;
+}
+
+.rpos-cost-summary-box h4 {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    color: #1d2327;
+    font-weight: 600;
+}
+
+.rpos-cost-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rpos-cost-summary-table tr {
+    border-bottom: 1px solid #dcdcde;
+}
+
+.rpos-cost-summary-table tr.separator {
+    border: none;
+}
+
+.rpos-cost-summary-table tr.separator td {
+    padding: 5px 0;
+}
+
+.rpos-cost-summary-table tr.separator hr {
+    border: none;
+    border-top: 2px solid #ccd0d4;
+    margin: 0;
+}
+
+.rpos-cost-summary-table td {
+    padding: 10px 0;
+    font-size: 14px;
+}
+
+.rpos-cost-summary-table td:first-child {
+    color: #646970;
+    font-weight: 500;
+}
+
+.rpos-cost-summary-table td.amount {
+    text-align: right;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.rpos-cost-summary-table tr.highlight td {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.rpos-cost-summary-table tr.highlight td.amount {
+    color: #007017;
+    font-size: 16px;
+}
+
+#rpos-recipe-table .ingredient-select {
+    width: 100%;
+}
+
+#rpos-recipe-table .ingredient-qty {
+    width: 100%;
+}
+
+#rpos-recipe-table .unit-display,
+#rpos-recipe-table .cost-per-unit,
+#rpos-recipe-table .ingredient-cost {
+    display: inline-block;
+    font-weight: 500;
+}
