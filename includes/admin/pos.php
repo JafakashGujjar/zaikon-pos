@@ -65,6 +65,22 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                 </div>
             </div>
             
+            <div class="rpos-order-details">
+                <h4><?php echo esc_html__('Order Details', 'restaurant-pos'); ?></h4>
+                <div class="rpos-order-field">
+                    <label><?php echo esc_html__('Order Type:', 'restaurant-pos'); ?> <span style="color:red;">*</span></label>
+                    <select id="rpos-order-type" required>
+                        <option value="dine-in"><?php echo esc_html__('Dine-in', 'restaurant-pos'); ?></option>
+                        <option value="takeaway"><?php echo esc_html__('Takeaway', 'restaurant-pos'); ?></option>
+                        <option value="delivery"><?php echo esc_html__('Delivery', 'restaurant-pos'); ?></option>
+                    </select>
+                </div>
+                <div class="rpos-order-field">
+                    <label><?php echo esc_html__('Special Instructions:', 'restaurant-pos'); ?></label>
+                    <textarea id="rpos-special-instructions" rows="3" placeholder="<?php echo esc_attr__('e.g., No mayo, Extra spicy, Table 5, etc.', 'restaurant-pos'); ?>"></textarea>
+                </div>
+            </div>
+            
             <div class="rpos-payment-section">
                 <h4><?php echo esc_html__('Cash Payment', 'restaurant-pos'); ?></h4>
                 <div class="rpos-payment-field">

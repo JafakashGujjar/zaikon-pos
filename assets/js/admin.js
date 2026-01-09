@@ -59,6 +59,8 @@
                 $('#rpos-receipt-modal').fadeOut();
                 $('#rpos-cash-received').val('');
                 $('#rpos-discount').val('0.00');
+                $('#rpos-order-type').val('dine-in');
+                $('#rpos-special-instructions').val('');
             });
         },
         
@@ -223,6 +225,12 @@
                 return;
             }
             
+            var orderType = $('#rpos-order-type').val();
+            if (!orderType) {
+                alert('Please select an order type');
+                return;
+            }
+            
             var subtotal = 0;
             this.cart.forEach(function(item) {
                 subtotal += item.product.selling_price * item.quantity;
@@ -238,6 +246,7 @@
             }
             
             var changeDue = cashReceived - total;
+            var specialInstructions = $('#rpos-special-instructions').val().trim();
             
             var orderData = {
                 subtotal: subtotal,
@@ -246,6 +255,8 @@
                 cash_received: cashReceived,
                 change_due: changeDue,
                 status: 'new',
+                order_type: orderType,
+                special_instructions: specialInstructions,
                 items: this.cart.map(function(item) {
                     return {
                         product_id: item.product.id,
@@ -389,6 +400,14 @@
                 $header.append('<div class="rpos-kds-order-time">' + elapsed + ' ' + rposKdsData.translations.minutes + '</div>');
                 $card.append($header);
                 
+                // Display order type
+                if (order.order_type) {
+                    var orderTypeLabel = order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1).replace('-', ' ');
+                    var $orderType = $('<div class="rpos-kds-order-type">');
+                    $orderType.append('<strong>Type:</strong> ' + orderTypeLabel);
+                    $card.append($orderType);
+                }
+                
                 var $items = $('<div class="rpos-kds-order-items">');
                 $items.append('<h4>' + rposKdsData.translations.items + ':</h4>');
                 
@@ -403,10 +422,18 @@
                         fullOrder.items.forEach(function(item) {
                             $items.append('<div class="rpos-kds-item">' + item.quantity + 'x ' + item.product_name + '</div>');
                         });
+                        
+                        // Display special instructions if present
+                        if (fullOrder.special_instructions && fullOrder.special_instructions.trim() !== '') {
+                            var $instructions = $('<div class="rpos-kds-special-instructions">');
+                            $instructions.append('<strong>Special Instructions:</strong><br>' + fullOrder.special_instructions);
+                            $card.append($items);
+                            $card.append($instructions);
+                        } else {
+                            $card.append($items);
+                        }
                     }
                 });
-                
-                $card.append($items);
                 
                 var $actions = $('<div class="rpos-kds-order-actions">');
                 

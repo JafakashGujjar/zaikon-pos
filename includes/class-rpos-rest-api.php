@@ -118,6 +118,15 @@ class RPOS_REST_API {
         
         $products = RPOS_Products::get_all($args);
         
+        // Filter out ingredients (products with selling_price <= 0) for POS
+        // Only show actual menu items that can be sold
+        $products = array_filter($products, function($product) {
+            return floatval($product->selling_price) > 0;
+        });
+        
+        // Re-index array after filtering
+        $products = array_values($products);
+        
         // Add inventory data to each product
         foreach ($products as &$product) {
             $inventory = RPOS_Inventory::get_by_product($product->id);

@@ -41,9 +41,11 @@ class RPOS_Orders {
                 'cash_received' => floatval($data['cash_received'] ?? 0),
                 'change_due' => floatval($data['change_due'] ?? 0),
                 'status' => sanitize_text_field($data['status'] ?? 'new'),
+                'order_type' => sanitize_text_field($data['order_type'] ?? 'dine-in'),
+                'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
                 'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
             ),
-            array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%d')
+            array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%d')
         );
         
         if (!$result) {
