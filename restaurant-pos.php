@@ -87,6 +87,7 @@ class Restaurant_POS {
         
         // AJAX handlers
         add_action('wp_ajax_rpos_get_inventory_item_details', array($this, 'ajax_get_inventory_item_details'));
+        add_action('wp_ajax_rpos_add_ingredient', array($this, 'ajax_add_ingredient'));
     }
     
     /**
@@ -162,6 +163,62 @@ class Restaurant_POS {
             'unit' => $item->unit ?: 'pcs',
             'cost_per_unit' => floatval($item->cost_price)
         ));
+    }
+    
+    /**
+     * AJAX handler to add a new ingredient
+     */
+    public function ajax_add_ingredient() {
+        check_ajax_referer('rpos-admin-nonce', 'nonce');
+        
+        if (!current_user_can('rpos_manage_inventory')) {
+            wp_send_json_error(array('message' => 'Permission denied'));
+            return;
+        }
+        
+        $ingredient_name = sanitize_text_field($_POST['ingredient_name'] ?? '');
+        $unit = sanitize_text_field($_POST['unit'] ?? 'pcs');
+        $default_cost = floatval($_POST['default_cost_per_unit'] ?? 0);
+        
+        if (empty($ingredient_name)) {
+            wp_send_json_error(array('message' => 'Please provide ingredient name.'));
+            return;
+        }
+        
+        // Create new product (ingredient)
+        $product_data = array(
+            'name' => $ingredient_name,
+            'sku' => '',
+            'category_id' => 0,
+            'selling_price' => 0,
+            'image_url' => '',
+            'description' => '',
+            'is_active' => 1
+        );
+        
+        $product_id = RPOS_Products::create($product_data);
+        
+        if ($product_id) {
+            // Update inventory with unit and cost if provided
+            if ($unit || $default_cost > 0) {
+                $inventory_data = array();
+                if ($unit) {
+                    $inventory_data['unit'] = $unit;
+                }
+                if ($default_cost > 0) {
+                    $inventory_data['cost_price'] = $default_cost;
+                }
+                RPOS_Inventory::update($product_id, $inventory_data);
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'Ingredient added successfully!',
+                'product_id' => $product_id,
+                'product_name' => $ingredient_name
+            ));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to create ingredient.'));
+        }
     }
 }
 

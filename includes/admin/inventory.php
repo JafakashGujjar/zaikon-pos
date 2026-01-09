@@ -32,6 +32,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
         
         RPOS_Inventory::update($product_id, array('cost_price' => $cost_price));
         echo '<div class="notice notice-success"><p>' . esc_html__('Cost price updated successfully!', 'restaurant-pos') . '</p></div>';
+    } elseif ($action === 'add_ingredient' && isset($_POST['ingredient_name'])) {
+        $ingredient_name = sanitize_text_field($_POST['ingredient_name'] ?? '');
+        $unit = sanitize_text_field($_POST['unit'] ?? 'pcs');
+        $default_cost = floatval($_POST['default_cost_per_unit'] ?? 0);
+        
+        if (!empty($ingredient_name)) {
+            // Create new product (ingredient)
+            $product_data = array(
+                'name' => $ingredient_name,
+                'sku' => '',
+                'category_id' => 0,
+                'selling_price' => 0,
+                'image_url' => '',
+                'description' => '',
+                'is_active' => 1
+            );
+            
+            $product_id = RPOS_Products::create($product_data);
+            
+            if ($product_id) {
+                // Update inventory with unit and cost if provided
+                if ($unit || $default_cost > 0) {
+                    $inventory_data = array();
+                    if ($unit) {
+                        $inventory_data['unit'] = $unit;
+                    }
+                    if ($default_cost > 0) {
+                        $inventory_data['cost_price'] = $default_cost;
+                    }
+                    RPOS_Inventory::update($product_id, $inventory_data);
+                }
+                
+                echo '<div class="notice notice-success"><p>' . esc_html__('Ingredient added successfully!', 'restaurant-pos') . '</p></div>';
+            } else {
+                echo '<div class="notice notice-error"><p>' . esc_html__('Failed to create ingredient.', 'restaurant-pos') . '</p></div>';
+            }
+        } else {
+            echo '<div class="notice notice-error"><p>' . esc_html__('Please provide ingredient name.', 'restaurant-pos') . '</p></div>';
+        }
     } elseif ($action === 'add_purchase' && isset($_POST['product_id'])) {
         $product_id = absint($_POST['product_id']);
         $quantity = floatval($_POST['quantity'] ?? 0);
@@ -246,6 +285,7 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
                 <label for="purchase_product_id"><?php echo esc_html__('Inventory Item:', 'restaurant-pos'); ?> *</label><br>
                 <select id="purchase_product_id" name="product_id" class="regular-text" required>
                     <option value=""><?php echo esc_html__('Select an item', 'restaurant-pos'); ?></option>
+                    <option value="__add_new__"><?php echo esc_html__('+ Add New Ingredient', 'restaurant-pos'); ?></option>
                     <?php foreach ($inventory_items as $item): ?>
                     <option value="<?php echo esc_attr($item->product_id); ?>">
                         <?php echo esc_html($item->product_name); ?>
@@ -289,6 +329,43 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
             <p>
                 <button type="submit" class="button button-primary"><?php echo esc_html__('Record Purchase', 'restaurant-pos'); ?></button>
                 <button type="button" class="button rpos-close-modal"><?php echo esc_html__('Cancel', 'restaurant-pos'); ?></button>
+            </p>
+        </form>
+    </div>
+</div>
+
+<!-- Add Ingredient Modal -->
+<div id="rpos-add-ingredient-modal" style="display:none;">
+    <div class="rpos-modal-content">
+        <h3><?php echo esc_html__('Add New Ingredient', 'restaurant-pos'); ?></h3>
+        <form method="post" id="rpos-add-ingredient-form">
+            <?php wp_nonce_field('rpos_inventory_action', 'rpos_inventory_nonce'); ?>
+            <input type="hidden" name="action" value="add_ingredient">
+            
+            <p>
+                <label for="ingredient_name"><?php echo esc_html__('Ingredient Name:', 'restaurant-pos'); ?> *</label><br>
+                <input type="text" id="ingredient_name" name="ingredient_name" class="regular-text" required>
+            </p>
+            
+            <p>
+                <label for="ingredient_unit"><?php echo esc_html__('Unit:', 'restaurant-pos'); ?></label><br>
+                <select id="ingredient_unit" name="unit" class="regular-text">
+                    <option value="pcs"><?php echo esc_html__('Pieces (pcs)', 'restaurant-pos'); ?></option>
+                    <option value="kg"><?php echo esc_html__('Kilograms (kg)', 'restaurant-pos'); ?></option>
+                    <option value="g"><?php echo esc_html__('Grams (g)', 'restaurant-pos'); ?></option>
+                    <option value="l"><?php echo esc_html__('Liters (l)', 'restaurant-pos'); ?></option>
+                    <option value="ml"><?php echo esc_html__('Milliliters (ml)', 'restaurant-pos'); ?></option>
+                </select>
+            </p>
+            
+            <p>
+                <label for="ingredient_cost"><?php echo esc_html__('Default Cost per Unit (optional):', 'restaurant-pos'); ?></label><br>
+                <input type="number" id="ingredient_cost" name="default_cost_per_unit" step="0.01" min="0" class="regular-text">
+            </p>
+            
+            <p>
+                <button type="submit" class="button button-primary"><?php echo esc_html__('Save Ingredient', 'restaurant-pos'); ?></button>
+                <button type="button" class="button rpos-close-modal" id="rpos-cancel-add-ingredient"><?php echo esc_html__('Cancel', 'restaurant-pos'); ?></button>
             </p>
         </form>
     </div>
@@ -339,6 +416,68 @@ jQuery(document).ready(function($) {
     // Close modal
     $('.rpos-close-modal').on('click', function() {
         $(this).closest('[id$="-modal"]').fadeOut();
+    });
+    
+    // Handle "+ Add New Ingredient" selection
+    $('#purchase_product_id').on('change', function() {
+        if ($(this).val() === '__add_new__') {
+            // Reset and show the add ingredient modal
+            $('#ingredient_name').val('');
+            $('#ingredient_unit').val('pcs');
+            $('#ingredient_cost').val('');
+            $('#rpos-add-ingredient-modal').fadeIn();
+        }
+    });
+    
+    // Handle cancel in add ingredient modal
+    $('#rpos-cancel-add-ingredient').on('click', function() {
+        $('#rpos-add-ingredient-modal').fadeOut();
+        // Reset the dropdown to "Select an item"
+        $('#purchase_product_id').val('');
+    });
+    
+    // Handle add ingredient form submission via AJAX
+    $('#rpos-add-ingredient-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = {
+            action: 'rpos_add_ingredient',
+            nonce: rposAdmin.nonce,
+            ingredient_name: $('#ingredient_name').val(),
+            unit: $('#ingredient_unit').val(),
+            default_cost_per_unit: $('#ingredient_cost').val()
+        };
+        
+        $.ajax({
+            url: rposAdmin.ajaxurl,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    // Add new option to the dropdown
+                    var newOption = $('<option></option>')
+                        .attr('value', response.data.product_id)
+                        .text(response.data.product_name);
+                    
+                    // Insert after the "+ Add New Ingredient" option
+                    $('#purchase_product_id option[value="__add_new__"]').after(newOption);
+                    
+                    // Select the newly added ingredient
+                    $('#purchase_product_id').val(response.data.product_id);
+                    
+                    // Close the modal
+                    $('#rpos-add-ingredient-modal').fadeOut();
+                    
+                    // Show success message
+                    alert(response.data.message || 'Ingredient added successfully!');
+                } else {
+                    alert(response.data.message || 'Failed to add ingredient.');
+                }
+            },
+            error: function() {
+                alert('An error occurred. Please try again.');
+            }
+        });
     });
 });
 </script>
