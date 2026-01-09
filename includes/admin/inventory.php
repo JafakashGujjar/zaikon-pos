@@ -67,29 +67,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
             echo '<div class="notice notice-error"><p>' . esc_html__('Please provide ingredient name.', 'restaurant-pos') . '</p></div>';
         }
     } elseif ($action === 'add_purchase' && isset($_POST['product_id'])) {
-        $product_id = absint($_POST['product_id']);
+        $product_id = $_POST['product_id']; // Don't cast to int yet, as it might be "__add_new__"
         $quantity = floatval($_POST['quantity'] ?? 0);
         $unit = sanitize_text_field($_POST['unit'] ?? 'pcs');
         $cost_per_unit = floatval($_POST['cost_per_unit'] ?? 0);
         $supplier = sanitize_text_field($_POST['supplier'] ?? '');
         $date_purchased = sanitize_text_field($_POST['date_purchased'] ?? date('Y-m-d'));
         
-        if ($quantity > 0 && $supplier) {
-            // Increase stock
-            RPOS_Inventory::adjust_stock(
-                $product_id, 
-                $quantity, 
-                'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased
-            );
+        // Check if user selected "+ Add New Ingredient"
+        if ($product_id === '__add_new__') {
+            $new_ingredient_name = sanitize_text_field($_POST['new_ingredient_name'] ?? '');
             
-            // Update cost price if provided
-            if ($cost_per_unit > 0) {
-                RPOS_Inventory::update($product_id, array('cost_price' => $cost_per_unit));
+            if (empty($new_ingredient_name)) {
+                echo '<div class="notice notice-error"><p>' . esc_html__('Please provide ingredient name.', 'restaurant-pos') . '</p></div>';
+            } elseif ($quantity > 0 && $supplier) {
+                // Create new product (ingredient)
+                $product_data = array(
+                    'name' => $new_ingredient_name,
+                    'sku' => '',
+                    'category_id' => 0,
+                    'selling_price' => 0,
+                    'image_url' => '',
+                    'description' => '',
+                    'is_active' => 1
+                );
+                
+                $product_id = RPOS_Products::create($product_data);
+                
+                if ($product_id) {
+                    // Update inventory with unit and cost
+                    $inventory_data = array('unit' => $unit);
+                    if ($cost_per_unit > 0) {
+                        $inventory_data['cost_price'] = $cost_per_unit;
+                    }
+                    RPOS_Inventory::update($product_id, $inventory_data);
+                    
+                    // Record the purchase
+                    RPOS_Inventory::adjust_stock(
+                        $product_id, 
+                        $quantity, 
+                        'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased
+                    );
+                    
+                    echo '<div class="notice notice-success"><p>' . esc_html__('New ingredient created and purchase recorded successfully!', 'restaurant-pos') . '</p></div>';
+                } else {
+                    echo '<div class="notice notice-error"><p>' . esc_html__('Failed to create ingredient.', 'restaurant-pos') . '</p></div>';
+                }
+            } else {
+                echo '<div class="notice notice-error"><p>' . esc_html__('Please provide quantity and supplier name.', 'restaurant-pos') . '</p></div>';
             }
-            
-            echo '<div class="notice notice-success"><p>' . esc_html__('Purchase recorded successfully!', 'restaurant-pos') . '</p></div>';
         } else {
-            echo '<div class="notice notice-error"><p>' . esc_html__('Please provide quantity and supplier name.', 'restaurant-pos') . '</p></div>';
+            // Existing ingredient selected
+            $product_id = absint($product_id);
+            
+            if ($quantity > 0 && $supplier) {
+                // Increase stock
+                RPOS_Inventory::adjust_stock(
+                    $product_id, 
+                    $quantity, 
+                    'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased
+                );
+                
+                // Update cost price if provided
+                if ($cost_per_unit > 0) {
+                    RPOS_Inventory::update($product_id, array('cost_price' => $cost_per_unit));
+                }
+                
+                echo '<div class="notice notice-success"><p>' . esc_html__('Purchase recorded successfully!', 'restaurant-pos') . '</p></div>';
+            } else {
+                echo '<div class="notice notice-error"><p>' . esc_html__('Please provide quantity and supplier name.', 'restaurant-pos') . '</p></div>';
+            }
         }
     }
 }
@@ -290,6 +337,12 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
                 </select>
             </p>
             
+            <p id="new_ingredient_name_field" style="display:none;">
+                <label for="new_ingredient_name"><?php echo esc_html__('Ingredient Name:', 'restaurant-pos'); ?> *</label><br>
+                <input type="text" id="new_ingredient_name" name="new_ingredient_name" class="regular-text">
+                <br><small><?php echo esc_html__('Enter the name of the new ingredient (e.g., "Chicken Fillet 120g", "Burger Bun")', 'restaurant-pos'); ?></small>
+            </p>
+            
             <p>
                 <label for="purchase_quantity"><?php echo esc_html__('Quantity Purchased:', 'restaurant-pos'); ?> *</label><br>
                 <input type="number" id="purchase_quantity" name="quantity" step="0.001" min="0.001" required class="regular-text">
@@ -404,6 +457,8 @@ jQuery(document).ready(function($) {
         $('#purchase_cost').val('');
         $('#purchase_supplier').val('');
         $('#purchase_date').val('<?php echo date('Y-m-d'); ?>');
+        $('#new_ingredient_name').val('');
+        $('#new_ingredient_name_field').hide();
         
         $('#rpos-add-purchase-modal').fadeIn();
     });
@@ -413,14 +468,16 @@ jQuery(document).ready(function($) {
         $(this).closest('[id$="-modal"]').fadeOut();
     });
     
-    // Handle "+ Add New Ingredient" selection
+    // Handle "+ Add New Ingredient" selection - show inline field
     $('#purchase_product_id').on('change', function() {
         if ($(this).val() === '__add_new__') {
-            // Reset and show the add ingredient modal
-            $('#ingredient_name').val('');
-            $('#ingredient_unit').val('pcs');
-            $('#ingredient_cost').val('');
-            $('#rpos-add-ingredient-modal').fadeIn();
+            // Show the inline ingredient name field
+            $('#new_ingredient_name_field').show();
+            $('#new_ingredient_name').prop('required', true);
+        } else {
+            // Hide the inline ingredient name field
+            $('#new_ingredient_name_field').hide();
+            $('#new_ingredient_name').prop('required', false);
         }
     });
     
