@@ -67,50 +67,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
             echo '<div class="notice notice-error"><p>' . esc_html__('Please provide ingredient name.', 'restaurant-pos') . '</p></div>';
         }
     } elseif ($action === 'add_purchase' && isset($_POST['product_id'])) {
-        $product_id = $_POST['product_id']; // Don't cast to int yet, as it might be "__add_new__"
+        $ingredient_id = $_POST['product_id']; // Don't cast to int yet, as it might be "__add_new__"
         $quantity = floatval($_POST['quantity'] ?? 0);
         $unit = sanitize_text_field($_POST['unit'] ?? 'pcs');
         $cost_per_unit = floatval($_POST['cost_per_unit'] ?? 0);
         $supplier = sanitize_text_field($_POST['supplier'] ?? '');
         $date_purchased = sanitize_text_field($_POST['date_purchased'] ?? date('Y-m-d'));
-        $expiry_date = !empty($_POST['expiry_date']) ? sanitize_text_field($_POST['expiry_date']) : null;
         
         // Check if user selected "+ Add New Ingredient"
-        if ($product_id === '__add_new__') {
+        if ($ingredient_id === '__add_new__') {
             $new_ingredient_name = sanitize_text_field($_POST['new_ingredient_name'] ?? '');
             
             if (empty($new_ingredient_name)) {
                 echo '<div class="notice notice-error"><p>' . esc_html__('Please provide ingredient name.', 'restaurant-pos') . '</p></div>';
             } elseif ($quantity > 0 && $supplier) {
-                // Create new product (ingredient)
-                $product_data = array(
+                // Create new ingredient in the dedicated ingredients table
+                $ingredient_data = array(
                     'name' => $new_ingredient_name,
-                    'sku' => '',
-                    'category_id' => 0,
-                    'selling_price' => 0,
-                    'image_url' => '',
-                    'description' => '',
-                    'is_active' => 1
+                    'unit' => $unit,
+                    'current_stock_quantity' => 0,
+                    'cost_per_unit' => $cost_per_unit
                 );
                 
-                $product_id = RPOS_Products::create($product_data);
+                $ingredient_id = RPOS_Ingredients::create($ingredient_data);
                 
-                if ($product_id) {
-                    // Update inventory with unit and cost
-                    $inventory_data = array('unit' => $unit);
-                    if ($cost_per_unit > 0) {
-                        $inventory_data['cost_price'] = $cost_per_unit;
-                    }
-                    RPOS_Inventory::update($product_id, $inventory_data);
-                    
+                if ($ingredient_id) {
                     // Record the purchase
-                    RPOS_Inventory::adjust_stock(
-                        $product_id, 
-                        $quantity, 
-                        'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased,
+                    $notes = 'Purchase from ' . $supplier . ' on ' . $date_purchased;
+                    RPOS_Ingredients::adjust_stock(
+                        $ingredient_id,
+                        $quantity,
+                        'Purchase',
                         null,
-                        null,
-                        $expiry_date
+                        $notes
                     );
                     
                     echo '<div class="notice notice-success"><p>' . esc_html__('New ingredient created and purchase recorded successfully!', 'restaurant-pos') . '</p></div>';
@@ -122,22 +111,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
             }
         } else {
             // Existing ingredient selected
-            $product_id = absint($product_id);
+            $ingredient_id = absint($ingredient_id);
             
             if ($quantity > 0 && $supplier) {
-                // Increase stock
-                RPOS_Inventory::adjust_stock(
-                    $product_id, 
-                    $quantity, 
-                    'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased,
+                // Record the purchase
+                $notes = 'Purchase from ' . $supplier . ' on ' . $date_purchased;
+                RPOS_Ingredients::adjust_stock(
+                    $ingredient_id,
+                    $quantity,
+                    'Purchase',
                     null,
-                    null,
-                    $expiry_date
+                    $notes
                 );
                 
-                // Update cost price if provided
+                // Update cost per unit if provided
                 if ($cost_per_unit > 0) {
-                    RPOS_Inventory::update($product_id, array('cost_price' => $cost_per_unit));
+                    RPOS_Ingredients::update($ingredient_id, array('cost_per_unit' => $cost_per_unit));
                 }
                 
                 echo '<div class="notice notice-success"><p>' . esc_html__('Purchase recorded successfully!', 'restaurant-pos') . '</p></div>';
@@ -154,6 +143,9 @@ $low_stock_threshold = intval(RPOS_Settings::get('low_stock_threshold', 10));
 
 // Get stock movements
 $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
+
+// Get ingredients for purchase dropdown
+$ingredients = RPOS_Ingredients::get_all();
 ?>
 
 <div class="wrap rpos-inventory">
@@ -333,12 +325,13 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
             <p>
                 <label for="purchase_product_id"><?php echo esc_html__('Inventory Item:', 'restaurant-pos'); ?> *</label><br>
                 <select id="purchase_product_id" name="product_id" class="regular-text" required>
-                    <option value=""><?php echo esc_html__('Select an item', 'restaurant-pos'); ?></option>
+                    <option value=""><?php echo esc_html__('Select an ingredient', 'restaurant-pos'); ?></option>
                     <option value="__add_new__"><?php echo esc_html__('+ Add New Ingredient', 'restaurant-pos'); ?></option>
-                    <?php foreach ($inventory_items as $item): ?>
-                    <option value="<?php echo esc_attr($item->product_id); ?>">
-                        <?php echo esc_html($item->product_name); ?>
-                        <?php echo $item->sku ? ' (' . esc_html($item->sku) . ')' : ''; ?>
+                    <?php foreach ($ingredients as $ingredient): ?>
+                    <option value="<?php echo esc_attr($ingredient->id); ?>" 
+                            data-unit="<?php echo esc_attr($ingredient->unit); ?>"
+                            data-cost="<?php echo esc_attr($ingredient->cost_per_unit); ?>">
+                        <?php echo esc_html($ingredient->name); ?> (<?php echo esc_html($ingredient->unit); ?>)
                     </option>
                     <?php endforeach; ?>
                 </select>
@@ -379,12 +372,6 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
             <p>
                 <label for="purchase_date"><?php echo esc_html__('Date Purchased:', 'restaurant-pos'); ?></label><br>
                 <input type="date" id="purchase_date" name="date_purchased" value="<?php echo date('Y-m-d'); ?>" class="regular-text">
-            </p>
-            
-            <p>
-                <label for="purchase_expiry_date"><?php echo esc_html__('Expiry Date (optional):', 'restaurant-pos'); ?></label><br>
-                <input type="date" id="purchase_expiry_date" name="expiry_date" class="regular-text">
-                <br><small><?php echo esc_html__('Leave empty if ingredient does not expire', 'restaurant-pos'); ?></small>
             </p>
             
             <p>
@@ -470,7 +457,6 @@ jQuery(document).ready(function($) {
         $('#purchase_cost').val('');
         $('#purchase_supplier').val('');
         $('#purchase_date').val('<?php echo date('Y-m-d'); ?>');
-        $('#purchase_expiry_date').val('');
         $('#new_ingredient_name').val('');
         $('#new_ingredient_name_field').hide();
         

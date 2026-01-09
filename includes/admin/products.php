@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_product_nonce'])
                 foreach ($_POST['recipe_ingredients'] as $index => $ingredient_id) {
                     if (!empty($ingredient_id) && !empty($_POST['recipe_quantities'][$index])) {
                         $recipe_data[] = array(
-                            'inventory_item_id' => absint($ingredient_id),
+                            'ingredient_id' => absint($ingredient_id),
                             'quantity_required' => floatval($_POST['recipe_quantities'][$index]),
                             'unit' => sanitize_text_field($_POST['recipe_units'][$index] ?? '')
                         );
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_product_nonce'])
                 foreach ($_POST['recipe_ingredients'] as $index => $ingredient_id) {
                     if (!empty($ingredient_id) && !empty($_POST['recipe_quantities'][$index])) {
                         $recipe_data[] = array(
-                            'inventory_item_id' => absint($ingredient_id),
+                            'ingredient_id' => absint($ingredient_id),
                             'quantity_required' => floatval($_POST['recipe_quantities'][$index]),
                             'unit' => sanitize_text_field($_POST['recipe_units'][$index] ?? '')
                         );
@@ -111,8 +111,8 @@ if (isset($_GET['edit']) && absint($_GET['edit'])) {
 // Get all categories
 $categories = RPOS_Categories::get_all();
 
-// Get all inventory items for recipe dropdown
-$inventory_items = RPOS_Inventory::get_all();
+// Get all ingredients for recipe dropdown
+$ingredients = RPOS_Ingredients::get_all();
 
 // Get all products
 $products = RPOS_Products::get_all();
@@ -209,22 +209,36 @@ $products = RPOS_Products::get_all();
                     <tbody id="rpos-recipe-rows">
                         <?php if (!empty($existing_recipe)): ?>
                             <?php foreach ($existing_recipe as $recipe_item): 
-                                $inv_item = RPOS_Inventory::get_by_id($recipe_item->inventory_item_id);
-                                $unit = $inv_item ? $inv_item->unit : '';
-                                $cost_per_unit = $inv_item ? floatval($inv_item->cost_price) : 0;
+                                // Support both old (inventory_item_id) and new (ingredient_id) structure
+                                $ingredient_id = isset($recipe_item->ingredient_id) ? $recipe_item->ingredient_id : null;
+                                $inventory_item_id = isset($recipe_item->inventory_item_id) ? $recipe_item->inventory_item_id : null;
+                                
+                                $ingredient = null;
+                                $unit = '';
+                                $cost_per_unit = 0;
+                                
+                                // Try to get ingredient from new system first
+                                if ($ingredient_id) {
+                                    $ingredient = RPOS_Ingredients::get($ingredient_id);
+                                    if ($ingredient) {
+                                        $unit = $ingredient->unit;
+                                        $cost_per_unit = floatval($ingredient->cost_per_unit);
+                                    }
+                                }
+                                
                                 $ingredient_cost = floatval($recipe_item->quantity_required) * $cost_per_unit;
+                                $selected_id = $ingredient_id ?: $inventory_item_id;
                             ?>
                             <tr class="rpos-recipe-row">
                                 <td>
                                     <select name="recipe_ingredients[]" class="ingredient-select regular-text" required>
                                         <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
-                                        <?php foreach ($inventory_items as $inv_item): ?>
-                                        <option value="<?php echo esc_attr($inv_item->id); ?>" 
-                                            data-unit="<?php echo esc_attr($inv_item->unit ?: 'pcs'); ?>"
-                                            data-cost="<?php echo esc_attr($inv_item->cost_price ?: 0); ?>"
-                                            <?php selected($recipe_item->inventory_item_id, $inv_item->id); ?>>
-                                            <?php echo esc_html($inv_item->product_name); ?>
-                                            <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
+                                        <?php foreach ($ingredients as $ing): ?>
+                                        <option value="<?php echo esc_attr($ing->id); ?>" 
+                                            data-unit="<?php echo esc_attr($ing->unit); ?>"
+                                            data-cost="<?php echo esc_attr($ing->cost_per_unit); ?>"
+                                            <?php selected($selected_id, $ing->id); ?>>
+                                            <?php echo esc_html($ing->name); ?> (<?php echo esc_html($ing->unit); ?>)
                                         </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -257,12 +271,11 @@ $products = RPOS_Products::get_all();
                             <td>
                                 <select name="recipe_ingredients[]" class="ingredient-select regular-text">
                                     <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
-                                    <?php foreach ($inventory_items as $inv_item): ?>
-                                    <option value="<?php echo esc_attr($inv_item->id); ?>"
-                                        data-unit="<?php echo esc_attr($inv_item->unit ?: 'pcs'); ?>"
-                                        data-cost="<?php echo esc_attr($inv_item->cost_price ?: 0); ?>">
-                                        <?php echo esc_html($inv_item->product_name); ?>
-                                        <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
+                                    <?php foreach ($ingredients as $ing): ?>
+                                    <option value="<?php echo esc_attr($ing->id); ?>"
+                                        data-unit="<?php echo esc_attr($ing->unit); ?>"
+                                        data-cost="<?php echo esc_attr($ing->cost_per_unit); ?>">
+                                        <?php echo esc_html($ing->name); ?> (<?php echo esc_html($ing->unit); ?>)
                                     </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -416,12 +429,11 @@ $products = RPOS_Products::get_all();
         <td>
             <select name="recipe_ingredients[]" class="ingredient-select regular-text">
                 <option value=""><?php echo esc_html__('Select ingredient', 'restaurant-pos'); ?></option>
-                <?php foreach ($inventory_items as $inv_item): ?>
-                <option value="<?php echo esc_attr($inv_item->id); ?>"
-                    data-unit="<?php echo esc_attr($inv_item->unit ?: 'pcs'); ?>"
-                    data-cost="<?php echo esc_attr($inv_item->cost_price ?: 0); ?>">
-                    <?php echo esc_html($inv_item->product_name); ?>
-                    <?php echo $inv_item->sku ? ' (' . esc_html($inv_item->sku) . ')' : ''; ?>
+                <?php foreach ($ingredients as $ing): ?>
+                <option value="<?php echo esc_attr($ing->id); ?>"
+                    data-unit="<?php echo esc_attr($ing->unit); ?>"
+                    data-cost="<?php echo esc_attr($ing->cost_per_unit); ?>">
+                    <?php echo esc_html($ing->name); ?> (<?php echo esc_html($ing->unit); ?>)
                 </option>
                 <?php endforeach; ?>
             </select>
