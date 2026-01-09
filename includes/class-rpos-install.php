@@ -75,6 +75,14 @@ class RPOS_Install {
             // Add special_instructions column
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `special_instructions` text AFTER `order_type`");
         }
+        
+        // Check if ingredients_deducted column exists in orders table
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'ingredients_deducted'");
+        
+        if (empty($column_exists)) {
+            // Add ingredients_deducted column
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `ingredients_deducted` tinyint(1) DEFAULT 0 AFTER `cashier_id`");
+        }
     }
     
     /**
@@ -163,6 +171,7 @@ class RPOS_Install {
             order_type varchar(20) DEFAULT 'dine-in',
             special_instructions text,
             cashier_id bigint(20) unsigned,
+            ingredients_deducted tinyint(1) DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
