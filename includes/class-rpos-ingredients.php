@@ -246,37 +246,34 @@ class RPOS_Ingredients {
     public static function get_usage_report($date_from = null, $date_to = null) {
         global $wpdb;
         
-        $where = array('1=1');
+        $date_where = '';
         $where_values = array();
         
-        if ($date_from) {
-            $where[] = 'created_at >= %s';
-            $where_values[] = $date_from;
+        if ($date_from && $date_to) {
+            $date_where = 'AND im.created_at BETWEEN %s AND %s';
+            $where_values = array($date_from, $date_to, $date_from, $date_to);
+        } elseif ($date_from) {
+            $date_where = 'AND im.created_at >= %s';
+            $where_values = array($date_from, $date_from);
+        } elseif ($date_to) {
+            $date_where = 'AND im.created_at <= %s';
+            $where_values = array($date_to, $date_to);
         }
-        
-        if ($date_to) {
-            $where[] = 'created_at <= %s';
-            $where_values[] = $date_to;
-        }
-        
-        $where_clause = implode(' AND ', $where);
         
         $query = "SELECT 
                     i.id,
                     i.name,
                     i.unit,
                     i.current_stock_quantity,
-                    COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND {$where_clause} THEN im.change_amount ELSE 0 END), 0) as total_purchased,
-                    COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND {$where_clause} THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed
+                    COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' {$date_where} THEN im.change_amount ELSE 0 END), 0) as total_purchased,
+                    COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') {$date_where} THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed
                   FROM {$wpdb->prefix}rpos_ingredients i
                   LEFT JOIN {$wpdb->prefix}rpos_ingredient_movements im ON i.id = im.ingredient_id
                   GROUP BY i.id
                   ORDER BY i.name ASC";
         
         if (!empty($where_values)) {
-            // Duplicate where_values for each occurrence in the query (2 times)
-            $all_values = array_merge($where_values, $where_values);
-            return $wpdb->get_results($wpdb->prepare($query, $all_values));
+            return $wpdb->get_results($wpdb->prepare($query, $where_values));
         } else {
             return $wpdb->get_results($query);
         }
