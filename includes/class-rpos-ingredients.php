@@ -242,11 +242,7 @@ class RPOS_Ingredients {
         
         $where_values[] = $limit;
         
-        if (!empty($where_values)) {
-            return $wpdb->get_results($wpdb->prepare($query, $where_values));
-        } else {
-            return $wpdb->get_results($wpdb->prepare($query, $limit));
-        }
+        return $wpdb->get_results($wpdb->prepare($query, $where_values));
     }
     
     /**

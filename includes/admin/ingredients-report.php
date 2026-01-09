@@ -11,13 +11,19 @@ if (!defined('ABSPATH')) {
 $date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d');
 $date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
 
-// Validate date format (YYYY-MM-DD)
-if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) {
-    $date_from = date('Y-m-d');
+// Validate and sanitize dates
+function validate_date($date) {
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $matches)) {
+        return false;
+    }
+    $year = (int)$matches[1];
+    $month = (int)$matches[2];
+    $day = (int)$matches[3];
+    return checkdate($month, $day, $year) ? $date : false;
 }
-if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
-    $date_to = date('Y-m-d');
-}
+
+$date_from = validate_date($date_from) ?: date('Y-m-d');
+$date_to = validate_date($date_to) ?: date('Y-m-d');
 
 // Get usage report
 $report_data = RPOS_Ingredients::get_usage_report($date_from . ' 00:00:00', $date_to . ' 23:59:59');
