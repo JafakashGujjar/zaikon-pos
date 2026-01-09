@@ -58,6 +58,23 @@ class RPOS_Install {
             // Add expiry_date column
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `expiry_date` date DEFAULT NULL AFTER `user_id`");
         }
+        
+        // Check if order_type column exists in orders table
+        $table_name = $wpdb->prefix . 'rpos_orders';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'order_type'");
+        
+        if (empty($column_exists)) {
+            // Add order_type column
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `order_type` varchar(20) DEFAULT 'dine-in' AFTER `status`");
+        }
+        
+        // Check if special_instructions column exists in orders table
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'special_instructions'");
+        
+        if (empty($column_exists)) {
+            // Add special_instructions column
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `special_instructions` text AFTER `order_type`");
+        }
     }
     
     /**
@@ -143,6 +160,8 @@ class RPOS_Install {
             cash_received decimal(10,2) DEFAULT 0.00,
             change_due decimal(10,2) DEFAULT 0.00,
             status varchar(50) NOT NULL DEFAULT 'new',
+            order_type varchar(20) DEFAULT 'dine-in',
+            special_instructions text,
             cashier_id bigint(20) unsigned,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

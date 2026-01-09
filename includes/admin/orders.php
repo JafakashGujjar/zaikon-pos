@@ -69,6 +69,16 @@ if (isset($_GET['view']) && absint($_GET['view'])) {
                         </td>
                     </tr>
                     <tr>
+                        <th><?php echo esc_html__('Order Type:', 'restaurant-pos'); ?></th>
+                        <td><?php echo esc_html(ucfirst(str_replace('-', ' ', $viewing_order->order_type ?? 'dine-in'))); ?></td>
+                    </tr>
+                    <?php if (!empty($viewing_order->special_instructions)): ?>
+                    <tr>
+                        <th><?php echo esc_html__('Special Instructions:', 'restaurant-pos'); ?></th>
+                        <td><?php echo esc_html($viewing_order->special_instructions); ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <tr>
                         <th><?php echo esc_html__('Cashier:', 'restaurant-pos'); ?></th>
                         <td><?php echo esc_html($viewing_order->cashier_name ?? 'N/A'); ?></td>
                     </tr>
@@ -184,6 +194,7 @@ if (isset($_GET['view']) && absint($_GET['view'])) {
             <tr>
                 <th><?php echo esc_html__('Order Number', 'restaurant-pos'); ?></th>
                 <th><?php echo esc_html__('Date', 'restaurant-pos'); ?></th>
+                <th><?php echo esc_html__('Type', 'restaurant-pos'); ?></th>
                 <th><?php echo esc_html__('Total', 'restaurant-pos'); ?></th>
                 <th><?php echo esc_html__('Status', 'restaurant-pos'); ?></th>
                 <th><?php echo esc_html__('Cashier', 'restaurant-pos'); ?></th>
@@ -195,6 +206,7 @@ if (isset($_GET['view']) && absint($_GET['view'])) {
             <tr>
                 <td><strong><?php echo esc_html($order->order_number); ?></strong></td>
                 <td><?php echo esc_html(date('Y-m-d H:i', strtotime($order->created_at))); ?></td>
+                <td><?php echo esc_html(ucfirst(str_replace('-', ' ', $order->order_type ?? 'dine-in'))); ?></td>
                 <td>
                     <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>
                     <?php echo number_format($order->total, 2); ?>
