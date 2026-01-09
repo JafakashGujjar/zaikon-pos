@@ -188,4 +188,57 @@ class RPOS_Reports {
     public static function get_low_stock_report() {
         return RPOS_Inventory::get_all(array('low_stock_only' => true));
     }
+    
+    /**
+     * Get kitchen activity report
+     */
+    public static function get_kitchen_activity_report($date = null) {
+        global $wpdb;
+        
+        if (!$date) {
+            $date = date('Y-m-d');
+        }
+        
+        $date_from = $date . ' 00:00:00';
+        $date_to = $date . ' 23:59:59';
+        
+        // Get kitchen staff activity summary
+        $activity_summary = $wpdb->get_results($wpdb->prepare(
+            "SELECT 
+                ka.user_id,
+                u.display_name as user_name,
+                COUNT(DISTINCT CASE WHEN ka.new_status = 'ready' THEN ka.order_id END) as orders_ready,
+                COUNT(DISTINCT CASE WHEN ka.new_status = 'cooking' THEN ka.order_id END) as orders_cooking,
+                COUNT(DISTINCT ka.order_id) as total_orders_handled
+            FROM {$wpdb->prefix}rpos_kitchen_activity ka
+            LEFT JOIN {$wpdb->users} u ON ka.user_id = u.ID
+            WHERE ka.created_at >= %s AND ka.created_at <= %s
+            GROUP BY ka.user_id, u.display_name
+            ORDER BY orders_ready DESC, u.display_name ASC",
+            $date_from,
+            $date_to
+        ));
+        
+        // For each kitchen staff, get product counts
+        foreach ($activity_summary as $index => $staff) {
+            $activity_summary[$index]->products = $wpdb->get_results($wpdb->prepare(
+                "SELECT 
+                    oi.product_name,
+                    SUM(oi.quantity) as total_quantity
+                FROM {$wpdb->prefix}rpos_kitchen_activity ka
+                INNER JOIN {$wpdb->prefix}rpos_order_items oi ON ka.order_id = oi.order_id
+                WHERE ka.user_id = %d 
+                    AND ka.new_status = 'ready'
+                    AND ka.created_at >= %s 
+                    AND ka.created_at <= %s
+                GROUP BY oi.product_name
+                ORDER BY total_quantity DESC",
+                $staff->user_id,
+                $date_from,
+                $date_to
+            ));
+        }
+        
+        return $activity_summary;
+    }
 }

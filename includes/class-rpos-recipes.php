@@ -89,6 +89,11 @@ class RPOS_Recipes {
             
             if (!empty($recipe)) {
                 foreach ($recipe as $ingredient) {
+                    // Skip if ingredient_product_id is NULL (ingredient not found)
+                    if (!$ingredient->ingredient_product_id) {
+                        continue;
+                    }
+                    
                     // Calculate amount to deduct
                     $deduct_qty = floatval($sold_qty) * floatval($ingredient->quantity_required);
                     

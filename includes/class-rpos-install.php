@@ -39,14 +39,24 @@ class RPOS_Install {
     private static function maybe_upgrade() {
         $current_version = get_option('rpos_version', '0.0.0');
         
-        // Check if unit column exists in inventory table
         global $wpdb;
+        
+        // Check if unit column exists in inventory table
         $table_name = $wpdb->prefix . 'rpos_inventory';
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'unit'");
         
         if (empty($column_exists)) {
             // Add unit column
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `unit` varchar(20) DEFAULT 'pcs' AFTER `quantity`");
+        }
+        
+        // Check if expiry_date column exists in stock_movements table
+        $table_name = $wpdb->prefix . 'rpos_stock_movements';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'expiry_date'");
+        
+        if (empty($column_exists)) {
+            // Add expiry_date column
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `expiry_date` date DEFAULT NULL AFTER `user_id`");
         }
     }
     
@@ -115,6 +125,7 @@ class RPOS_Install {
             reason varchar(255),
             order_id bigint(20) unsigned,
             user_id bigint(20) unsigned,
+            expiry_date date DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY product_id (product_id),
@@ -178,6 +189,20 @@ class RPOS_Install {
             PRIMARY KEY (id),
             KEY product_id (product_id),
             KEY inventory_item_id (inventory_item_id)
+        ) $charset_collate;";
+        
+        // Kitchen activity table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_kitchen_activity (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            old_status varchar(50),
+            new_status varchar(50) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY order_id (order_id),
+            KEY user_id (user_id),
+            KEY created_at (created_at)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

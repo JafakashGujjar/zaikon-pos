@@ -10,6 +10,7 @@ if (!defined('ABSPATH')) {
 // Get date range
 $date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d', strtotime('-30 days'));
 $date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+$kitchen_report_date = isset($_GET['kitchen_date']) ? sanitize_text_field($_GET['kitchen_date']) : date('Y-m-d');
 
 $date_from_full = $date_from . ' 00:00:00';
 $date_to_full = $date_to . ' 23:59:59';
@@ -20,6 +21,7 @@ $top_products_qty = RPOS_Reports::get_top_products_by_quantity(10, $date_from_fu
 $top_products_revenue = RPOS_Reports::get_top_products_by_revenue(10, $date_from_full, $date_to_full);
 $profit_report = RPOS_Reports::get_profit_report($date_from_full, $date_to_full);
 $low_stock = RPOS_Reports::get_low_stock_report();
+$kitchen_activity = RPOS_Reports::get_kitchen_activity_report($kitchen_report_date);
 
 $currency = RPOS_Settings::get('currency_symbol', '$');
 ?>
@@ -217,6 +219,63 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
         </table>
         <?php else: ?>
         <p class="rpos-success-message"><?php echo esc_html__('All products are adequately stocked!', 'restaurant-pos'); ?></p>
+        <?php endif; ?>
+    </div>
+    
+    <!-- Kitchen Activity Report -->
+    <div class="rpos-report-section">
+        <h2><?php echo esc_html__('Kitchen Activity Report', 'restaurant-pos'); ?></h2>
+        
+        <div class="rpos-filters">
+            <form method="get" class="rpos-filter-form">
+                <input type="hidden" name="page" value="restaurant-pos-reports">
+                <input type="hidden" name="date_from" value="<?php echo esc_attr($date_from); ?>">
+                <input type="hidden" name="date_to" value="<?php echo esc_attr($date_to); ?>">
+                
+                <label for="kitchen_date"><?php echo esc_html__('Date:', 'restaurant-pos'); ?></label>
+                <input type="date" name="kitchen_date" id="kitchen_date" value="<?php echo esc_attr($kitchen_report_date); ?>">
+                
+                <button type="submit" class="button button-primary"><?php echo esc_html__('View Report', 'restaurant-pos'); ?></button>
+            </form>
+        </div>
+        
+        <?php if (!empty($kitchen_activity)): ?>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th><?php echo esc_html__('Kitchen Staff', 'restaurant-pos'); ?></th>
+                    <th><?php echo esc_html__('Orders Ready Today', 'restaurant-pos'); ?></th>
+                    <th><?php echo esc_html__('Orders Cooking', 'restaurant-pos'); ?></th>
+                    <th><?php echo esc_html__('Total Orders Handled', 'restaurant-pos'); ?></th>
+                    <th><?php echo esc_html__('Items Prepared', 'restaurant-pos'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($kitchen_activity as $staff): ?>
+                <tr>
+                    <td><strong><?php echo esc_html($staff->user_name ?: 'User #' . $staff->user_id); ?></strong></td>
+                    <td><?php echo absint($staff->orders_ready); ?></td>
+                    <td><?php echo absint($staff->orders_cooking); ?></td>
+                    <td><?php echo absint($staff->total_orders_handled); ?></td>
+                    <td>
+                        <?php if (!empty($staff->products)): ?>
+                            <?php
+                            $items = array();
+                            foreach ($staff->products as $product) {
+                                $items[] = absint($product->total_quantity) . '× ' . esc_html($product->product_name);
+                            }
+                            echo implode(', ', $items);
+                            ?>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php else: ?>
+        <p><?php echo esc_html__('No kitchen activity recorded for this date.', 'restaurant-pos'); ?></p>
         <?php endif; ?>
     </div>
 </div>
