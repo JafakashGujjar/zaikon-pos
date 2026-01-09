@@ -86,34 +86,69 @@ class RPOS_Recipes {
      * Deduct ingredients for order items
      */
     public static function deduct_ingredients_for_order($order_id, $order_items) {
+        if (empty($order_items)) {
+            error_log('RPOS: deduct_ingredients_for_order called with empty order_items for order #' . $order_id);
+            return;
+        }
+        
         foreach ($order_items as $item) {
-            $product_id = is_object($item) ? $item->product_id : $item['product_id'];
-            $sold_qty = is_object($item) ? $item->quantity : $item['quantity'];
+            $product_id = is_object($item) ? $item->product_id : (isset($item['product_id']) ? $item['product_id'] : 0);
+            $sold_qty = is_object($item) ? $item->quantity : (isset($item['quantity']) ? $item['quantity'] : 0);
+            
+            if (empty($product_id) || empty($sold_qty)) {
+                error_log('RPOS: Skipping item with invalid product_id or quantity in order #' . $order_id);
+                continue;
+            }
             
             // Get recipe for this product
             $recipe = self::get_by_product($product_id);
             
-            if (!empty($recipe)) {
-                foreach ($recipe as $ingredient) {
-                    // Use ingredient_id if available, otherwise fall back to inventory_item_id
-                    $ingredient_id = isset($ingredient->ingredient_id) ? $ingredient->ingredient_id : null;
-                    
-                    if (!$ingredient_id) {
-                        // Skip if no ingredient_id (old recipes not yet migrated or incomplete data)
-                        continue;
-                    }
-                    
-                    // Calculate amount to deduct
-                    $deduct_qty = floatval($sold_qty) * floatval($ingredient->quantity_required);
-                    
-                    // Deduct from ingredients table
-                    RPOS_Ingredients::adjust_stock(
-                        $ingredient_id,
-                        -$deduct_qty,
-                        'Consumption',
-                        $order_id,
-                        'Sale from Order #' . $order_id
-                    );
+            if (empty($recipe)) {
+                // No recipe defined for this product - this is normal for products without ingredients
+                continue;
+            }
+            
+            foreach ($recipe as $ingredient) {
+                // Get ingredient_id - must be a positive integer
+                $ingredient_id = null;
+                
+                if (isset($ingredient->ingredient_id) && intval($ingredient->ingredient_id) > 0) {
+                    $ingredient_id = intval($ingredient->ingredient_id);
+                }
+                
+                if (empty($ingredient_id)) {
+                    // Log this for debugging - recipe exists but ingredient_id is not set
+                    $product_name = is_object($item) && isset($item->product_name) ? $item->product_name : 'Product #' . $product_id;
+                    error_log('RPOS: Recipe ingredient missing ingredient_id for product "' . $product_name . '" in order #' . $order_id . '. Recipe may need to be re-saved.');
+                    continue;
+                }
+                
+                // Verify the ingredient exists in the ingredients table
+                $ingredient_record = RPOS_Ingredients::get($ingredient_id);
+                if (!$ingredient_record) {
+                    error_log('RPOS: Ingredient ID ' . $ingredient_id . ' not found in ingredients table for order #' . $order_id);
+                    continue;
+                }
+                
+                // Calculate amount to deduct
+                $quantity_required = isset($ingredient->quantity_required) ? floatval($ingredient->quantity_required) : 0;
+                if ($quantity_required <= 0) {
+                    continue;
+                }
+                
+                $deduct_qty = floatval($sold_qty) * $quantity_required;
+                
+                // Deduct from ingredients table
+                $result = RPOS_Ingredients::adjust_stock(
+                    $ingredient_id,
+                    -$deduct_qty,
+                    'Consumption',
+                    $order_id,
+                    'Sale from Order #' . $order_id
+                );
+                
+                if ($result === false) {
+                    error_log('RPOS: Failed to deduct ingredient ID ' . $ingredient_id . ' for order #' . $order_id);
                 }
             }
         }
