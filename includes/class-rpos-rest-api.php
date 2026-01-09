@@ -251,13 +251,37 @@ class RPOS_REST_API {
      * Update order status
      */
     public function update_order_status($request) {
+        global $wpdb;
+        
         $id = $request['id'];
         $data = $request->get_json_params();
+        $new_status = $data['status'];
         
-        $result = RPOS_Orders::update_status($id, $data['status']);
+        // Get current order to track old status
+        $order = RPOS_Orders::get($id);
+        $old_status = $order ? $order->status : null;
+        
+        // Update the order status
+        $result = RPOS_Orders::update_status($id, $new_status);
         
         if ($result === false) {
             return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
+        }
+        
+        // Log kitchen activity if status changed
+        if ($old_status !== $new_status) {
+            $current_user_id = get_current_user_id();
+            
+            $wpdb->insert(
+                $wpdb->prefix . 'rpos_kitchen_activity',
+                array(
+                    'order_id' => $id,
+                    'user_id' => $current_user_id,
+                    'old_status' => $old_status,
+                    'new_status' => $new_status
+                ),
+                array('%d', '%d', '%s', '%s')
+            );
         }
         
         return rest_ensure_response(array('success' => true));

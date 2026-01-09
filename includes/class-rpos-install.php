@@ -191,6 +191,20 @@ class RPOS_Install {
             KEY inventory_item_id (inventory_item_id)
         ) $charset_collate;";
         
+        // Kitchen activity table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_kitchen_activity (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            old_status varchar(50),
+            new_status varchar(50) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY order_id (order_id),
+            KEY user_id (user_id),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+        
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         foreach ($tables as $table) {
