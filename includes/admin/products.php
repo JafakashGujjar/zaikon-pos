@@ -210,8 +210,8 @@ $products = RPOS_Products::get_all();
                         <?php if (!empty($existing_recipe)): ?>
                             <?php foreach ($existing_recipe as $recipe_item): 
                                 // Support both old (inventory_item_id) and new (ingredient_id) structure
-                                $ingredient_id = $recipe_item->ingredient_id ?? null;
-                                $inventory_item_id = $recipe_item->inventory_item_id ?? null;
+                                $ingredient_id = isset($recipe_item->ingredient_id) ? $recipe_item->ingredient_id : null;
+                                $inventory_item_id = isset($recipe_item->inventory_item_id) ? $recipe_item->inventory_item_id : null;
                                 
                                 $ingredient = null;
                                 $unit = '';

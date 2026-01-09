@@ -22,10 +22,19 @@ class RPOS_Ingredients {
         
         $args = wp_parse_args($args, $defaults);
         
-        $orderby = sanitize_sql_orderby($args['orderby'] . ' ' . $args['order']);
-        if (!$orderby) {
-            $orderby = 'name ASC';
+        // Whitelist allowed orderby columns
+        $allowed_orderby = array('id', 'name', 'unit', 'current_stock_quantity', 'cost_per_unit', 'created_at', 'updated_at');
+        if (!in_array($args['orderby'], $allowed_orderby)) {
+            $args['orderby'] = 'name';
         }
+        
+        // Sanitize order direction
+        $order = strtoupper($args['order']);
+        if (!in_array($order, array('ASC', 'DESC'))) {
+            $order = 'ASC';
+        }
+        
+        $orderby = $args['orderby'] . ' ' . $order;
         
         return $wpdb->get_results(
             "SELECT * FROM {$wpdb->prefix}rpos_ingredients 
@@ -233,7 +242,7 @@ class RPOS_Ingredients {
         
         $where_values[] = $limit;
         
-        if (count($where_values) > 1) {
+        if (!empty($where_values)) {
             return $wpdb->get_results($wpdb->prepare($query, $where_values));
         } else {
             return $wpdb->get_results($wpdb->prepare($query, $limit));
@@ -246,18 +255,27 @@ class RPOS_Ingredients {
     public static function get_usage_report($date_from = null, $date_to = null) {
         global $wpdb;
         
-        $date_where = '';
         $where_values = array();
         
         if ($date_from && $date_to) {
-            $date_where = 'AND im.created_at BETWEEN %s AND %s';
+            // Both dates provided - use BETWEEN
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at BETWEEN %s AND %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at BETWEEN %s AND %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
             $where_values = array($date_from, $date_to, $date_from, $date_to);
         } elseif ($date_from) {
-            $date_where = 'AND im.created_at >= %s';
+            // Only start date
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at >= %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at >= %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
             $where_values = array($date_from, $date_from);
         } elseif ($date_to) {
-            $date_where = 'AND im.created_at <= %s';
+            // Only end date
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at <= %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at <= %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
             $where_values = array($date_to, $date_to);
+        } else {
+            // No date filtering
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
         }
         
         $query = "SELECT 
@@ -265,8 +283,8 @@ class RPOS_Ingredients {
                     i.name,
                     i.unit,
                     i.current_stock_quantity,
-                    COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' {$date_where} THEN im.change_amount ELSE 0 END), 0) as total_purchased,
-                    COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') {$date_where} THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed
+                    {$purchased_case},
+                    {$consumed_case}
                   FROM {$wpdb->prefix}rpos_ingredients i
                   LEFT JOIN {$wpdb->prefix}rpos_ingredient_movements im ON i.id = im.ingredient_id
                   GROUP BY i.id

@@ -11,6 +11,14 @@ if (!defined('ABSPATH')) {
 $date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d');
 $date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
 
+// Validate date format (YYYY-MM-DD)
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) {
+    $date_from = date('Y-m-d');
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
+    $date_to = date('Y-m-d');
+}
+
 // Get usage report
 $report_data = RPOS_Ingredients::get_usage_report($date_from . ' 00:00:00', $date_to . ' 23:59:59');
 $currency_symbol = RPOS_Settings::get('currency_symbol', '$');

@@ -96,7 +96,7 @@ class RPOS_Recipes {
             if (!empty($recipe)) {
                 foreach ($recipe as $ingredient) {
                     // Use ingredient_id if available, otherwise fall back to inventory_item_id
-                    $ingredient_id = $ingredient->ingredient_id ?? null;
+                    $ingredient_id = isset($ingredient->ingredient_id) ? $ingredient->ingredient_id : null;
                     
                     if (!$ingredient_id) {
                         // Skip if no ingredient_id (old recipes not yet migrated or incomplete data)
