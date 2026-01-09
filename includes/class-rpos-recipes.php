@@ -16,8 +16,13 @@ class RPOS_Recipes {
         global $wpdb;
         
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT r.*, i.product_id as ingredient_product_id, p.name as ingredient_name
+            "SELECT r.*, 
+                    r.ingredient_id,
+                    r.inventory_item_id,
+                    COALESCE(ing.name, p.name) as ingredient_name,
+                    COALESCE(ing.id, i.product_id) as ingredient_product_id
              FROM {$wpdb->prefix}rpos_product_recipes r
+             LEFT JOIN {$wpdb->prefix}rpos_ingredients ing ON r.ingredient_id = ing.id
              LEFT JOIN {$wpdb->prefix}rpos_inventory i ON r.inventory_item_id = i.id
              LEFT JOIN {$wpdb->prefix}rpos_products p ON i.product_id = p.id
              WHERE r.product_id = %d
@@ -42,7 +47,7 @@ class RPOS_Recipes {
         // Insert new recipe entries
         if (!empty($recipe_data) && is_array($recipe_data)) {
             foreach ($recipe_data as $ingredient) {
-                if (isset($ingredient['inventory_item_id']) && 
+                if (isset($ingredient['ingredient_id']) && 
                     isset($ingredient['quantity_required']) && 
                     floatval($ingredient['quantity_required']) > 0) {
                     
@@ -50,11 +55,12 @@ class RPOS_Recipes {
                         $wpdb->prefix . 'rpos_product_recipes',
                         array(
                             'product_id' => $product_id,
-                            'inventory_item_id' => absint($ingredient['inventory_item_id']),
+                            'ingredient_id' => absint($ingredient['ingredient_id']),
+                            'inventory_item_id' => 0, // Keep for backward compatibility
                             'quantity_required' => floatval($ingredient['quantity_required']),
                             'unit' => isset($ingredient['unit']) ? sanitize_text_field($ingredient['unit']) : ''
                         ),
-                        array('%d', '%d', '%f', '%s')
+                        array('%d', '%d', '%d', '%f', '%s')
                     );
                 }
             }
@@ -89,20 +95,24 @@ class RPOS_Recipes {
             
             if (!empty($recipe)) {
                 foreach ($recipe as $ingredient) {
-                    // Skip if ingredient_product_id is NULL (ingredient not found)
-                    if (!$ingredient->ingredient_product_id) {
+                    // Use ingredient_id if available, otherwise fall back to inventory_item_id
+                    $ingredient_id = $ingredient->ingredient_id ?? null;
+                    
+                    if (!$ingredient_id) {
+                        // Skip if no ingredient_id (old recipes not yet migrated or incomplete data)
                         continue;
                     }
                     
                     // Calculate amount to deduct
                     $deduct_qty = floatval($sold_qty) * floatval($ingredient->quantity_required);
                     
-                    // Deduct from inventory
-                    RPOS_Inventory::adjust_stock(
-                        $ingredient->ingredient_product_id,
+                    // Deduct from ingredients table
+                    RPOS_Ingredients::adjust_stock(
+                        $ingredient_id,
                         -$deduct_qty,
-                        'Consumption - Order #' . $order_id,
-                        $order_id
+                        'Consumption',
+                        $order_id,
+                        'Sale from Order #' . $order_id
                     );
                 }
             }
