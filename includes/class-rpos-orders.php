@@ -79,6 +79,9 @@ class RPOS_Orders {
             if (($data['status'] ?? 'new') === 'completed') {
                 RPOS_Inventory::deduct_for_order($order_id, $data['items']);
                 RPOS_Recipes::deduct_ingredients_for_order($order_id, $data['items']);
+                
+                // Mark ingredients as deducted
+                self::mark_ingredients_deducted($order_id);
             }
         }
         
@@ -201,11 +204,17 @@ class RPOS_Orders {
         
         // If status changed to completed and inventory wasn't deducted yet
         if ($result && $status === 'completed' && $old_order && $old_order->status !== 'completed') {
-            // Deduct regular inventory
-            RPOS_Inventory::deduct_for_order($id, $old_order->items);
-            
-            // Deduct recipe ingredients
-            RPOS_Recipes::deduct_ingredients_for_order($id, $old_order->items);
+            // Check if ingredients have already been deducted
+            if (!self::has_ingredients_deducted($id)) {
+                // Deduct regular inventory
+                RPOS_Inventory::deduct_for_order($id, $old_order->items);
+                
+                // Deduct recipe ingredients
+                RPOS_Recipes::deduct_ingredients_for_order($id, $old_order->items);
+                
+                // Mark ingredients as deducted
+                self::mark_ingredients_deducted($id);
+            }
         }
         
         return $result;
@@ -255,5 +264,44 @@ class RPOS_Orders {
         }
         
         return $wpdb->get_var($query);
+    }
+    
+    /**
+     * Mark ingredients as deducted for an order
+     */
+    public static function mark_ingredients_deducted($order_id) {
+        global $wpdb;
+        
+        $order_id = absint($order_id);
+        if ($order_id <= 0) {
+            return false;
+        }
+        
+        return $wpdb->update(
+            $wpdb->prefix . 'rpos_orders',
+            array('ingredients_deducted' => 1),
+            array('id' => $order_id),
+            array('%d'),
+            array('%d')
+        );
+    }
+    
+    /**
+     * Check if ingredients have been deducted for an order
+     */
+    public static function has_ingredients_deducted($order_id) {
+        global $wpdb;
+        
+        $order_id = absint($order_id);
+        if ($order_id <= 0) {
+            return false;
+        }
+        
+        $result = $wpdb->get_var($wpdb->prepare(
+            "SELECT ingredients_deducted FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        return intval($result) === 1;
     }
 }
