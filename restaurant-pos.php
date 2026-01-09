@@ -65,6 +65,7 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-products.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-categories.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-inventory.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-ingredients.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-recipes.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-orders.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-settings.php';

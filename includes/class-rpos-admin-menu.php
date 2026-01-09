@@ -97,6 +97,26 @@ class RPOS_Admin_Menu {
             array($this, 'inventory_page')
         );
         
+        // Ingredients
+        add_submenu_page(
+            'restaurant-pos',
+            __('Ingredients', 'restaurant-pos'),
+            __('Ingredients', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-ingredients',
+            array($this, 'ingredients_page')
+        );
+        
+        // Ingredients Usage Report
+        add_submenu_page(
+            'restaurant-pos-ingredients',
+            __('Ingredients Usage Report', 'restaurant-pos'),
+            __('Usage Report', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-ingredients-report',
+            array($this, 'ingredients_report_page')
+        );
+        
         // Orders
         add_submenu_page(
             'restaurant-pos',
@@ -168,6 +188,20 @@ class RPOS_Admin_Menu {
      */
     public function inventory_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/inventory.php';
+    }
+    
+    /**
+     * Ingredients page
+     */
+    public function ingredients_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/ingredients.php';
+    }
+    
+    /**
+     * Ingredients report page
+     */
+    public function ingredients_report_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/ingredients-report.php';
     }
     
     /**

@@ -1,0 +1,284 @@
+<?php
+/**
+ * Ingredients Management Class
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class RPOS_Ingredients {
+    
+    /**
+     * Get all ingredients
+     */
+    public static function get_all($args = array()) {
+        global $wpdb;
+        
+        $defaults = array(
+            'orderby' => 'name',
+            'order' => 'ASC'
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        
+        $orderby = sanitize_sql_orderby($args['orderby'] . ' ' . $args['order']);
+        if (!$orderby) {
+            $orderby = 'name ASC';
+        }
+        
+        return $wpdb->get_results(
+            "SELECT * FROM {$wpdb->prefix}rpos_ingredients 
+             ORDER BY {$orderby}"
+        );
+    }
+    
+    /**
+     * Get ingredient by ID
+     */
+    public static function get($id) {
+        global $wpdb;
+        
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}rpos_ingredients WHERE id = %d",
+            $id
+        ));
+    }
+    
+    /**
+     * Create ingredient
+     */
+    public static function create($data) {
+        global $wpdb;
+        
+        $defaults = array(
+            'name' => '',
+            'unit' => 'pcs',
+            'current_stock_quantity' => 0,
+            'cost_per_unit' => 0
+        );
+        
+        $data = wp_parse_args($data, $defaults);
+        
+        if (empty($data['name'])) {
+            return false;
+        }
+        
+        $result = $wpdb->insert(
+            $wpdb->prefix . 'rpos_ingredients',
+            array(
+                'name' => sanitize_text_field($data['name']),
+                'unit' => sanitize_text_field($data['unit']),
+                'current_stock_quantity' => floatval($data['current_stock_quantity']),
+                'cost_per_unit' => floatval($data['cost_per_unit'])
+            ),
+            array('%s', '%s', '%f', '%f')
+        );
+        
+        if ($result) {
+            return $wpdb->insert_id;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Update ingredient
+     */
+    public static function update($id, $data) {
+        global $wpdb;
+        
+        $update_data = array();
+        $format = array();
+        
+        if (isset($data['name'])) {
+            $update_data['name'] = sanitize_text_field($data['name']);
+            $format[] = '%s';
+        }
+        
+        if (isset($data['unit'])) {
+            $update_data['unit'] = sanitize_text_field($data['unit']);
+            $format[] = '%s';
+        }
+        
+        if (isset($data['current_stock_quantity'])) {
+            $update_data['current_stock_quantity'] = floatval($data['current_stock_quantity']);
+            $format[] = '%f';
+        }
+        
+        if (isset($data['cost_per_unit'])) {
+            $update_data['cost_per_unit'] = floatval($data['cost_per_unit']);
+            $format[] = '%f';
+        }
+        
+        if (empty($update_data)) {
+            return false;
+        }
+        
+        return $wpdb->update(
+            $wpdb->prefix . 'rpos_ingredients',
+            $update_data,
+            array('id' => $id),
+            $format,
+            array('%d')
+        );
+    }
+    
+    /**
+     * Delete ingredient
+     */
+    public static function delete($id) {
+        global $wpdb;
+        
+        // Check if ingredient is used in any recipes
+        $used_in_recipes = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_product_recipes WHERE ingredient_id = %d",
+            $id
+        ));
+        
+        if ($used_in_recipes > 0) {
+            return false; // Cannot delete if used in recipes
+        }
+        
+        return $wpdb->delete(
+            $wpdb->prefix . 'rpos_ingredients',
+            array('id' => $id),
+            array('%d')
+        );
+    }
+    
+    /**
+     * Adjust ingredient stock
+     */
+    public static function adjust_stock($ingredient_id, $change_amount, $movement_type = 'Adjustment', $reference_id = null, $notes = '', $user_id = null) {
+        global $wpdb;
+        
+        // Get current ingredient
+        $ingredient = self::get($ingredient_id);
+        if (!$ingredient) {
+            return false;
+        }
+        
+        // Calculate new quantity
+        $new_quantity = floatval($ingredient->current_stock_quantity) + floatval($change_amount);
+        
+        // Don't allow negative stock
+        if ($new_quantity < 0) {
+            $new_quantity = 0;
+        }
+        
+        // Update ingredient stock
+        $wpdb->update(
+            $wpdb->prefix . 'rpos_ingredients',
+            array('current_stock_quantity' => $new_quantity),
+            array('id' => $ingredient_id),
+            array('%f'),
+            array('%d')
+        );
+        
+        // Record stock movement
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        
+        $wpdb->insert(
+            $wpdb->prefix . 'rpos_ingredient_movements',
+            array(
+                'ingredient_id' => $ingredient_id,
+                'change_amount' => floatval($change_amount),
+                'movement_type' => sanitize_text_field($movement_type),
+                'reference_id' => $reference_id,
+                'notes' => sanitize_textarea_field($notes),
+                'user_id' => $user_id
+            ),
+            array('%d', '%f', '%s', '%d', '%s', '%d')
+        );
+        
+        return $new_quantity;
+    }
+    
+    /**
+     * Get ingredient movements
+     */
+    public static function get_movements($ingredient_id = null, $date_from = null, $date_to = null, $limit = 100) {
+        global $wpdb;
+        
+        $where = array('1=1');
+        $where_values = array();
+        
+        if ($ingredient_id) {
+            $where[] = 'im.ingredient_id = %d';
+            $where_values[] = $ingredient_id;
+        }
+        
+        if ($date_from) {
+            $where[] = 'im.created_at >= %s';
+            $where_values[] = $date_from;
+        }
+        
+        if ($date_to) {
+            $where[] = 'im.created_at <= %s';
+            $where_values[] = $date_to;
+        }
+        
+        $where_clause = implode(' AND ', $where);
+        
+        $query = "SELECT im.*, i.name as ingredient_name, i.unit, u.display_name as user_name
+                  FROM {$wpdb->prefix}rpos_ingredient_movements im
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredients i ON im.ingredient_id = i.id
+                  LEFT JOIN {$wpdb->users} u ON im.user_id = u.ID
+                  WHERE {$where_clause}
+                  ORDER BY im.created_at DESC
+                  LIMIT %d";
+        
+        $where_values[] = $limit;
+        
+        if (count($where_values) > 1) {
+            return $wpdb->get_results($wpdb->prepare($query, $where_values));
+        } else {
+            return $wpdb->get_results($wpdb->prepare($query, $limit));
+        }
+    }
+    
+    /**
+     * Get ingredient usage report
+     */
+    public static function get_usage_report($date_from = null, $date_to = null) {
+        global $wpdb;
+        
+        $where = array('1=1');
+        $where_values = array();
+        
+        if ($date_from) {
+            $where[] = 'created_at >= %s';
+            $where_values[] = $date_from;
+        }
+        
+        if ($date_to) {
+            $where[] = 'created_at <= %s';
+            $where_values[] = $date_to;
+        }
+        
+        $where_clause = implode(' AND ', $where);
+        
+        $query = "SELECT 
+                    i.id,
+                    i.name,
+                    i.unit,
+                    i.current_stock_quantity,
+                    COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND {$where_clause} THEN im.change_amount ELSE 0 END), 0) as total_purchased,
+                    COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND {$where_clause} THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed
+                  FROM {$wpdb->prefix}rpos_ingredients i
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredient_movements im ON i.id = im.ingredient_id
+                  GROUP BY i.id
+                  ORDER BY i.name ASC";
+        
+        if (!empty($where_values)) {
+            // Duplicate where_values for each occurrence in the query (2 times)
+            $all_values = array_merge($where_values, $where_values);
+            return $wpdb->get_results($wpdb->prepare($query, $all_values));
+        } else {
+            return $wpdb->get_results($query);
+        }
+    }
+}

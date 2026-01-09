@@ -83,6 +83,16 @@ class RPOS_Install {
             // Add ingredients_deducted column
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `ingredients_deducted` tinyint(1) DEFAULT 0 AFTER `cashier_id`");
         }
+        
+        // Check if ingredient_id column exists in product_recipes table
+        $table_name = $wpdb->prefix . 'rpos_product_recipes';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'ingredient_id'");
+        
+        if (empty($column_exists)) {
+            // Add ingredient_id column (will be used instead of inventory_item_id going forward)
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `ingredient_id` bigint(20) unsigned DEFAULT NULL AFTER `inventory_item_id`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `ingredient_id` (`ingredient_id`)");
+        }
     }
     
     /**
@@ -230,6 +240,35 @@ class RPOS_Install {
             PRIMARY KEY (id),
             KEY order_id (order_id),
             KEY user_id (user_id),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+        
+        // Ingredients table - dedicated table for ingredient management
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_ingredients (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            unit varchar(20) NOT NULL DEFAULT 'pcs',
+            current_stock_quantity decimal(10,3) NOT NULL DEFAULT 0.000,
+            cost_per_unit decimal(10,2) DEFAULT 0.00,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY name (name)
+        ) $charset_collate;";
+        
+        // Ingredient stock movements table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_ingredient_movements (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            ingredient_id bigint(20) unsigned NOT NULL,
+            change_amount decimal(10,3) NOT NULL,
+            movement_type varchar(50) NOT NULL,
+            reference_id bigint(20) unsigned,
+            notes text,
+            user_id bigint(20) unsigned,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY ingredient_id (ingredient_id),
+            KEY movement_type (movement_type),
             KEY created_at (created_at)
         ) $charset_collate;";
         
