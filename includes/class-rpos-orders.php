@@ -272,6 +272,11 @@ class RPOS_Orders {
     public static function mark_ingredients_deducted($order_id) {
         global $wpdb;
         
+        $order_id = absint($order_id);
+        if ($order_id <= 0) {
+            return false;
+        }
+        
         return $wpdb->update(
             $wpdb->prefix . 'rpos_orders',
             array('ingredients_deducted' => 1),
@@ -287,11 +292,16 @@ class RPOS_Orders {
     public static function has_ingredients_deducted($order_id) {
         global $wpdb;
         
+        $order_id = absint($order_id);
+        if ($order_id <= 0) {
+            return false;
+        }
+        
         $result = $wpdb->get_var($wpdb->prepare(
             "SELECT ingredients_deducted FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
             $order_id
         ));
         
-        return (bool) $result;
+        return intval($result) === 1;
     }
 }
