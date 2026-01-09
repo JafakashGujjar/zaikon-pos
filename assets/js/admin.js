@@ -423,14 +423,13 @@
                             $items.append('<div class="rpos-kds-item">' + item.quantity + 'x ' + item.product_name + '</div>');
                         });
                         
+                        $card.append($items);
+                        
                         // Display special instructions if present
                         if (fullOrder.special_instructions && fullOrder.special_instructions.trim() !== '') {
                             var $instructions = $('<div class="rpos-kds-special-instructions">');
                             $instructions.append('<strong>Special Instructions:</strong><br>' + fullOrder.special_instructions);
-                            $card.append($items);
                             $card.append($instructions);
-                        } else {
-                            $card.append($items);
                         }
                     }
                 });
