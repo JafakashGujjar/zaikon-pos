@@ -73,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
         $cost_per_unit = floatval($_POST['cost_per_unit'] ?? 0);
         $supplier = sanitize_text_field($_POST['supplier'] ?? '');
         $date_purchased = sanitize_text_field($_POST['date_purchased'] ?? date('Y-m-d'));
+        $expiry_date = !empty($_POST['expiry_date']) ? sanitize_text_field($_POST['expiry_date']) : null;
         
         // Check if user selected "+ Add New Ingredient"
         if ($product_id === '__add_new__') {
@@ -106,7 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
                     RPOS_Inventory::adjust_stock(
                         $product_id, 
                         $quantity, 
-                        'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased
+                        'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased,
+                        null,
+                        null,
+                        $expiry_date
                     );
                     
                     echo '<div class="notice notice-success"><p>' . esc_html__('New ingredient created and purchase recorded successfully!', 'restaurant-pos') . '</p></div>';
@@ -125,7 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
                 RPOS_Inventory::adjust_stock(
                     $product_id, 
                     $quantity, 
-                    'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased
+                    'Purchase from ' . $supplier . ' (' . $quantity . ' ' . $unit . ') on ' . $date_purchased,
+                    null,
+                    null,
+                    $expiry_date
                 );
                 
                 // Update cost price if provided
@@ -375,6 +382,12 @@ $stock_movements = RPOS_Inventory::get_stock_movements(null, 50);
             </p>
             
             <p>
+                <label for="purchase_expiry_date"><?php echo esc_html__('Expiry Date (optional):', 'restaurant-pos'); ?></label><br>
+                <input type="date" id="purchase_expiry_date" name="expiry_date" class="regular-text">
+                <br><small><?php echo esc_html__('Leave empty if ingredient does not expire', 'restaurant-pos'); ?></small>
+            </p>
+            
+            <p>
                 <button type="submit" class="button button-primary"><?php echo esc_html__('Record Purchase', 'restaurant-pos'); ?></button>
                 <button type="button" class="button rpos-close-modal"><?php echo esc_html__('Cancel', 'restaurant-pos'); ?></button>
             </p>
@@ -457,6 +470,7 @@ jQuery(document).ready(function($) {
         $('#purchase_cost').val('');
         $('#purchase_supplier').val('');
         $('#purchase_date').val('<?php echo date('Y-m-d'); ?>');
+        $('#purchase_expiry_date').val('');
         $('#new_ingredient_name').val('');
         $('#new_ingredient_name_field').hide();
         

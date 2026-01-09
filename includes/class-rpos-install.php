@@ -39,14 +39,24 @@ class RPOS_Install {
     private static function maybe_upgrade() {
         $current_version = get_option('rpos_version', '0.0.0');
         
-        // Check if unit column exists in inventory table
         global $wpdb;
+        
+        // Check if unit column exists in inventory table
         $table_name = $wpdb->prefix . 'rpos_inventory';
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'unit'");
         
         if (empty($column_exists)) {
             // Add unit column
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `unit` varchar(20) DEFAULT 'pcs' AFTER `quantity`");
+        }
+        
+        // Check if expiry_date column exists in stock_movements table
+        $table_name = $wpdb->prefix . 'rpos_stock_movements';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'expiry_date'");
+        
+        if (empty($column_exists)) {
+            // Add expiry_date column
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `expiry_date` date DEFAULT NULL AFTER `user_id`");
         }
     }
     
@@ -115,6 +125,7 @@ class RPOS_Install {
             reason varchar(255),
             order_id bigint(20) unsigned,
             user_id bigint(20) unsigned,
+            expiry_date date DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY product_id (product_id),

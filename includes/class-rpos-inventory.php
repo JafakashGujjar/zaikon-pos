@@ -135,7 +135,7 @@ class RPOS_Inventory {
     /**
      * Adjust stock quantity
      */
-    public static function adjust_stock($product_id, $change_amount, $reason = '', $order_id = null, $user_id = null) {
+    public static function adjust_stock($product_id, $change_amount, $reason = '', $order_id = null, $user_id = null, $expiry_date = null) {
         global $wpdb;
         
         // Get current inventory
@@ -163,16 +163,25 @@ class RPOS_Inventory {
             $user_id = get_current_user_id();
         }
         
+        $movement_data = array(
+            'product_id' => $product_id,
+            'change_amount' => floatval($change_amount),
+            'reason' => sanitize_text_field($reason),
+            'order_id' => $order_id,
+            'user_id' => $user_id
+        );
+        $movement_format = array('%d', '%f', '%s', '%d', '%d');
+        
+        // Add expiry_date if provided
+        if ($expiry_date) {
+            $movement_data['expiry_date'] = sanitize_text_field($expiry_date);
+            $movement_format[] = '%s';
+        }
+        
         $wpdb->insert(
             $wpdb->prefix . 'rpos_stock_movements',
-            array(
-                'product_id' => $product_id,
-                'change_amount' => floatval($change_amount),
-                'reason' => sanitize_text_field($reason),
-                'order_id' => $order_id,
-                'user_id' => $user_id
-            ),
-            array('%d', '%f', '%s', '%d', '%d')
+            $movement_data,
+            $movement_format
         );
         
         return $new_quantity;
