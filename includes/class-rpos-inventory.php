@@ -30,7 +30,7 @@ class RPOS_Inventory {
         return $wpdb->get_row($wpdb->prepare(
             "SELECT i.*, p.name as product_name, p.sku
              FROM {$wpdb->prefix}rpos_inventory i
-             LEFT JOIN {$wpdb->prefix}rpos_products p ON i.product_id = p.id
+             INNER JOIN {$wpdb->prefix}rpos_products p ON i.product_id = p.id
              WHERE i.id = %d",
             $id
         ));
@@ -65,7 +65,7 @@ class RPOS_Inventory {
         return $wpdb->get_results(
             "SELECT i.*, p.name as product_name, p.sku 
              FROM {$wpdb->prefix}rpos_inventory i
-             LEFT JOIN {$wpdb->prefix}rpos_products p ON i.product_id = p.id
+             INNER JOIN {$wpdb->prefix}rpos_products p ON i.product_id = p.id
              WHERE {$where}
              ORDER BY {$orderby}"
         );
