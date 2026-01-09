@@ -52,15 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
             $product_id = RPOS_Products::create($product_data);
             
             if ($product_id) {
-                // Update inventory with unit and cost if provided
-                if ($unit || $default_cost > 0) {
-                    $inventory_data = array();
-                    if ($unit) {
-                        $inventory_data['unit'] = $unit;
-                    }
-                    if ($default_cost > 0) {
-                        $inventory_data['cost_price'] = $default_cost;
-                    }
+                // Update inventory with unit and cost
+                $inventory_data = array();
+                if (!empty($unit)) {
+                    $inventory_data['unit'] = $unit;
+                }
+                if ($default_cost > 0) {
+                    $inventory_data['cost_price'] = $default_cost;
+                }
+                if (!empty($inventory_data)) {
                     RPOS_Inventory::update($product_id, $inventory_data);
                 }
                 
