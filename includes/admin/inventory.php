@@ -53,16 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
             
             if ($product_id) {
                 // Update inventory with unit and cost
-                $inventory_data = array();
-                if (!empty($unit)) {
-                    $inventory_data['unit'] = $unit;
-                }
+                $inventory_data = array('unit' => $unit);
                 if ($default_cost > 0) {
                     $inventory_data['cost_price'] = $default_cost;
                 }
-                if (!empty($inventory_data)) {
-                    RPOS_Inventory::update($product_id, $inventory_data);
-                }
+                RPOS_Inventory::update($product_id, $inventory_data);
                 
                 echo '<div class="notice notice-success"><p>' . esc_html__('Ingredient added successfully!', 'restaurant-pos') . '</p></div>';
             } else {
@@ -440,6 +435,10 @@ jQuery(document).ready(function($) {
     $('#rpos-add-ingredient-form').on('submit', function(e) {
         e.preventDefault();
         
+        var $submitBtn = $(this).find('button[type="submit"]');
+        var originalText = $submitBtn.text();
+        $submitBtn.prop('disabled', true).text('Saving...');
+        
         var formData = {
             action: 'rpos_add_ingredient',
             nonce: rposAdmin.nonce,
@@ -453,6 +452,8 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: formData,
             success: function(response) {
+                $submitBtn.prop('disabled', false).text(originalText);
+                
                 if (response.success) {
                     // Add new option to the dropdown
                     var newOption = $('<option></option>')
@@ -468,14 +469,26 @@ jQuery(document).ready(function($) {
                     // Close the modal
                     $('#rpos-add-ingredient-modal').fadeOut();
                     
-                    // Show success message
-                    alert(response.data.message || 'Ingredient added successfully!');
+                    // Reload page to show the new ingredient in the list
+                    location.reload();
                 } else {
-                    alert(response.data.message || 'Failed to add ingredient.');
+                    var errorMsg = response.data.message || 'Failed to add ingredient.';
+                    if (confirm(errorMsg + '\n\nWould you like to try again?')) {
+                        // Keep modal open for retry
+                    } else {
+                        $('#rpos-add-ingredient-modal').fadeOut();
+                        $('#purchase_product_id').val('');
+                    }
                 }
             },
             error: function() {
-                alert('An error occurred. Please try again.');
+                $submitBtn.prop('disabled', false).text(originalText);
+                if (confirm('An error occurred. Please try again.\n\nWould you like to retry?')) {
+                    // Keep modal open for retry
+                } else {
+                    $('#rpos-add-ingredient-modal').fadeOut();
+                    $('#purchase_product_id').val('');
+                }
             }
         });
     });

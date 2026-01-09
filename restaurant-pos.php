@@ -200,16 +200,11 @@ class Restaurant_POS {
         
         if ($product_id) {
             // Update inventory with unit and cost
-            $inventory_data = array();
-            if (!empty($unit)) {
-                $inventory_data['unit'] = $unit;
-            }
+            $inventory_data = array('unit' => $unit);
             if ($default_cost > 0) {
                 $inventory_data['cost_price'] = $default_cost;
             }
-            if (!empty($inventory_data)) {
-                RPOS_Inventory::update($product_id, $inventory_data);
-            }
+            RPOS_Inventory::update($product_id, $inventory_data);
             
             wp_send_json_success(array(
                 'message' => 'Ingredient added successfully!',
