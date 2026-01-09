@@ -220,8 +220,8 @@ class RPOS_Reports {
         ));
         
         // For each kitchen staff, get product counts
-        foreach ($activity_summary as &$staff) {
-            $staff->products = $wpdb->get_results($wpdb->prepare(
+        foreach ($activity_summary as $index => $staff) {
+            $activity_summary[$index]->products = $wpdb->get_results($wpdb->prepare(
                 "SELECT 
                     oi.product_name,
                     SUM(oi.quantity) as total_quantity

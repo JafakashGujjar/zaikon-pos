@@ -172,10 +172,13 @@ class RPOS_Inventory {
         );
         $movement_format = array('%d', '%f', '%s', '%d', '%d');
         
-        // Add expiry_date if provided
+        // Validate and add expiry_date if provided
         if ($expiry_date) {
-            $movement_data['expiry_date'] = sanitize_text_field($expiry_date);
-            $movement_format[] = '%s';
+            // Validate date format (YYYY-MM-DD)
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiry_date)) {
+                $movement_data['expiry_date'] = sanitize_text_field($expiry_date);
+                $movement_format[] = '%s';
+            }
         }
         
         $wpdb->insert(

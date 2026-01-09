@@ -257,9 +257,11 @@ class RPOS_REST_API {
         $data = $request->get_json_params();
         $new_status = $data['status'];
         
-        // Get current order to track old status
-        $order = RPOS_Orders::get($id);
-        $old_status = $order ? $order->status : null;
+        // Get current order status efficiently
+        $old_status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
+            $id
+        ));
         
         // Update the order status
         $result = RPOS_Orders::update_status($id, $new_status);
@@ -269,7 +271,7 @@ class RPOS_REST_API {
         }
         
         // Log kitchen activity if status changed
-        if ($old_status !== $new_status) {
+        if ($old_status && $old_status !== $new_status) {
             $current_user_id = get_current_user_id();
             
             $wpdb->insert(
