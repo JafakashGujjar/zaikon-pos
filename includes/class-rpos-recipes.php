@@ -116,7 +116,7 @@ class RPOS_Recipes {
                     $ingredient_id = intval($ingredient->ingredient_id);
                 }
                 
-                if (empty($ingredient_id)) {
+                if ($ingredient_id === null) {
                     // Log this for debugging - recipe exists but ingredient_id is not set
                     $product_name = is_object($item) && isset($item->product_name) ? $item->product_name : 'Product #' . $product_id;
                     error_log('RPOS: Recipe ingredient missing ingredient_id for product "' . $product_name . '" in order #' . $order_id . '. Recipe may need to be re-saved.');
