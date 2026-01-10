@@ -77,11 +77,7 @@ class RPOS_Orders {
             
             // Deduct inventory if order is completed
             if (($data['status'] ?? 'new') === 'completed') {
-                RPOS_Inventory::deduct_for_order($order_id, $data['items']);
-                RPOS_Recipes::deduct_ingredients_for_order($order_id, $data['items']);
-                
-                // Mark ingredients as deducted
-                self::mark_ingredients_deducted($order_id);
+                self::deduct_stock_for_order($order_id, $data['items']);
             }
         }
         
@@ -204,17 +200,7 @@ class RPOS_Orders {
         
         // If status changed to completed and inventory wasn't deducted yet
         if ($result && $status === 'completed' && $old_order && $old_order->status !== 'completed') {
-            // Check if ingredients have already been deducted
-            if (!self::has_ingredients_deducted($id)) {
-                // Deduct regular inventory
-                RPOS_Inventory::deduct_for_order($id, $old_order->items);
-                
-                // Deduct recipe ingredients
-                RPOS_Recipes::deduct_ingredients_for_order($id, $old_order->items);
-                
-                // Mark ingredients as deducted
-                self::mark_ingredients_deducted($id);
-            }
+            self::deduct_stock_for_order($id, $old_order->items);
         }
         
         return $result;
@@ -264,6 +250,35 @@ class RPOS_Orders {
         }
         
         return $wpdb->get_var($query);
+    }
+    
+    /**
+     * Deduct stock for an order - centralized single-point deduction
+     * Prevents double-run via ingredients_deducted flag
+     * 
+     * @param int $order_id The order ID to deduct stock for
+     * @param array|null $order_items Optional array of order items. If null, will be loaded from database
+     * @return bool|int False if already deducted, otherwise result of mark_ingredients_deducted
+     */
+    public static function deduct_stock_for_order($order_id, $order_items = null) {
+        // Prevent double deduction
+        if (self::has_ingredients_deducted($order_id)) {
+            return false;
+        }
+        
+        // Load order items if not provided
+        if ($order_items === null) {
+            $order_items = self::get_order_items($order_id);
+        }
+        
+        // Deduct product stock
+        RPOS_Inventory::deduct_for_order($order_id, $order_items);
+        
+        // Deduct ingredient stock
+        RPOS_Recipes::deduct_ingredients_for_order($order_id, $order_items);
+        
+        // Mark as deducted
+        return self::mark_ingredients_deducted($order_id);
     }
     
     /**
