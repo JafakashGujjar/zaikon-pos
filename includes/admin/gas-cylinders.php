@@ -12,8 +12,8 @@ if (!defined('ABSPATH')) {
 $message = '';
 $message_type = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_gas_nonce'])) {
-    if (!wp_verify_nonce($_POST['rpos_gas_nonce'], 'rpos_gas_action') || !current_user_can('rpos_manage_inventory')) {
+if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'rpos_gas_nonce')) {
+    if (!current_user_can('rpos_manage_inventory')) {
         wp_die('Permission denied');
     }
     
