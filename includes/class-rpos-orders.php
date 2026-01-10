@@ -255,6 +255,10 @@ class RPOS_Orders {
     /**
      * Deduct stock for an order - centralized single-point deduction
      * Prevents double-run via ingredients_deducted flag
+     * 
+     * @param int $order_id The order ID to deduct stock for
+     * @param array|null $order_items Optional array of order items. If null, will be loaded from database
+     * @return bool|int False if already deducted, otherwise result of mark_ingredients_deducted
      */
     public static function deduct_stock_for_order($order_id, $order_items = null) {
         // Prevent double deduction

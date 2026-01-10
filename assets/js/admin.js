@@ -588,7 +588,6 @@
                 url: rposKdsData.restUrl + 'orders/' + orderId,
                 method: 'PUT',
                 contentType: 'application/json',
-                processData: false,
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', rposKdsData.nonce);
                 },
