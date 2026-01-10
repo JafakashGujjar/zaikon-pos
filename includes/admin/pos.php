@@ -89,7 +89,7 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                             <?php echo esc_html__('Delivery', 'restaurant-pos'); ?>
                         </button>
                     </div>
-                    <input type="hidden" id="rpos-order-type" value="dine-in" required>
+                    <input type="hidden" id="rpos-order-type" value="dine-in">
                 </div>
                 <div class="zaikon-order-field">
                     <label><?php echo esc_html__('Special Instructions:', 'restaurant-pos'); ?></label>
