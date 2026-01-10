@@ -1,9 +1,82 @@
 /**
- * Restaurant POS Admin JavaScript
+ * ZAIKON POS - Admin JavaScript
+ * Enhanced with toast notifications, animations, and micro-interactions
  */
 
 (function($) {
     'use strict';
+    
+    // Toast Notification System
+    var ZAIKON_Toast = {
+        container: null,
+        
+        init: function() {
+            if (!this.container) {
+                this.container = $('<div class="zaikon-toast-container"></div>');
+                $('body').append(this.container);
+            }
+        },
+        
+        show: function(message, type, duration) {
+            this.init();
+            type = type || 'info';
+            duration = duration || 3000;
+            
+            var icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            var toast = $('<div class="zaikon-toast zaikon-toast-' + type + ' zaikon-animate-slideDown">');
+            toast.append('<div class="zaikon-toast-icon">' + icons[type] + '</div>');
+            
+            var content = $('<div class="zaikon-toast-content">');
+            if (typeof message === 'object' && message.title) {
+                content.append('<div class="zaikon-toast-title">' + message.title + '</div>');
+                if (message.message) {
+                    content.append('<div class="zaikon-toast-message">' + message.message + '</div>');
+                }
+            } else {
+                content.append('<div class="zaikon-toast-message">' + message + '</div>');
+            }
+            toast.append(content);
+            
+            var closeBtn = $('<button class="zaikon-toast-close">&times;</button>');
+            closeBtn.on('click', function() {
+                toast.fadeOut(200, function() { toast.remove(); });
+            });
+            toast.append(closeBtn);
+            
+            this.container.append(toast);
+            
+            if (duration > 0) {
+                setTimeout(function() {
+                    toast.fadeOut(200, function() { toast.remove(); });
+                }, duration);
+            }
+        },
+        
+        success: function(message, duration) {
+            this.show(message, 'success', duration);
+        },
+        
+        error: function(message, duration) {
+            this.show(message, 'error', duration);
+        },
+        
+        warning: function(message, duration) {
+            this.show(message, 'warning', duration);
+        },
+        
+        info: function(message, duration) {
+            this.show(message, 'info', duration);
+        }
+    };
+    
+    // Make toast available globally
+    window.ZaikonToast = ZAIKON_Toast;
     
     // POS Screen Functionality
     var RPOS_POS = {
@@ -85,7 +158,7 @@
         
         renderProducts: function() {
             var self = this;
-            var $grid = $('#rpos-products-grid');
+            var $grid = $('#rpos-products-grid, .zaikon-products-grid');
             var filtered = this.currentCategory === 0 
                 ? this.products 
                 : this.products.filter(function(p) { return p.category_id == self.currentCategory; });
@@ -93,25 +166,28 @@
             $grid.empty();
             
             if (filtered.length === 0) {
-                $grid.html('<div class="rpos-no-products">No products found</div>');
+                $grid.html('<div class="zaikon-no-products">No products found</div>');
                 return;
             }
             
             filtered.forEach(function(product) {
-                var $item = $('<div class="rpos-product-item">')
+                var $item = $('<div class="zaikon-product-card zaikon-animate-fadeIn">')
                     .data('product', product)
                     .on('click', function() {
+                        $(this).addClass('zaikon-animate-scaleIn');
                         self.addToCart(product);
                     });
                 
                 if (product.image_url) {
-                    $item.append('<div class="rpos-product-image"><img src="' + product.image_url + '" alt="' + product.name + '"></div>');
+                    $item.append('<img src="' + product.image_url + '" alt="' + product.name + '" class="zaikon-product-image">');
                 } else {
-                    $item.append('<div class="rpos-product-image rpos-no-image"><span class="dashicons dashicons-cart"></span></div>');
+                    $item.append('<div class="zaikon-product-image"><span class="dashicons dashicons-cart"></span></div>');
                 }
                 
-                $item.append('<div class="rpos-product-name">' + product.name + '</div>');
-                $item.append('<div class="rpos-product-price">' + rposData.currency + parseFloat(product.selling_price).toFixed(2) + '</div>');
+                var $info = $('<div class="zaikon-product-info">');
+                $info.append('<div class="zaikon-product-name">' + product.name + '</div>');
+                $info.append('<div class="zaikon-product-price">' + rposData.currency + parseFloat(product.selling_price).toFixed(2) + '</div>');
+                $item.append($info);
                 
                 $grid.append($item);
             });
@@ -122,11 +198,13 @@
             
             if (existing) {
                 existing.quantity++;
+                ZAIKON_Toast.success('Updated quantity in cart');
             } else {
                 this.cart.push({
                     product: product,
                     quantity: 1
                 });
+                ZAIKON_Toast.success(product.name + ' added to cart');
             }
             
             this.renderCart();
@@ -134,12 +212,12 @@
         
         renderCart: function() {
             var self = this;
-            var $container = $('#rpos-cart-items');
+            var $container = $('#rpos-cart-items, .zaikon-cart-items');
             
             $container.empty();
             
             if (this.cart.length === 0) {
-                $container.html('<div class="rpos-cart-empty">Cart is empty. Add products to start an order.</div>');
+                $container.html('<div class="zaikon-cart-empty">Cart is empty. Add products to start an order.</div>');
                 this.updateTotals();
                 return;
             }
@@ -147,17 +225,20 @@
             this.cart.forEach(function(item, index) {
                 var lineTotal = item.product.selling_price * item.quantity;
                 
-                var $item = $('<div class="rpos-cart-item">');
-                $item.append('<div class="rpos-cart-item-name">' + item.product.name + '</div>');
+                var $item = $('<div class="zaikon-cart-item zaikon-animate-slideDown">');
                 
-                var $qty = $('<div class="rpos-cart-item-qty">');
-                $qty.append('<button class="rpos-qty-btn rpos-qty-minus" data-index="' + index + '">-</button>');
-                $qty.append('<input type="number" class="rpos-qty-input" data-index="' + index + '" value="' + item.quantity + '" min="1">');
-                $qty.append('<button class="rpos-qty-btn rpos-qty-plus" data-index="' + index + '">+</button>');
-                $item.append($qty);
+                var $info = $('<div class="zaikon-cart-item-info">');
+                $info.append('<div class="zaikon-cart-item-name">' + item.product.name + '</div>');
+                $info.append('<div class="zaikon-cart-item-price">' + rposData.currency + parseFloat(item.product.selling_price).toFixed(2) + ' each</div>');
+                $item.append($info);
                 
-                $item.append('<div class="rpos-cart-item-price">' + rposData.currency + lineTotal.toFixed(2) + '</div>');
-                $item.append('<button class="rpos-cart-item-remove" data-index="' + index + '">×</button>');
+                var $controls = $('<div class="zaikon-cart-item-controls">');
+                $controls.append('<button class="zaikon-qty-btn rpos-qty-minus" data-index="' + index + '">-</button>');
+                $controls.append('<span class="zaikon-qty-display">' + item.quantity + '</span>');
+                $controls.append('<button class="zaikon-qty-btn rpos-qty-plus" data-index="' + index + '">+</button>');
+                $item.append($controls);
+                
+                $item.append('<div class="zaikon-cart-item-total">' + rposData.currency + lineTotal.toFixed(2) + '</div>');
                 
                 $container.append($item);
             });
@@ -168,25 +249,16 @@
                 if (self.cart[index].quantity > 1) {
                     self.cart[index].quantity--;
                     self.renderCart();
+                } else {
+                    self.cart.splice(index, 1);
+                    ZAIKON_Toast.info('Item removed from cart');
+                    self.renderCart();
                 }
             });
             
             $('.rpos-qty-plus').on('click', function() {
                 var index = $(this).data('index');
                 self.cart[index].quantity++;
-                self.renderCart();
-            });
-            
-            $('.rpos-qty-input').on('change', function() {
-                var index = $(this).data('index');
-                var qty = parseInt($(this).val()) || 1;
-                self.cart[index].quantity = qty;
-                self.renderCart();
-            });
-            
-            $('.rpos-cart-item-remove').on('click', function() {
-                var index = $(this).data('index');
-                self.cart.splice(index, 1);
                 self.renderCart();
             });
             
@@ -221,13 +293,13 @@
             var self = this;
             
             if (this.cart.length === 0) {
-                alert('Cart is empty');
+                ZAIKON_Toast.error('Cart is empty');
                 return;
             }
             
-            var orderType = $('#rpos-order-type').val();
+            var orderType = $('#rpos-order-type, #zaikon-order-type').val();
             if (!orderType) {
-                alert('Please select an order type');
+                ZAIKON_Toast.error('Please select an order type');
                 return;
             }
             
@@ -236,17 +308,17 @@
                 subtotal += item.product.selling_price * item.quantity;
             });
             
-            var discount = parseFloat($('#rpos-discount').val()) || 0;
+            var discount = parseFloat($('#rpos-discount, #zaikon-discount').val()) || 0;
             var total = subtotal - discount;
-            var cashReceived = parseFloat($('#rpos-cash-received').val()) || 0;
+            var cashReceived = parseFloat($('#rpos-cash-received, #zaikon-cash-received').val()) || 0;
             
             if (cashReceived < total) {
-                alert('Cash received is less than total amount');
+                ZAIKON_Toast.error('Cash received is less than total amount');
                 return;
             }
             
             var changeDue = cashReceived - total;
-            var specialInstructions = $('#rpos-special-instructions').val().trim();
+            var specialInstructions = $('#rpos-special-instructions, #zaikon-special-instructions').val().trim();
             
             var orderData = {
                 subtotal: subtotal,
@@ -267,6 +339,8 @@
                 })
             };
             
+            ZAIKON_Toast.info('Processing order...');
+            
             $.ajax({
                 url: rposData.restUrl + 'orders',
                 method: 'POST',
@@ -276,10 +350,14 @@
                 },
                 data: JSON.stringify(orderData),
                 success: function(response) {
+                    ZAIKON_Toast.success({
+                        title: 'Order Completed!',
+                        message: 'Order #' + response.order_number + ' created successfully'
+                    }, 4000);
                     self.showReceipt(response, orderData);
                 },
                 error: function() {
-                    alert('Failed to create order');
+                    ZAIKON_Toast.error('Failed to create order');
                 }
             });
         },
@@ -373,17 +451,17 @@
         
         renderOrders: function() {
             var self = this;
-            var $grid = $('#rpos-kds-grid');
+            var $grid = $('#rpos-kds-grid, .zaikon-kds-grid');
             var filtered = this.currentFilter === 'all' 
                 ? this.orders 
                 : this.orders.filter(function(o) { return o.status === self.currentFilter; });
             
             $grid.empty();
-            $('#rpos-kds-empty').hide();
+            $('#rpos-kds-empty, .zaikon-kds-empty').hide();
             
             if (filtered.length === 0) {
                 $grid.hide();
-                $('#rpos-kds-empty').show();
+                $('#rpos-kds-empty, .zaikon-kds-empty').show();
                 return;
             }
             
@@ -391,26 +469,31 @@
             
             filtered.forEach(function(order) {
                 var elapsed = self.getElapsedTime(order.created_at);
-                var statusClass = 'rpos-kds-order-' + order.status;
+                var isUrgent = elapsed > 15; // Orders older than 15 minutes
                 
-                var $card = $('<div class="rpos-kds-order ' + statusClass + '">');
+                var $card = $('<div class="zaikon-order-card zaikon-animate-scaleIn" data-status="' + order.status + '">');
                 
-                var $header = $('<div class="rpos-kds-order-header">');
-                $header.append('<div class="rpos-kds-order-number">' + rposKdsData.translations.orderNumber + order.order_number + '</div>');
-                $header.append('<div class="rpos-kds-order-time">' + elapsed + ' ' + rposKdsData.translations.minutes + '</div>');
-                $card.append($header);
+                var $header = $('<div class="zaikon-order-card-header">');
+                $header.append('<div class="zaikon-order-number">#' + order.order_number + '</div>');
                 
-                // Display order type
+                var $meta = $('<div class="zaikon-order-meta">');
+                
+                // Order type badge
                 if (order.order_type) {
                     var orderTypeLabel = order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1).replace('-', ' ');
-                    var $orderType = $('<div class="rpos-kds-order-type">');
-                    $orderType.append('<strong>Type:</strong> ' + orderTypeLabel);
-                    $card.append($orderType);
+                    $meta.append('<span class="zaikon-order-type-badge" data-type="' + order.order_type + '">' + orderTypeLabel + '</span>');
                 }
                 
-                var $items = $('<div class="rpos-kds-order-items">');
-                $items.append('<h4>' + rposKdsData.translations.items + ':</h4>');
+                // Time elapsed
+                var timeClass = isUrgent ? 'zaikon-order-time-urgent' : 'zaikon-order-time';
+                $meta.append('<span class="' + timeClass + '">⏱ ' + elapsed + ' min</span>');
                 
+                $header.append($meta);
+                $card.append($header);
+                
+                var $body = $('<div class="zaikon-order-card-body">');
+                
+                // Load order items
                 $.ajax({
                     url: rposKdsData.restUrl + 'orders/' + order.id,
                     method: 'GET',
@@ -419,32 +502,41 @@
                         xhr.setRequestHeader('X-WP-Nonce', rposKdsData.nonce);
                     },
                     success: function(fullOrder) {
+                        var $items = $('<ul class="zaikon-order-items">');
+                        
                         fullOrder.items.forEach(function(item) {
-                            $items.append('<div class="rpos-kds-item">' + item.quantity + 'x ' + item.product_name + '</div>');
+                            var $item = $('<li class="zaikon-order-item">');
+                            $item.append('<span class="zaikon-item-quantity">' + item.quantity + '</span>');
+                            $item.append('<span class="zaikon-item-name">' + item.product_name + '</span>');
+                            $items.append($item);
                         });
                         
-                        $card.append($items);
+                        $body.append($items);
                         
                         // Display special instructions if present
                         if (fullOrder.special_instructions && fullOrder.special_instructions.trim() !== '') {
-                            var $instructions = $('<div class="rpos-kds-special-instructions">');
-                            $instructions.append('<strong>Special Instructions:</strong><br>' + fullOrder.special_instructions);
-                            $card.append($instructions);
+                            var $instructions = $('<div class="zaikon-special-instructions">');
+                            $instructions.append('<span class="zaikon-special-instructions-label">⚠ Special Instructions</span>');
+                            $instructions.append('<p class="zaikon-special-instructions-text">' + fullOrder.special_instructions + '</p>');
+                            $body.append($instructions);
                         }
                     }
                 });
                 
-                var $actions = $('<div class="rpos-kds-order-actions">');
+                $card.append($body);
+                
+                // Action buttons
+                var $footer = $('<div class="zaikon-order-card-footer">');
                 
                 if (order.status === 'new') {
-                    $actions.append('<button class="button button-primary rpos-kds-action" data-id="' + order.id + '" data-status="cooking">' + rposKdsData.translations.startCooking + '</button>');
+                    $footer.append('<button class="zaikon-status-btn zaikon-status-btn-start rpos-kds-action" data-id="' + order.id + '" data-status="cooking">' + rposKdsData.translations.startCooking + '</button>');
                 } else if (order.status === 'cooking') {
-                    $actions.append('<button class="button button-primary rpos-kds-action" data-id="' + order.id + '" data-status="ready">' + rposKdsData.translations.markReady + '</button>');
+                    $footer.append('<button class="zaikon-status-btn zaikon-status-btn-ready rpos-kds-action" data-id="' + order.id + '" data-status="ready">' + rposKdsData.translations.markReady + '</button>');
                 } else if (order.status === 'ready') {
-                    $actions.append('<button class="button button-primary rpos-kds-action" data-id="' + order.id + '" data-status="completed">' + rposKdsData.translations.complete + '</button>');
+                    $footer.append('<button class="zaikon-status-btn zaikon-status-btn-complete rpos-kds-action" data-id="' + order.id + '" data-status="completed">' + rposKdsData.translations.complete + '</button>');
                 }
                 
-                $card.append($actions);
+                $card.append($footer);
                 $grid.append($card);
             });
             
@@ -452,12 +544,19 @@
             $('.rpos-kds-action').on('click', function() {
                 var orderId = $(this).data('id');
                 var newStatus = $(this).data('status');
+                var $card = $(this).closest('.zaikon-order-card');
+                
+                // Add animation
+                $card.addClass('status-changed');
+                
                 self.updateOrderStatus(orderId, newStatus);
             });
         },
         
         updateOrderStatus: function(orderId, status) {
             var self = this;
+            
+            ZAIKON_Toast.info('Updating order status...');
             
             $.ajax({
                 url: rposKdsData.restUrl + 'orders/' + orderId,
@@ -468,7 +567,16 @@
                 },
                 data: JSON.stringify({ status: status }),
                 success: function() {
+                    var statusLabels = {
+                        'cooking': 'Cooking Started',
+                        'ready': 'Order Ready',
+                        'completed': 'Order Completed'
+                    };
+                    ZAIKON_Toast.success(statusLabels[status] || 'Status Updated');
                     self.loadOrders();
+                },
+                error: function() {
+                    ZAIKON_Toast.error('Failed to update order status');
                 }
             });
         },

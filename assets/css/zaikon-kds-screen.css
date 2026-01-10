@@ -1,0 +1,466 @@
+/**
+ * ZAIKON POS - Kitchen Display System (KDS) Styles
+ * Bold, readable from distance, status-based color coding
+ */
+
+/* ===== HIDE WORDPRESS ADMIN UI ON KDS SCREEN ===== */
+.restaurant-pos_page_restaurant-pos-kds #wpadminbar,
+.restaurant-pos_page_restaurant-pos-kds #adminmenuback,
+.restaurant-pos_page_restaurant-pos-kds #adminmenuwrap,
+.restaurant-pos_page_restaurant-pos-kds #wpfooter,
+.restaurant-pos_page_restaurant-pos-kds .update-nag,
+.restaurant-pos_page_restaurant-pos-kds .notice {
+    display: none !important;
+}
+
+.restaurant-pos_page_restaurant-pos-kds #wpcontent,
+.restaurant-pos_page_restaurant-pos-kds #wpbody-content {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* ===== KDS CONTAINER ===== */
+.zaikon-kds {
+    background: var(--zaikon-dark);
+    min-height: 100vh;
+    padding: var(--space-6);
+    font-family: var(--font-primary);
+}
+
+.zaikon-kds-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-6);
+    padding: var(--space-6);
+    background: var(--zaikon-dark-secondary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.zaikon-kds-header h1 {
+    margin: 0;
+    font-size: var(--text-4xl);
+    font-weight: var(--font-extrabold);
+    color: var(--zaikon-yellow);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.zaikon-kds-controls {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+}
+
+.zaikon-kds-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    background: var(--zaikon-orange);
+    color: var(--zaikon-white);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    min-height: var(--touch-min);
+}
+
+.zaikon-kds-refresh-btn:hover {
+    background: var(--zaikon-orange-dark);
+    transform: scale(1.05);
+}
+
+.zaikon-kds-auto-refresh-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--zaikon-white);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+}
+
+.zaikon-kds-auto-refresh-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* Filter Buttons */
+.zaikon-kds-filters {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+    padding: var(--space-4);
+    background: var(--zaikon-dark-secondary);
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+}
+
+.zaikon-kds-filter-btn {
+    padding: var(--space-3) var(--space-8);
+    background: var(--zaikon-dark-light);
+    color: var(--zaikon-white);
+    border: 2px solid transparent;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    min-height: var(--touch-min);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.zaikon-kds-filter-btn:hover {
+    background: var(--zaikon-dark);
+    transform: translateY(-2px);
+}
+
+.zaikon-kds-filter-btn.active {
+    background: var(--zaikon-orange);
+    border-color: var(--zaikon-orange);
+    box-shadow: var(--shadow-orange);
+}
+
+/* Order Grid */
+.zaikon-kds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--space-6);
+    padding-bottom: var(--space-6);
+}
+
+/* Order Card */
+.zaikon-order-card {
+    background: var(--zaikon-white);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+    transition: all var(--transition-base);
+    animation: zaikon-scaleIn var(--transition-base);
+}
+
+.zaikon-order-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-2xl);
+}
+
+/* Order Card Header */
+.zaikon-order-card-header {
+    padding: var(--space-6);
+    position: relative;
+}
+
+.zaikon-order-card-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+}
+
+/* Status-based colors for header stripe */
+.zaikon-order-card[data-status="new"] .zaikon-order-card-header::before {
+    background: var(--status-new);
+}
+
+.zaikon-order-card[data-status="cooking"] .zaikon-order-card-header::before {
+    background: var(--status-cooking);
+}
+
+.zaikon-order-card[data-status="ready"] .zaikon-order-card-header::before {
+    background: var(--status-ready);
+}
+
+.zaikon-order-card[data-status="completed"] .zaikon-order-card-header::before {
+    background: var(--status-completed);
+}
+
+.zaikon-order-number {
+    font-size: var(--text-5xl);
+    font-weight: var(--font-extrabold);
+    color: var(--zaikon-dark);
+    margin: 0 0 var(--space-3) 0;
+    line-height: var(--leading-none);
+}
+
+.zaikon-order-meta {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-3);
+}
+
+.zaikon-order-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.zaikon-order-type-badge[data-type="dine-in"] {
+    background: var(--order-dine-in);
+    color: var(--zaikon-white);
+}
+
+.zaikon-order-type-badge[data-type="takeaway"] {
+    background: var(--order-takeaway);
+    color: var(--zaikon-white);
+}
+
+.zaikon-order-type-badge[data-type="delivery"] {
+    background: var(--order-delivery);
+    color: var(--zaikon-white);
+}
+
+.zaikon-order-time {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--zaikon-warm-gray);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    color: var(--zaikon-dark);
+}
+
+.zaikon-order-time-urgent {
+    background: var(--zaikon-red);
+    color: var(--zaikon-white);
+    animation: zaikon-pulse 2s infinite;
+}
+
+/* Order Items List */
+.zaikon-order-card-body {
+    padding: 0 var(--space-6) var(--space-6);
+}
+
+.zaikon-order-items {
+    list-style: none;
+    margin: 0 0 var(--space-4) 0;
+    padding: 0;
+}
+
+.zaikon-order-item {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--zaikon-gray-light);
+}
+
+.zaikon-order-item:last-child {
+    border-bottom: none;
+}
+
+.zaikon-item-quantity {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background: var(--zaikon-orange);
+    color: var(--zaikon-white);
+    border-radius: var(--radius-md);
+    font-weight: var(--font-extrabold);
+    font-size: var(--text-lg);
+    margin-right: var(--space-3);
+}
+
+.zaikon-item-name {
+    flex: 1;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--zaikon-dark);
+}
+
+/* Special Instructions Box */
+.zaikon-special-instructions {
+    background: var(--zaikon-yellow-subtle);
+    border-left: 4px solid var(--zaikon-orange);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+}
+
+.zaikon-special-instructions-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    color: var(--zaikon-orange);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.zaikon-special-instructions-text {
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    color: var(--zaikon-dark);
+    line-height: var(--leading-relaxed);
+}
+
+/* Order Card Footer - Status Buttons */
+.zaikon-order-card-footer {
+    padding: var(--space-6);
+    border-top: 2px solid var(--zaikon-gray-light);
+    display: flex;
+    gap: var(--space-3);
+}
+
+.zaikon-status-btn {
+    flex: 1;
+    padding: var(--space-4);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-base);
+    font-weight: var(--font-bold);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    min-height: var(--touch-min);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.zaikon-status-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.zaikon-status-btn:active {
+    transform: translateY(0);
+}
+
+.zaikon-status-btn-start {
+    background: var(--status-cooking);
+    color: var(--zaikon-white);
+}
+
+.zaikon-status-btn-ready {
+    background: var(--status-ready);
+    color: var(--zaikon-white);
+}
+
+.zaikon-status-btn-complete {
+    background: var(--status-completed);
+    color: var(--zaikon-white);
+}
+
+/* Loading and Empty States */
+.zaikon-kds-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-20);
+    color: var(--zaikon-white);
+}
+
+.zaikon-kds-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-20);
+    color: var(--zaikon-gray-medium);
+    font-size: var(--text-2xl);
+}
+
+.zaikon-kds-empty p {
+    margin: 0;
+}
+
+/* Auto-refresh Indicator */
+.zaikon-auto-refresh-indicator {
+    position: fixed;
+    bottom: var(--space-6);
+    right: var(--space-6);
+    background: var(--zaikon-orange);
+    color: var(--zaikon-white);
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    box-shadow: var(--shadow-xl);
+    z-index: var(--z-fixed);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    animation: zaikon-fadeIn var(--transition-base);
+}
+
+.zaikon-auto-refresh-indicator::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--zaikon-white);
+    border-radius: 50%;
+    animation: zaikon-pulse 2s infinite;
+}
+
+/* Status Change Animation */
+@keyframes zaikon-statusChange {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: var(--shadow-2xl);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.zaikon-order-card.status-changed {
+    animation: zaikon-statusChange 0.5s ease-in-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .zaikon-kds {
+        padding: var(--space-4);
+    }
+    
+    .zaikon-kds-header {
+        flex-direction: column;
+        gap: var(--space-4);
+        align-items: flex-start;
+    }
+    
+    .zaikon-kds-header h1 {
+        font-size: var(--text-3xl);
+    }
+    
+    .zaikon-kds-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+    
+    .zaikon-order-number {
+        font-size: var(--text-4xl);
+    }
+    
+    .zaikon-order-card-footer {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .zaikon-kds-filters {
+        flex-direction: column;
+    }
+    
+    .zaikon-kds-filter-btn {
+        width: 100%;
+    }
+}

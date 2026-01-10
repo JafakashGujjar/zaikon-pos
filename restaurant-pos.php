@@ -112,7 +112,23 @@ class Restaurant_POS {
             return;
         }
         
+        // Enqueue ZAIKON design system
+        wp_enqueue_style('zaikon-design-system', RPOS_PLUGIN_URL . 'assets/css/zaikon-design-system.css', array(), RPOS_VERSION);
+        wp_enqueue_style('zaikon-components', RPOS_PLUGIN_URL . 'assets/css/zaikon-components.css', array('zaikon-design-system'), RPOS_VERSION);
+        
+        // Enqueue screen-specific styles
+        if (strpos($hook, 'restaurant-pos-cashier') !== false) {
+            wp_enqueue_style('zaikon-pos-screen', RPOS_PLUGIN_URL . 'assets/css/zaikon-pos-screen.css', array('zaikon-design-system', 'zaikon-components'), RPOS_VERSION);
+        } elseif (strpos($hook, 'restaurant-pos-kds') !== false) {
+            wp_enqueue_style('zaikon-kds-screen', RPOS_PLUGIN_URL . 'assets/css/zaikon-kds-screen.css', array('zaikon-design-system', 'zaikon-components'), RPOS_VERSION);
+        } else {
+            // For all other admin pages
+            wp_enqueue_style('zaikon-admin', RPOS_PLUGIN_URL . 'assets/css/zaikon-admin.css', array('zaikon-design-system', 'zaikon-components'), RPOS_VERSION);
+        }
+        
+        // Keep legacy admin.css for backwards compatibility (will be removed after templates are updated)
         wp_enqueue_style('rpos-admin', RPOS_PLUGIN_URL . 'assets/css/admin.css', array(), RPOS_VERSION);
+        
         wp_enqueue_script('rpos-admin', RPOS_PLUGIN_URL . 'assets/js/admin.js', array('jquery'), RPOS_VERSION, true);
         
         // Localize script with necessary data

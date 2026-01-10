@@ -113,10 +113,10 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
     </div>
     
     <!-- Top Products by Revenue -->
-    <div class="rpos-report-section">
-        <h2><?php echo esc_html__('Top Products by Revenue', 'restaurant-pos'); ?></h2>
+    <div class="zaikon-report-section">
+        <h2><?php echo esc_html__('💰 Top Products by Revenue', 'restaurant-pos'); ?></h2>
         <?php if (!empty($top_products_revenue)): ?>
-        <table class="wp-list-table widefat fixed striped">
+        <table class="zaikon-table zaikon-table-striped">
             <thead>
                 <tr>
                     <th><?php echo esc_html__('Rank', 'restaurant-pos'); ?></th>
