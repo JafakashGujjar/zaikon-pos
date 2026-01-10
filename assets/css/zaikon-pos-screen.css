@@ -537,11 +537,6 @@
 }
 
 /* Payment Fields Side-by-Side Layout */
-.zaikon-payment-section {
-    padding: var(--space-3) var(--space-4);
-    flex-shrink: 0;
-}
-
 .zaikon-payment-fields-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
