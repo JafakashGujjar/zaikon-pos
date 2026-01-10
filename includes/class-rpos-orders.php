@@ -190,6 +190,19 @@ class RPOS_Orders {
         
         $old_order = self::get($id);
         
+        if (!$old_order) {
+            error_log('RPOS Orders: update_status called for non-existent order #' . $id);
+            return false;
+        }
+        
+        // If status is already the same, consider it a success (idempotent)
+        if ($old_order->status === $status) {
+            error_log('RPOS Orders: Order #' . $id . ' already has status "' . $status . '", no change needed');
+            return true;
+        }
+        
+        error_log('RPOS Orders: Updating order #' . $id . ' from "' . $old_order->status . '" to "' . $status . '"');
+        
         $result = $wpdb->update(
             $wpdb->prefix . 'rpos_orders',
             array('status' => sanitize_text_field($status)),
@@ -198,12 +211,19 @@ class RPOS_Orders {
             array('%d')
         );
         
+        // $wpdb->update returns false on error, 0 if no rows changed, or number of rows changed
+        if ($result === false) {
+            error_log('RPOS Orders: Database error updating order #' . $id . ': ' . $wpdb->last_error);
+            return false;
+        }
+        
         // If status changed to completed and inventory wasn't deducted yet
-        if ($result && $status === 'completed' && $old_order && $old_order->status !== 'completed') {
+        if ($status === 'completed') {
+            error_log('RPOS Orders: Order #' . $id . ' completed, triggering stock deduction');
             self::deduct_stock_for_order($id, $old_order->items);
         }
         
-        return $result;
+        return true;
     }
     
     /**
@@ -263,13 +283,23 @@ class RPOS_Orders {
     public static function deduct_stock_for_order($order_id, $order_items = null) {
         // Prevent double deduction
         if (self::has_ingredients_deducted($order_id)) {
+            error_log('RPOS Orders: Stock already deducted for order #' . $order_id . ', skipping');
             return false;
         }
         
         // Load order items if not provided
-        if ($order_items === null) {
+        if ($order_items === null || (is_array($order_items) && empty($order_items))) {
             $order_items = self::get_order_items($order_id);
+            error_log('RPOS Orders: Loaded ' . count($order_items) . ' items from DB for order #' . $order_id);
         }
+        
+        if (empty($order_items)) {
+            error_log('RPOS Orders: No items to deduct for order #' . $order_id);
+            // Still mark as deducted to prevent retries
+            return self::mark_ingredients_deducted($order_id);
+        }
+        
+        error_log('RPOS Orders: Starting stock deduction for order #' . $order_id . ' with ' . count($order_items) . ' items');
         
         // Deduct product stock
         RPOS_Inventory::deduct_for_order($order_id, $order_items);
@@ -278,7 +308,10 @@ class RPOS_Orders {
         RPOS_Recipes::deduct_ingredients_for_order($order_id, $order_items);
         
         // Mark as deducted
-        return self::mark_ingredients_deducted($order_id);
+        $result = self::mark_ingredients_deducted($order_id);
+        error_log('RPOS Orders: Completed stock deduction for order #' . $order_id);
+        
+        return $result;
     }
     
     /**

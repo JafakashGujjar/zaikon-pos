@@ -221,13 +221,31 @@ class RPOS_Inventory {
      * Deduct stock for order items
      */
     public static function deduct_for_order($order_id, $items) {
+        if (empty($items)) {
+            error_log('RPOS Inventory: deduct_for_order called with empty items for order #' . $order_id);
+            return;
+        }
+        
+        error_log('RPOS Inventory: Starting product stock deduction for order #' . $order_id . ' with ' . count($items) . ' items');
+        
         foreach ($items as $item) {
-            self::adjust_stock(
-                $item['product_id'],
-                -$item['quantity'],
+            // Handle both object and array formats
+            $product_id = is_object($item) ? $item->product_id : (isset($item['product_id']) ? $item['product_id'] : 0);
+            $quantity = is_object($item) ? $item->quantity : (isset($item['quantity']) ? $item['quantity'] : 0);
+            
+            if (empty($product_id) || empty($quantity)) {
+                error_log('RPOS Inventory: Skipping item with invalid product_id or quantity in order #' . $order_id);
+                continue;
+            }
+            
+            $new_qty = self::adjust_stock(
+                $product_id,
+                -$quantity,
                 'Order #' . $order_id,
                 $order_id
             );
+            
+            error_log('RPOS Inventory: Deducted ' . $quantity . ' from product #' . $product_id . ' for order #' . $order_id . '. New stock: ' . $new_qty);
         }
     }
 }

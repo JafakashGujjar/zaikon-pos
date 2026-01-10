@@ -262,25 +262,37 @@ class RPOS_REST_API {
     public function update_order_status($request) {
         global $wpdb;
         
-        $id = $request['id'];
+        $id = absint($request['id']);
         $data = $request->get_json_params();
-        $new_status = $data['status'];
         
-        // Get current order status efficiently
+        if (!isset($data['status'])) {
+            return new WP_Error('missing_status', 'Status is required', array('status' => 400));
+        }
+        
+        $new_status = sanitize_text_field($data['status']);
+        
+        // Get current order status
         $old_status = $wpdb->get_var($wpdb->prepare(
             "SELECT status FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
             $id
         ));
         
-        // Update the order status
+        if ($old_status === null) {
+            return new WP_Error('not_found', 'Order not found', array('status' => 404));
+        }
+        
+        error_log('RPOS REST API: update_order_status called for order #' . $id . ' from "' . $old_status . '" to "' . $new_status . '"');
+        
+        // Update the order status (this now handles idempotent calls properly)
         $result = RPOS_Orders::update_status($id, $new_status);
         
         if ($result === false) {
+            error_log('RPOS REST API: Failed to update order #' . $id . ' status');
             return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
         }
         
-        // Log kitchen activity if status changed
-        if ($old_status && $old_status !== $new_status) {
+        // Log kitchen activity only if status actually changed
+        if ($old_status !== $new_status) {
             $current_user_id = get_current_user_id();
             
             $wpdb->insert(
@@ -293,6 +305,8 @@ class RPOS_REST_API {
                 ),
                 array('%d', '%d', '%s', '%s')
             );
+            
+            error_log('RPOS REST API: Kitchen activity logged for order #' . $id);
         }
         
         return rest_ensure_response(array('success' => true));
