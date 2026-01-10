@@ -299,6 +299,45 @@ class RPOS_Install {
             KEY created_at (created_at)
         ) $charset_collate;";
         
+        // Gas Cylinder Types table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_gas_cylinder_types (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            description text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) $charset_collate;";
+        
+        // Gas Cylinder Product Mapping table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_gas_cylinder_product_map (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_type_id bigint(20) unsigned NOT NULL,
+            product_id bigint(20) unsigned NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cylinder_type_id (cylinder_type_id),
+            KEY product_id (product_id)
+        ) $charset_collate;";
+        
+        // Gas Cylinders table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_gas_cylinders (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_type_id bigint(20) unsigned NOT NULL,
+            purchase_date date DEFAULT NULL,
+            cost decimal(10,2) DEFAULT 0.00,
+            start_date date NOT NULL,
+            end_date date DEFAULT NULL,
+            status varchar(20) DEFAULT 'active',
+            notes text,
+            created_by bigint(20) unsigned,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cylinder_type_id (cylinder_type_id),
+            KEY status (status)
+        ) $charset_collate;";
+        
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         foreach ($tables as $table) {
