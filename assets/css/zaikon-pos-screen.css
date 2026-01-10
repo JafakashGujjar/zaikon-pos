@@ -21,7 +21,7 @@
 
 /* ===== POS CONTAINER ===== */
 .zaikon-pos-screen {
-    background: var(--zaikon-yellow-subtle);
+    background: var(--zaikon-bg-primary);
     min-height: 100vh;
     font-family: var(--font-primary);
 }
@@ -37,38 +37,41 @@
 .zaikon-pos-left {
     display: flex;
     flex-direction: column;
-    background: var(--zaikon-white);
+    background: var(--zaikon-bg-secondary);
     overflow: hidden;
 }
 
 .zaikon-pos-header {
-    background: var(--zaikon-dark);
-    color: var(--zaikon-white);
+    background: var(--zaikon-bg-secondary);
+    color: var(--zaikon-text-primary);
     padding: var(--space-6);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
+    border-bottom: 1px solid var(--zaikon-border-light);
 }
 
 .zaikon-pos-header h2 {
     margin: 0 0 var(--space-4) 0;
     font-size: var(--text-2xl);
     font-weight: var(--font-bold);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
 }
 
 .zaikon-pos-search {
     width: 100%;
     padding: var(--space-3) var(--space-4);
     font-size: var(--text-lg);
-    border: none;
+    border: 1px solid var(--zaikon-border-light);
     border-radius: var(--radius-lg);
-    background: var(--zaikon-white);
+    background: var(--zaikon-bg-primary);
     margin-bottom: var(--space-4);
     min-height: var(--touch-comfortable);
+    color: var(--zaikon-text-primary);
 }
 
 .zaikon-pos-search:focus {
-    outline: 2px solid var(--zaikon-yellow);
-    outline-offset: 2px;
+    outline: none;
+    border-color: var(--zaikon-orange);
+    box-shadow: 0 0 0 3px rgba(250, 143, 0, 0.1);
 }
 
 /* Category Tabs */
@@ -85,7 +88,7 @@
 }
 
 .zaikon-pos-categories::-webkit-scrollbar-track {
-    background: var(--zaikon-dark-light);
+    background: var(--zaikon-bg-tertiary);
 }
 
 .zaikon-pos-categories::-webkit-scrollbar-thumb {
@@ -96,9 +99,9 @@
 .zaikon-category-btn {
     flex-shrink: 0;
     padding: var(--space-3) var(--space-6);
-    background: var(--zaikon-dark-secondary);
-    color: var(--zaikon-white);
-    border: 2px solid transparent;
+    background: var(--zaikon-bg-secondary);
+    color: var(--zaikon-text-primary);
+    border: 1px solid var(--zaikon-border-light);
     border-radius: var(--radius-lg);
     font-size: var(--text-base);
     font-weight: var(--font-semibold);
@@ -109,14 +112,15 @@
 }
 
 .zaikon-category-btn:hover {
-    background: var(--zaikon-dark-light);
-    transform: translateY(-2px);
+    background: var(--zaikon-bg-tertiary);
+    border-color: var(--zaikon-border-medium);
 }
 
 .zaikon-category-btn.active {
-    background: var(--zaikon-orange);
-    border-color: var(--zaikon-orange);
-    box-shadow: var(--shadow-orange);
+    background: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
+    border-color: var(--zaikon-yellow);
+    box-shadow: var(--shadow-yellow);
 }
 
 /* Product Grid */
@@ -131,8 +135,8 @@
 }
 
 .zaikon-product-card {
-    background: var(--zaikon-white);
-    border: 2px solid var(--zaikon-gray-light);
+    background: var(--zaikon-bg-secondary);
+    border: 1px solid var(--zaikon-border-light);
     border-radius: var(--radius-lg);
     overflow: hidden;
     cursor: pointer;
@@ -157,7 +161,7 @@
     width: 100%;
     height: 120px;
     object-fit: cover;
-    background: var(--zaikon-warm-gray);
+    background: var(--zaikon-bg-tertiary);
 }
 
 .zaikon-product-info {
@@ -171,7 +175,7 @@
 .zaikon-product-name {
     font-size: var(--text-sm);
     font-weight: var(--font-semibold);
-    color: var(--zaikon-dark);
+    color: var(--zaikon-text-primary);
     margin-bottom: var(--space-2);
     line-height: var(--leading-tight);
     display: -webkit-box;
@@ -210,14 +214,14 @@
     grid-column: 1 / -1;
     text-align: center;
     padding: var(--space-10);
-    color: var(--zaikon-gray-dark);
+    color: var(--zaikon-text-secondary);
 }
 
 .zaikon-no-products {
     grid-column: 1 / -1;
     text-align: center;
     padding: var(--space-10);
-    color: var(--zaikon-gray-dark);
+    color: var(--zaikon-text-secondary);
     font-size: var(--text-lg);
 }
 
@@ -225,30 +229,32 @@
 .zaikon-pos-right {
     display: flex;
     flex-direction: column;
-    background: var(--zaikon-dark);
-    color: var(--zaikon-white);
+    background: var(--zaikon-bg-secondary);
+    color: var(--zaikon-text-primary);
     overflow: hidden;
+    border-left: 1px solid var(--zaikon-border-light);
 }
 
 .zaikon-cart-header {
     padding: var(--space-6);
-    border-bottom: 2px solid var(--zaikon-dark-light);
+    border-bottom: 1px solid var(--zaikon-border-light);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: var(--zaikon-bg-secondary);
 }
 
 .zaikon-cart-header h3 {
     margin: 0;
     font-size: var(--text-xl);
     font-weight: var(--font-bold);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
 }
 
 .zaikon-clear-cart-btn {
     padding: var(--space-2) var(--space-4);
-    background: var(--zaikon-red);
-    color: var(--zaikon-white);
+    background: #DC3545;
+    color: white;
     border: none;
     border-radius: var(--radius-md);
     font-weight: var(--font-semibold);
@@ -258,7 +264,7 @@
 }
 
 .zaikon-clear-cart-btn:hover {
-    background: var(--zaikon-red-dark);
+    background: #C82333;
 }
 
 /* Cart Items */
@@ -271,18 +277,19 @@
 .zaikon-cart-empty {
     text-align: center;
     padding: var(--space-10);
-    color: var(--zaikon-gray-medium);
+    color: var(--zaikon-text-muted);
     font-size: var(--text-base);
 }
 
 .zaikon-cart-item {
-    background: var(--zaikon-dark-secondary);
+    background: var(--zaikon-bg-primary);
     border-radius: var(--radius-md);
     padding: var(--space-4);
     margin-bottom: var(--space-3);
     display: flex;
     gap: var(--space-3);
     align-items: center;
+    border: 1px solid var(--zaikon-border-light);
     animation: zaikon-slideDown var(--transition-base);
 }
 
@@ -294,12 +301,12 @@
     font-weight: var(--font-semibold);
     font-size: var(--text-base);
     margin-bottom: var(--space-1);
-    color: var(--zaikon-white);
+    color: var(--zaikon-text-primary);
 }
 
 .zaikon-cart-item-price {
     font-size: var(--text-sm);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-orange);
 }
 
 .zaikon-cart-item-controls {
@@ -315,7 +322,7 @@
     align-items: center;
     justify-content: center;
     background: var(--zaikon-orange);
-    color: var(--zaikon-white);
+    color: var(--zaikon-bg-secondary);
     border: none;
     border-radius: var(--radius-md);
     font-size: var(--text-lg);
@@ -338,13 +345,13 @@
     text-align: center;
     font-weight: var(--font-bold);
     font-size: var(--text-lg);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
 }
 
 .zaikon-cart-item-total {
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-orange);
     min-width: 80px;
     text-align: right;
 }
@@ -352,8 +359,9 @@
 /* Cart Totals */
 .zaikon-cart-totals {
     padding: var(--space-6);
-    border-top: 2px solid var(--zaikon-dark-light);
-    border-bottom: 2px solid var(--zaikon-dark-light);
+    border-top: 1px solid var(--zaikon-border-light);
+    border-bottom: 1px solid var(--zaikon-border-light);
+    background: var(--zaikon-bg-secondary);
 }
 
 .zaikon-total-row {
@@ -369,23 +377,23 @@
 }
 
 .zaikon-total-row span:first-child {
-    color: var(--zaikon-gray-medium);
+    color: var(--zaikon-text-secondary);
 }
 
 .zaikon-total-row span:last-child,
 .zaikon-total-row input {
     font-weight: var(--font-semibold);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
 }
 
 .zaikon-total-row input {
     width: 100px;
     text-align: right;
-    background: var(--zaikon-dark-secondary);
-    border: 1px solid var(--zaikon-dark-light);
+    background: var(--zaikon-bg-primary);
+    border: 1px solid var(--zaikon-border-light);
     border-radius: var(--radius-md);
     padding: var(--space-2);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
     font-size: var(--text-base);
 }
 
@@ -403,7 +411,7 @@
 
 .zaikon-grand-total span {
     font-weight: var(--font-bold);
-    color: var(--zaikon-yellow) !important;
+    color: var(--zaikon-orange) !important;
 }
 
 /* Order Details */
@@ -417,7 +425,7 @@
     margin: 0 0 var(--space-4) 0;
     font-size: var(--text-base);
     font-weight: var(--font-bold);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -433,7 +441,7 @@
     margin-bottom: var(--space-2);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: var(--zaikon-gray-medium);
+    color: var(--zaikon-text-secondary);
 }
 
 .zaikon-order-field select,
@@ -441,10 +449,10 @@
 .zaikon-payment-field input {
     width: 100%;
     padding: var(--space-3);
-    background: var(--zaikon-dark-secondary);
-    border: 1px solid var(--zaikon-dark-light);
+    background: var(--zaikon-bg-primary);
+    border: 1px solid var(--zaikon-border-light);
     border-radius: var(--radius-md);
-    color: var(--zaikon-white);
+    color: var(--zaikon-text-primary);
     font-size: var(--text-base);
     font-family: var(--font-primary);
 }
@@ -457,8 +465,8 @@
 }
 
 .zaikon-payment-field input[readonly] {
-    background: var(--zaikon-dark);
-    color: var(--zaikon-yellow);
+    background: var(--zaikon-bg-tertiary);
+    color: var(--zaikon-orange);
     font-weight: var(--font-bold);
 }
 
@@ -470,21 +478,21 @@
 .zaikon-complete-order-btn {
     width: 100%;
     padding: var(--space-5);
-    background: var(--zaikon-yellow);
-    color: var(--zaikon-dark);
+    background: var(--zaikon-orange);
+    color: var(--zaikon-bg-secondary);
     border: none;
     border-radius: var(--radius-lg);
     font-size: var(--text-xl);
     font-weight: var(--font-extrabold);
     cursor: pointer;
     transition: all var(--transition-base);
-    box-shadow: var(--shadow-yellow);
+    box-shadow: var(--shadow-orange);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .zaikon-complete-order-btn:hover:not(:disabled) {
-    background: var(--zaikon-yellow-dark);
+    background: var(--zaikon-orange-dark);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }

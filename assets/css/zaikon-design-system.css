@@ -6,22 +6,38 @@
  */
 
 :root {
-    /* ===== BRAND COLORS ===== */
-    /* Primary - ZAIKON Yellow */
-    --zaikon-yellow: #FFD700;
-    --zaikon-yellow-light: #FFEC8B;
-    --zaikon-yellow-dark: #E6BE00;
+    /* ===== LIGHT THEME COLORS ===== */
+    /* Backgrounds */
+    --zaikon-bg-primary: #F7F8FA;        /* Main background - soft light grey */
+    --zaikon-bg-secondary: #FFFFFF;       /* Cards, panels - white */
+    --zaikon-bg-tertiary: #F0F2F5;        /* Subtle sections */
+    
+    /* Borders */
+    --zaikon-border-light: #E4E6EB;       /* Soft neutral borders */
+    --zaikon-border-medium: #CED0D4;      /* Medium borders */
+    
+    /* Text */
+    --zaikon-text-primary: #1A1A1A;       /* Main text - dark for readability */
+    --zaikon-text-secondary: #65676B;     /* Secondary text */
+    --zaikon-text-muted: #8A8D91;         /* Muted text */
+    
+    /* Brand Accents */
+    --zaikon-orange: #FA8F00;             /* Action buttons, prices, highlights */
+    --zaikon-orange-dark: #E07D00;
+    --zaikon-orange-light: #FFB347;
+    
+    --zaikon-yellow: #F8C715;             /* Category active state */
+    --zaikon-yellow-dark: #E0B200;
+    --zaikon-yellow-light: #FFD84D;
+    
+    /* ===== LEGACY/BACKWARD COMPATIBILITY COLORS ===== */
+    /* Primary - ZAIKON Yellow (legacy) */
     --zaikon-yellow-subtle: #FFF9E6;
     
-    /* Secondary - Dark Brown/Black */
+    /* Secondary - Dark Brown/Black (legacy) */
     --zaikon-dark: #1A1A2E;
     --zaikon-dark-secondary: #16213E;
     --zaikon-dark-light: #2C2C44;
-    
-    /* Accent 1 - Orange */
-    --zaikon-orange: #FF7F00;
-    --zaikon-orange-dark: #CC6600;
-    --zaikon-orange-light: #FFA347;
     
     /* Accent 2 - Red */
     --zaikon-red: #E63946;
