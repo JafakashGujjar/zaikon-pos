@@ -295,15 +295,24 @@ class RPOS_REST_API {
         if ($old_status !== $new_status) {
             $current_user_id = get_current_user_id();
             
+            $activity_data = array(
+                'order_id' => $id,
+                'user_id' => $current_user_id,
+                'old_status' => $old_status,
+                'new_status' => $new_status
+            );
+            $activity_format = array('%d', '%d', '%s', '%s');
+            
+            // Add delay reason if provided
+            if (isset($data['delay_reason']) && !empty($data['delay_reason'])) {
+                $activity_data['delay_reason'] = sanitize_textarea_field($data['delay_reason']);
+                $activity_format[] = '%s';
+            }
+            
             $wpdb->insert(
                 $wpdb->prefix . 'rpos_kitchen_activity',
-                array(
-                    'order_id' => $id,
-                    'user_id' => $current_user_id,
-                    'old_status' => $old_status,
-                    'new_status' => $new_status
-                ),
-                array('%d', '%d', '%s', '%s')
+                $activity_data,
+                $activity_format
             );
             
             error_log('RPOS REST API: Kitchen activity logged for order #' . $id);
