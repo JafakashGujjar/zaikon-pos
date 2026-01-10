@@ -377,6 +377,8 @@
         
         showReceipt: function(order, orderData) {
             $('#receipt-restaurant-name').text(rposData.restaurantName);
+            $('#receipt-restaurant-phone').text(rposData.restaurantPhone || '');
+            $('#receipt-restaurant-address').text(rposData.restaurantAddress || '');
             $('#receipt-order-number').text('Order #' + order.order_number);
             $('#receipt-date-time').text(new Date().toLocaleString());
             
@@ -397,6 +399,7 @@
             $('#receipt-total').text(rposData.currency + parseFloat(orderData.total).toFixed(2));
             $('#receipt-cash').text(rposData.currency + parseFloat(orderData.cash_received).toFixed(2));
             $('#receipt-change').text(rposData.currency + parseFloat(orderData.change_due).toFixed(2));
+            $('#receipt-footer-message').text(rposData.receiptFooterMessage || 'Thank you for your order!');
             $('#receipt-cashier').text('Cashier: ' + rposData.currentUser);
             
             $('#rpos-receipt-modal').fadeIn();

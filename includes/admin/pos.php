@@ -125,7 +125,9 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
     <div class="zaikon-receipt zaikon-animate-scaleIn">
         <div class="zaikon-receipt-header">
             <h2 id="receipt-restaurant-name"></h2>
-            <p id="receipt-order-number" style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--zaikon-dark);"></p>
+            <p id="receipt-restaurant-phone" style="font-size: var(--text-sm); color: var(--zaikon-dark-secondary);"></p>
+            <p id="receipt-restaurant-address" style="font-size: var(--text-sm); color: var(--zaikon-dark-secondary); white-space: pre-line;"></p>
+            <p id="receipt-order-number" style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--zaikon-dark); margin-top: var(--space-3);"></p>
             <p id="receipt-date-time" style="color: var(--zaikon-dark-secondary);"></p>
         </div>
         
@@ -156,7 +158,7 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             </div>
             
             <div style="margin-top: var(--space-6); padding-top: var(--space-4); border-top: 2px dashed var(--zaikon-gray-medium); text-align: center;">
-                <p style="font-weight: var(--font-bold); color: var(--zaikon-orange); margin-bottom: var(--space-2);"><?php echo esc_html__('Thank you for your order!', 'restaurant-pos'); ?></p>
+                <p id="receipt-footer-message" style="font-weight: var(--font-bold); color: var(--zaikon-orange); margin-bottom: var(--space-2);"></p>
                 <p id="receipt-cashier" style="font-size: var(--text-sm); color: var(--zaikon-gray-dark);"></p>
             </div>
         </div>
@@ -176,6 +178,9 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
 var rposData = {
     currency: '<?php echo esc_js($currency); ?>',
     restaurantName: '<?php echo esc_js($restaurant_name); ?>',
+    restaurantPhone: '<?php echo esc_js(RPOS_Settings::get('restaurant_phone', '')); ?>',
+    restaurantAddress: '<?php echo esc_js(RPOS_Settings::get('restaurant_address', '')); ?>',
+    receiptFooterMessage: '<?php echo esc_js(RPOS_Settings::get('receipt_footer_message', 'Thank you for your order!')); ?>',
     restUrl: '<?php echo esc_js(rest_url('restaurant-pos/v1/')); ?>',
     nonce: '<?php echo wp_create_nonce('wp_rest'); ?>',
     currentUser: '<?php echo esc_js(wp_get_current_user()->display_name); ?>'

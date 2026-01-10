@@ -22,6 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_settings_nonce']
     RPOS_Settings::update('currency_symbol', sanitize_text_field($_POST['currency_symbol'] ?? '$'));
     RPOS_Settings::update('low_stock_threshold', absint($_POST['low_stock_threshold'] ?? 10));
     RPOS_Settings::update('date_format', sanitize_text_field($_POST['date_format'] ?? 'Y-m-d H:i:s'));
+    RPOS_Settings::update('restaurant_phone', sanitize_text_field($_POST['restaurant_phone'] ?? ''));
+    RPOS_Settings::update('restaurant_address', sanitize_textarea_field($_POST['restaurant_address'] ?? ''));
+    RPOS_Settings::update('receipt_footer_message', sanitize_textarea_field($_POST['receipt_footer_message'] ?? 'Thank you for your order!'));
     
     echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully!', 'restaurant-pos') . '</p></div>';
 }
@@ -94,6 +97,43 @@ $settings = RPOS_Settings::get_all();
                     </select>
                     <p class="description">
                         <?php echo esc_html__('Format for displaying dates and times', 'restaurant-pos'); ?>
+                    </p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    <label for="restaurant_phone"><?php echo esc_html__('Restaurant Phone Number', 'restaurant-pos'); ?></label>
+                </th>
+                <td>
+                    <input type="text" id="restaurant_phone" name="restaurant_phone" class="regular-text" 
+                           value="<?php echo esc_attr($settings['restaurant_phone'] ?? ''); ?>">
+                    <p class="description">
+                        <?php echo esc_html__('Phone number to display on receipts', 'restaurant-pos'); ?>
+                    </p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    <label for="restaurant_address"><?php echo esc_html__('Restaurant Address', 'restaurant-pos'); ?></label>
+                </th>
+                <td>
+                    <textarea id="restaurant_address" name="restaurant_address" class="large-text" rows="3"><?php echo esc_textarea($settings['restaurant_address'] ?? ''); ?></textarea>
+                    <p class="description">
+                        <?php echo esc_html__('Full address to display on receipts', 'restaurant-pos'); ?>
+                    </p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    <label for="receipt_footer_message"><?php echo esc_html__('Receipt Footer Message', 'restaurant-pos'); ?></label>
+                </th>
+                <td>
+                    <textarea id="receipt_footer_message" name="receipt_footer_message" class="large-text" rows="2"><?php echo esc_textarea($settings['receipt_footer_message'] ?? 'Thank you for your order!'); ?></textarea>
+                    <p class="description">
+                        <?php echo esc_html__('Message to display at the bottom of receipts', 'restaurant-pos'); ?>
                     </p>
                 </td>
             </tr>

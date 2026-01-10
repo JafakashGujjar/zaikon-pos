@@ -318,7 +318,10 @@ class RPOS_Install {
             'low_stock_threshold' => '10',
             'date_format' => 'Y-m-d H:i:s',
             'tax_rate' => '0',
-            'enable_tax' => '0'
+            'enable_tax' => '0',
+            'restaurant_phone' => '',
+            'restaurant_address' => '',
+            'receipt_footer_message' => 'Thank you for your order!'
         );
         
         foreach ($default_settings as $key => $value) {
