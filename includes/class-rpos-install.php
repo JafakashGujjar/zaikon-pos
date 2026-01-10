@@ -116,6 +116,36 @@ class RPOS_Install {
         if (empty($column_exists)) {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_rating` tinyint(1) DEFAULT NULL AFTER `supplier_name`");
         }
+        
+        // Check if new columns exist in orders table for KDS tracking
+        $table_name = $wpdb->prefix . 'rpos_orders';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'target_prep_time'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `target_prep_time` int DEFAULT 10 AFTER `ingredients_deducted`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'actual_prep_time'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `actual_prep_time` int DEFAULT NULL AFTER `target_prep_time`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'is_late'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `is_late` tinyint(1) DEFAULT 0 AFTER `actual_prep_time`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'late_reason'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `late_reason` text DEFAULT NULL AFTER `is_late`");
+        }
+        
+        // Check if delay_reason column exists in kitchen_activity table
+        $table_name = $wpdb->prefix . 'rpos_kitchen_activity';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delay_reason'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `delay_reason` text DEFAULT NULL AFTER `new_status`");
+        }
     }
     
     /**
@@ -205,6 +235,10 @@ class RPOS_Install {
             special_instructions text,
             cashier_id bigint(20) unsigned,
             ingredients_deducted tinyint(1) DEFAULT 0,
+            target_prep_time int DEFAULT 10,
+            actual_prep_time int DEFAULT NULL,
+            is_late tinyint(1) DEFAULT 0,
+            late_reason text DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -259,6 +293,7 @@ class RPOS_Install {
             user_id bigint(20) unsigned NOT NULL,
             old_status varchar(50),
             new_status varchar(50) NOT NULL,
+            delay_reason text DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY order_id (order_id),
