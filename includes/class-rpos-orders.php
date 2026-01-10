@@ -290,7 +290,8 @@ class RPOS_Orders {
         // Load order items if not provided
         if ($order_items === null || (is_array($order_items) && empty($order_items))) {
             $order_items = self::get_order_items($order_id);
-            error_log('RPOS Orders: Loaded ' . count($order_items) . ' items from DB for order #' . $order_id);
+            $item_count = is_array($order_items) ? count($order_items) : 0;
+            error_log('RPOS Orders: Loaded ' . $item_count . ' items from DB for order #' . $order_id);
         }
         
         if (empty($order_items)) {
@@ -299,7 +300,8 @@ class RPOS_Orders {
             return self::mark_ingredients_deducted($order_id);
         }
         
-        error_log('RPOS Orders: Starting stock deduction for order #' . $order_id . ' with ' . count($order_items) . ' items');
+        $item_count = count($order_items);
+        error_log('RPOS Orders: Starting stock deduction for order #' . $order_id . ' with ' . $item_count . ' items');
         
         // Deduct product stock
         RPOS_Inventory::deduct_for_order($order_id, $order_items);

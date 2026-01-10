@@ -238,14 +238,14 @@ class RPOS_Inventory {
                 continue;
             }
             
-            $new_qty = self::adjust_stock(
+            $updated_quantity = self::adjust_stock(
                 $product_id,
                 -$quantity,
                 'Order #' . $order_id,
                 $order_id
             );
             
-            error_log('RPOS Inventory: Deducted ' . $quantity . ' from product #' . $product_id . ' for order #' . $order_id . '. New stock: ' . $new_qty);
+            error_log('RPOS Inventory: Deducted ' . $quantity . ' from product #' . $product_id . ' for order #' . $order_id . '. New stock: ' . $updated_quantity);
         }
     }
 }
