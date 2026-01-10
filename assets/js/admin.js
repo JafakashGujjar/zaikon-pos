@@ -85,7 +85,7 @@
         currentCategory: 0,
         
         init: function() {
-            if ($('.rpos-pos-screen').length) {
+            if ($('.rpos-pos-screen').length || $('.zaikon-pos-screen').length) {
                 this.loadProducts();
                 this.bindEvents();
             }
@@ -139,6 +139,7 @@
         
         loadProducts: function() {
             var self = this;
+            console.log('ZAIKON POS: Loading products...');
             
             $.ajax({
                 url: rposData.restUrl + 'products',
@@ -147,10 +148,12 @@
                     xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
                 },
                 success: function(response) {
+                    console.log('ZAIKON POS: Products loaded successfully', response.length + ' products');
                     self.products = response;
                     self.renderProducts();
                 },
-                error: function() {
+                error: function(xhr, status, error) {
+                    console.error('ZAIKON POS: Failed to load products', error);
                     alert('Failed to load products');
                 }
             });
@@ -397,7 +400,7 @@
         autoRefreshInterval: null,
         
         init: function() {
-            if ($('.rpos-kds').length) {
+            if ($('.rpos-kds').length || $('.zaikon-kds').length) {
                 this.loadOrders();
                 this.bindEvents();
                 this.startAutoRefresh();
@@ -432,6 +435,7 @@
         
         loadOrders: function() {
             var self = this;
+            console.log('ZAIKON KDS: Loading orders...');
             
             $.ajax({
                 url: rposKdsData.restUrl + 'orders',
@@ -441,10 +445,15 @@
                     xhr.setRequestHeader('X-WP-Nonce', rposKdsData.nonce);
                 },
                 success: function(response) {
+                    console.log('ZAIKON KDS: Orders loaded successfully', response.length + ' orders');
                     self.orders = response.filter(function(order) {
                         return ['new', 'cooking', 'ready'].includes(order.status);
                     });
+                    console.log('ZAIKON KDS: Filtered to', self.orders.length + ' active orders');
                     self.renderOrders();
+                },
+                error: function(xhr, status, error) {
+                    console.error('ZAIKON KDS: Failed to load orders', error);
                 }
             });
         },
