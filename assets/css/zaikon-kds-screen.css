@@ -20,8 +20,9 @@
 }
 
 /* ===== KDS CONTAINER ===== */
-.zaikon-kds {
-    background: var(--zaikon-dark);
+.zaikon-kds,
+.zaikon-kds-screen {
+    background: var(--zaikon-bg-primary);
     min-height: 100vh;
     padding: var(--space-6);
     font-family: var(--font-primary);
@@ -33,16 +34,17 @@
     align-items: center;
     margin-bottom: var(--space-6);
     padding: var(--space-6);
-    background: var(--zaikon-dark-secondary);
+    background: var(--zaikon-bg-secondary);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-sm);
+    border-bottom: 1px solid var(--zaikon-border-light);
 }
 
 .zaikon-kds-header h1 {
     margin: 0;
     font-size: var(--text-4xl);
     font-weight: var(--font-extrabold);
-    color: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
     text-transform: uppercase;
     letter-spacing: 2px;
 }
@@ -78,7 +80,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    color: var(--zaikon-white);
+    color: var(--zaikon-text-primary);
     font-size: var(--text-base);
     font-weight: var(--font-medium);
     cursor: pointer;
@@ -96,16 +98,16 @@
     gap: var(--space-3);
     margin-bottom: var(--space-6);
     padding: var(--space-4);
-    background: var(--zaikon-dark-secondary);
+    background: var(--zaikon-bg-secondary);
     border-radius: var(--radius-lg);
     overflow-x: auto;
 }
 
 .zaikon-kds-filter-btn {
     padding: var(--space-3) var(--space-8);
-    background: var(--zaikon-dark-light);
-    color: var(--zaikon-white);
-    border: 2px solid transparent;
+    background: var(--zaikon-bg-secondary);
+    color: var(--zaikon-text-primary);
+    border: 1px solid var(--zaikon-border-light);
     border-radius: var(--radius-lg);
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
@@ -118,14 +120,15 @@
 }
 
 .zaikon-kds-filter-btn:hover {
-    background: var(--zaikon-dark);
-    transform: translateY(-2px);
+    background: var(--zaikon-bg-tertiary);
+    border-color: var(--zaikon-border-medium);
 }
 
 .zaikon-kds-filter-btn.active {
-    background: var(--zaikon-orange);
-    border-color: var(--zaikon-orange);
-    box-shadow: var(--shadow-orange);
+    background: var(--zaikon-yellow);
+    color: var(--zaikon-text-primary);
+    border-color: var(--zaikon-yellow);
+    box-shadow: var(--shadow-yellow);
 }
 
 /* Order Grid */
@@ -138,17 +141,18 @@
 
 /* Order Card */
 .zaikon-order-card {
-    background: var(--zaikon-white);
+    background: var(--zaikon-bg-secondary);
+    border: 1px solid var(--zaikon-border-light);
     border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-base);
     transition: all var(--transition-base);
     animation: zaikon-scaleIn var(--transition-base);
 }
 
 .zaikon-order-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-2xl);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Order Card Header */
@@ -157,36 +161,27 @@
     position: relative;
 }
 
-.zaikon-order-card-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 8px;
+/* Status-based left border instead of top stripe */
+.zaikon-order-card[data-status="new"] {
+    border-left: 4px solid var(--status-new);
 }
 
-/* Status-based colors for header stripe */
-.zaikon-order-card[data-status="new"] .zaikon-order-card-header::before {
-    background: var(--status-new);
+.zaikon-order-card[data-status="cooking"] {
+    border-left: 4px solid var(--status-cooking);
 }
 
-.zaikon-order-card[data-status="cooking"] .zaikon-order-card-header::before {
-    background: var(--status-cooking);
+.zaikon-order-card[data-status="ready"] {
+    border-left: 4px solid var(--status-ready);
 }
 
-.zaikon-order-card[data-status="ready"] .zaikon-order-card-header::before {
-    background: var(--status-ready);
-}
-
-.zaikon-order-card[data-status="completed"] .zaikon-order-card-header::before {
-    background: var(--status-completed);
+.zaikon-order-card[data-status="completed"] {
+    border-left: 4px solid var(--status-completed);
 }
 
 .zaikon-order-number {
-    font-size: var(--text-5xl);
+    font-size: var(--text-4xl);
     font-weight: var(--font-extrabold);
-    color: var(--zaikon-dark);
+    color: var(--zaikon-text-primary);
     margin: 0 0 var(--space-3) 0;
     line-height: var(--leading-none);
 }
@@ -231,17 +226,17 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-4);
-    background: var(--zaikon-warm-gray);
+    background: var(--zaikon-bg-tertiary);
     border-radius: var(--radius-full);
     font-size: var(--text-sm);
     font-weight: var(--font-bold);
-    color: var(--zaikon-dark);
+    color: var(--zaikon-text-secondary);
 }
 
 .zaikon-order-time-urgent {
     background: var(--zaikon-red);
-    color: var(--zaikon-white);
-    animation: zaikon-pulse 2s infinite;
+    color: white;
+    animation: zaikon-pulse 1s infinite;
 }
 
 /* Order Items List */
@@ -259,7 +254,7 @@
     display: flex;
     justify-content: space-between;
     padding: var(--space-3) 0;
-    border-bottom: 1px solid var(--zaikon-gray-light);
+    border-bottom: 1px solid var(--zaikon-border-light);
 }
 
 .zaikon-order-item:last-child {
@@ -273,34 +268,35 @@
     min-width: 32px;
     height: 32px;
     background: var(--zaikon-orange);
-    color: var(--zaikon-white);
-    border-radius: var(--radius-md);
-    font-weight: var(--font-extrabold);
-    font-size: var(--text-lg);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-bold);
+    font-size: var(--text-base);
     margin-right: var(--space-3);
+    padding: var(--space-1) var(--space-2);
 }
 
 .zaikon-item-name {
     flex: 1;
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
-    color: var(--zaikon-dark);
+    color: var(--zaikon-text-primary);
 }
 
 /* Special Instructions Box */
 .zaikon-special-instructions {
-    background: var(--zaikon-yellow-subtle);
-    border-left: 4px solid var(--zaikon-orange);
-    padding: var(--space-4);
+    background: var(--zaikon-warning-bg);
+    border: 1px solid var(--zaikon-warning-border);
     border-radius: var(--radius-md);
-    margin-bottom: var(--space-4);
+    padding: var(--space-3);
+    margin-top: var(--space-3);
 }
 
 .zaikon-special-instructions-label {
     display: block;
     font-size: var(--text-sm);
     font-weight: var(--font-bold);
-    color: var(--zaikon-orange);
+    color: var(--zaikon-warning-text);
     margin-bottom: var(--space-2);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -309,24 +305,24 @@
 .zaikon-special-instructions-text {
     font-size: var(--text-base);
     font-weight: var(--font-medium);
-    color: var(--zaikon-dark);
+    color: var(--zaikon-text-primary);
     line-height: var(--leading-relaxed);
 }
 
 /* Order Card Footer - Status Buttons */
 .zaikon-order-card-footer {
     padding: var(--space-6);
-    border-top: 2px solid var(--zaikon-gray-light);
+    border-top: 1px solid var(--zaikon-border-light);
     display: flex;
     gap: var(--space-3);
 }
 
 .zaikon-status-btn {
-    flex: 1;
+    width: 100%;
     padding: var(--space-4);
     border: none;
-    border-radius: var(--radius-lg);
-    font-size: var(--text-base);
+    border-radius: var(--radius-md);
+    font-size: var(--text-lg);
     font-weight: var(--font-bold);
     cursor: pointer;
     transition: all var(--transition-base);
@@ -346,17 +342,17 @@
 
 .zaikon-status-btn-start {
     background: var(--status-cooking);
-    color: var(--zaikon-white);
+    color: white;
 }
 
 .zaikon-status-btn-ready {
     background: var(--status-ready);
-    color: var(--zaikon-white);
+    color: white;
 }
 
 .zaikon-status-btn-complete {
-    background: var(--status-completed);
-    color: var(--zaikon-white);
+    background: var(--zaikon-orange);
+    color: white;
 }
 
 /* Loading and Empty States */
@@ -364,14 +360,16 @@
     grid-column: 1 / -1;
     text-align: center;
     padding: var(--space-20);
-    color: var(--zaikon-white);
+    color: var(--zaikon-text-secondary);
 }
 
 .zaikon-kds-empty {
     grid-column: 1 / -1;
     text-align: center;
-    padding: var(--space-20);
-    color: var(--zaikon-gray-medium);
+    padding: var(--space-16);
+    color: var(--zaikon-text-muted);
+    background: var(--zaikon-bg-secondary);
+    border-radius: var(--radius-lg);
     font-size: var(--text-2xl);
 }
 
