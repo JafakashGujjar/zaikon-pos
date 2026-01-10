@@ -561,18 +561,25 @@
             
             // Bind action buttons
             $('.rpos-kds-action').on('click', function() {
-                var orderId = $(this).data('id');
-                var newStatus = $(this).data('status');
-                var $card = $(this).closest('.zaikon-order-card');
+                var $btn = $(this);
+                var orderId = $btn.data('id');
+                var newStatus = $btn.data('status');
+                var $card = $btn.closest('.zaikon-order-card');
+                
+                // Disable button to prevent double-click
+                if ($btn.prop('disabled')) {
+                    return;
+                }
+                $btn.prop('disabled', true);
                 
                 // Add animation
                 $card.addClass('status-changed');
                 
-                self.updateOrderStatus(orderId, newStatus);
+                self.updateOrderStatus(orderId, newStatus, $btn);
             });
         },
         
-        updateOrderStatus: function(orderId, status) {
+        updateOrderStatus: function(orderId, status, $btn) {
             var self = this;
             
             ZAIKON_Toast.info('Updating order status...');
@@ -581,6 +588,7 @@
                 url: rposKdsData.restUrl + 'orders/' + orderId,
                 method: 'PUT',
                 contentType: 'application/json',
+                processData: false,
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', rposKdsData.nonce);
                 },
@@ -592,10 +600,22 @@
                         'completed': 'Order Completed'
                     };
                     ZAIKON_Toast.success(statusLabels[status] || 'Status Updated');
+                    
+                    // Immediately refresh orders to show changes
                     self.loadOrders();
                 },
-                error: function() {
-                    ZAIKON_Toast.error('Failed to update order status');
+                error: function(xhr, status, error) {
+                    var errorMessage = 'Failed to update order status';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage += ': ' + xhr.responseJSON.message;
+                    }
+                    ZAIKON_Toast.error(errorMessage);
+                },
+                complete: function() {
+                    // Re-enable button
+                    if ($btn) {
+                        $btn.prop('disabled', false);
+                    }
                 }
             });
         },
