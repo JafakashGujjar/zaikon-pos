@@ -93,19 +93,21 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                 </div>
                 <div class="zaikon-order-field">
                     <label><?php echo esc_html__('Special Instructions:', 'restaurant-pos'); ?></label>
-                    <textarea id="rpos-special-instructions" rows="3" placeholder="<?php echo esc_attr__('e.g., No mayo, Extra spicy, Table 5, etc.', 'restaurant-pos'); ?>"></textarea>
+                    <textarea id="rpos-special-instructions" rows="2" placeholder="<?php echo esc_attr__('e.g., No mayo, Extra spicy, Table 5, etc.', 'restaurant-pos'); ?>"></textarea>
                 </div>
             </div>
             
             <div class="zaikon-payment-section">
                 <h4><?php echo esc_html__('Cash Payment', 'restaurant-pos'); ?></h4>
-                <div class="zaikon-payment-field">
-                    <label><?php echo esc_html__('Cash Received:', 'restaurant-pos'); ?></label>
-                    <input type="number" id="rpos-cash-received" step="0.01" min="0" placeholder="0.00" inputmode="numeric">
-                </div>
-                <div class="zaikon-payment-field zaikon-change-due-field">
-                    <label><?php echo esc_html__('Change Due:', 'restaurant-pos'); ?></label>
-                    <div id="rpos-change-due" class="zaikon-change-due-display"><?php echo esc_html($currency); ?>0.00</div>
+                <div class="zaikon-payment-fields-grid">
+                    <div class="zaikon-payment-field">
+                        <label><?php echo esc_html__('Cash Received:', 'restaurant-pos'); ?></label>
+                        <input type="number" id="rpos-cash-received" step="0.01" min="0" placeholder="0.00" inputmode="numeric">
+                    </div>
+                    <div class="zaikon-payment-field zaikon-change-due-field">
+                        <label><?php echo esc_html__('Change Due:', 'restaurant-pos'); ?></label>
+                        <div id="rpos-change-due" class="zaikon-change-due-display"><?php echo esc_html($currency); ?>0.00</div>
+                    </div>
                 </div>
             </div>
             
