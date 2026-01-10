@@ -253,7 +253,7 @@
 
 .zaikon-clear-cart-btn {
     padding: var(--space-2) var(--space-4);
-    background: #DC3545;
+    background: var(--zaikon-red);
     color: white;
     border: none;
     border-radius: var(--radius-md);
@@ -264,7 +264,7 @@
 }
 
 .zaikon-clear-cart-btn:hover {
-    background: #C82333;
+    background: var(--zaikon-red-dark);
 }
 
 /* Cart Items */

@@ -234,7 +234,7 @@
 }
 
 .zaikon-order-time-urgent {
-    background: #DC3545;
+    background: var(--zaikon-red);
     color: white;
     animation: zaikon-pulse 1s infinite;
 }
@@ -285,8 +285,8 @@
 
 /* Special Instructions Box */
 .zaikon-special-instructions {
-    background: #FFF3CD;
-    border: 1px solid #FFECB5;
+    background: var(--zaikon-warning-bg);
+    border: 1px solid var(--zaikon-warning-border);
     border-radius: var(--radius-md);
     padding: var(--space-3);
     margin-top: var(--space-3);
@@ -296,7 +296,7 @@
     display: block;
     font-size: var(--text-sm);
     font-weight: var(--font-bold);
-    color: #856404;
+    color: var(--zaikon-warning-text);
     margin-bottom: var(--space-2);
     text-transform: uppercase;
     letter-spacing: 0.5px;

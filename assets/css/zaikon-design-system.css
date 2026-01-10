@@ -40,9 +40,14 @@
     --zaikon-dark-light: #2C2C44;
     
     /* Accent 2 - Red */
-    --zaikon-red: #E63946;
-    --zaikon-red-dark: #C72C38;
+    --zaikon-red: #DC3545;
+    --zaikon-red-dark: #C82333;
     --zaikon-red-light: #FF5C6A;
+    
+    /* Warning colors */
+    --zaikon-warning-bg: #FFF3CD;
+    --zaikon-warning-border: #FFECB5;
+    --zaikon-warning-text: #856404;
     
     /* Neutrals */
     --zaikon-white: #FFFFFF;
