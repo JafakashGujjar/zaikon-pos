@@ -73,6 +73,7 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-pos.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-kds.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-reports.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-gas-cylinders.php';
     }
     
     /**

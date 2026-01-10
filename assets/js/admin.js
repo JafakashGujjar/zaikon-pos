@@ -377,6 +377,8 @@
         
         showReceipt: function(order, orderData) {
             $('#receipt-restaurant-name').text(rposData.restaurantName);
+            $('#receipt-restaurant-phone').text(rposData.restaurantPhone || '');
+            $('#receipt-restaurant-address').text(rposData.restaurantAddress || '');
             $('#receipt-order-number').text('Order #' + order.order_number);
             $('#receipt-date-time').text(new Date().toLocaleString());
             
@@ -397,6 +399,7 @@
             $('#receipt-total').text(rposData.currency + parseFloat(orderData.total).toFixed(2));
             $('#receipt-cash').text(rposData.currency + parseFloat(orderData.cash_received).toFixed(2));
             $('#receipt-change').text(rposData.currency + parseFloat(orderData.change_due).toFixed(2));
+            $('#receipt-footer-message').text(rposData.receiptFooterMessage || 'Thank you for your order!');
             $('#receipt-cashier').text('Cashier: ' + rposData.currentUser);
             
             $('#rpos-receipt-modal').fadeIn();
@@ -406,15 +409,79 @@
     // KDS Functionality
     var RPOS_KDS = {
         orders: [],
+        previousOrderIds: [],
         currentFilter: 'all',
         autoRefreshInterval: null,
+        timerInterval: null,
         
         init: function() {
             if ($('.rpos-kds').length || $('.zaikon-kds').length) {
                 this.loadOrders();
                 this.bindEvents();
                 this.startAutoRefresh();
+                this.startTimers();
+                this.initNotificationSound();
             }
+        },
+        
+        initNotificationSound: function() {
+            // Create audio element for new order notification
+            if (!document.getElementById('kds-notification-sound')) {
+                var audio = document.createElement('audio');
+                audio.id = 'kds-notification-sound';
+                audio.innerHTML = '<source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSyBzvLZiTYIGWi78OShTwsNUrDm77BZFApIoemMvGojAwAA" type="audio/wav" />';
+                document.body.appendChild(audio);
+            }
+        },
+        
+        playNotificationSound: function() {
+            var audio = document.getElementById('kds-notification-sound');
+            if (audio) {
+                audio.play().catch(function(e) {
+                    console.log('Audio play failed:', e);
+                });
+            }
+        },
+        
+        startTimers: function() {
+            var self = this;
+            // Update all timers every second
+            this.timerInterval = setInterval(function() {
+                self.updateAllTimers();
+            }, 1000);
+        },
+        
+        updateAllTimers: function() {
+            var self = this;
+            $('.zaikon-order-card').each(function() {
+                var $card = $(this);
+                var createdAt = $card.data('created-at');
+                if (createdAt) {
+                    var elapsed = self.getElapsedMinutes(createdAt);
+                    var $timer = $card.find('.zaikon-order-timer');
+                    if ($timer.length) {
+                        $timer.text(self.formatTime(elapsed));
+                        
+                        // Update urgency class
+                        if (elapsed > 15) {
+                            $timer.addClass('zaikon-order-time-urgent');
+                        }
+                    }
+                }
+            });
+        },
+        
+        formatTime: function(minutes) {
+            var mins = Math.floor(minutes);
+            var secs = Math.floor((minutes - mins) * 60);
+            return mins + ':' + (secs < 10 ? '0' : '') + secs;
+        },
+        
+        getElapsedMinutes: function(createdAt) {
+            var now = new Date();
+            var created = new Date(createdAt);
+            var diff = (now - created) / 1000 / 60; // minutes
+            return diff;
         },
         
         bindEvents: function() {
@@ -456,11 +523,33 @@
                 },
                 success: function(response) {
                     console.log('ZAIKON KDS: Orders loaded successfully', response.length + ' orders');
-                    self.orders = response.filter(function(order) {
+                    
+                    var newOrders = response.filter(function(order) {
                         return ['new', 'cooking', 'ready'].includes(order.status);
                     });
+                    
+                    // Detect new orders
+                    var currentOrderIds = newOrders.map(function(o) { return o.id; });
+                    var newlyAdded = [];
+                    
+                    if (self.previousOrderIds.length > 0) {
+                        newlyAdded = currentOrderIds.filter(function(id) {
+                            return self.previousOrderIds.indexOf(id) === -1;
+                        });
+                    }
+                    
+                    // Store current order IDs for next comparison
+                    self.previousOrderIds = currentOrderIds;
+                    self.orders = newOrders;
+                    
                     console.log('ZAIKON KDS: Filtered to', self.orders.length + ' active orders');
-                    self.renderOrders();
+                    self.renderOrders(newlyAdded);
+                    
+                    // Play sound and show notification for new orders
+                    if (newlyAdded.length > 0) {
+                        self.playNotificationSound();
+                        ZaikonToast.info('🔔 ' + newlyAdded.length + ' new order(s) received!', 5000);
+                    }
                 },
                 error: function(xhr, status, error) {
                     console.error('ZAIKON KDS: Failed to load orders', error);
@@ -468,8 +557,9 @@
             });
         },
         
-        renderOrders: function() {
+        renderOrders: function(newlyAddedIds) {
             var self = this;
+            newlyAddedIds = newlyAddedIds || [];
             var $grid = $('#rpos-kds-grid, .zaikon-kds-grid');
             var filtered = this.currentFilter === 'all' 
                 ? this.orders 
@@ -487,10 +577,17 @@
             $grid.show();
             
             filtered.forEach(function(order) {
-                var elapsed = self.getElapsedTime(order.created_at);
-                var isUrgent = elapsed > 15; // Orders older than 15 minutes
+                var elapsed = self.getElapsedMinutes(order.created_at);
+                var elapsedInt = Math.floor(elapsed);
+                var isUrgent = elapsedInt > 15; // Orders older than 15 minutes
+                var isNewOrder = newlyAddedIds.indexOf(order.id) !== -1;
                 
-                var $card = $('<div class="zaikon-order-card zaikon-animate-scaleIn" data-status="' + order.status + '">');
+                var $card = $('<div class="zaikon-order-card zaikon-animate-scaleIn" data-status="' + order.status + '" data-created-at="' + order.created_at + '" data-order-id="' + order.id + '">');
+                
+                // Add new order alert class
+                if (isNewOrder) {
+                    $card.addClass('new-order-alert');
+                }
                 
                 var $header = $('<div class="zaikon-order-card-header">');
                 $header.append('<div class="zaikon-order-number">#' + order.order_number + '</div>');
@@ -503,9 +600,9 @@
                     $meta.append('<span class="zaikon-order-type-badge" data-type="' + order.order_type + '">' + orderTypeLabel + '</span>');
                 }
                 
-                // Time elapsed
+                // Time elapsed with countdown timer
                 var timeClass = isUrgent ? 'zaikon-order-time-urgent' : 'zaikon-order-time';
-                $meta.append('<span class="' + timeClass + '">⏱ ' + elapsed + ' min</span>');
+                $meta.append('<span class="' + timeClass + ' zaikon-order-timer">⏱ ' + self.formatTime(elapsed) + '</span>');
                 
                 $header.append($meta);
                 $card.append($header);
@@ -572,17 +669,83 @@
                 }
                 $btn.prop('disabled', true);
                 
-                // Add animation
-                $card.addClass('status-changed');
+                // Check if order is delayed (> 5 minutes) and moving from 'new' to 'cooking'
+                var createdAt = $card.data('created-at');
+                var oldStatus = $card.data('status');
+                var elapsedMinutes = self.getElapsedMinutes(createdAt);
                 
-                self.updateOrderStatus(orderId, newStatus, $btn);
+                if (oldStatus === 'new' && newStatus === 'cooking' && elapsedMinutes > 5) {
+                    // Show delay reason modal
+                    self.showDelayReasonModal(orderId, newStatus, $btn, $card);
+                } else {
+                    // Add animation
+                    $card.addClass('status-changed');
+                    self.updateOrderStatus(orderId, newStatus, $btn);
+                }
             });
         },
         
-        updateOrderStatus: function(orderId, status, $btn) {
+        showDelayReasonModal: function(orderId, newStatus, $btn, $card) {
+            var self = this;
+            
+            // Create modal HTML
+            var modalHtml = '<div id="delay-reason-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">' +
+                '<div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">' +
+                '<h2 style="margin: 0 0 20px 0; color: #FF7F00;">Order Delayed - Reason Required</h2>' +
+                '<p style="margin: 0 0 20px 0; color: #666;">This order has been waiting for more than 5 minutes. Please select a reason:</p>' +
+                '<select id="delay-reason-select" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">' +
+                '<option value="">-- Select a reason --</option>' +
+                '<option value="High Volume">High Volume</option>' +
+                '<option value="Ingredient Issue">Ingredient Issue</option>' +
+                '<option value="Staff Shortage">Staff Shortage</option>' +
+                '<option value="Other">Other (specify below)</option>' +
+                '</select>' +
+                '<textarea id="delay-reason-other" placeholder="Additional details..." style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; min-height: 60px; font-size: 14px;"></textarea>' +
+                '<div style="display: flex; gap: 10px; justify-content: flex-end;">' +
+                '<button id="delay-reason-cancel" style="padding: 10px 20px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer;">Cancel</button>' +
+                '<button id="delay-reason-submit" style="padding: 10px 20px; border: none; background: #FF7F00; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">Continue</button>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+            
+            $('body').append(modalHtml);
+            
+            // Handle cancel
+            $('#delay-reason-cancel').on('click', function() {
+                $('#delay-reason-modal').remove();
+                $btn.prop('disabled', false);
+            });
+            
+            // Handle submit
+            $('#delay-reason-submit').on('click', function() {
+                var reason = $('#delay-reason-select').val();
+                var otherText = $('#delay-reason-other').val().trim();
+                
+                if (!reason) {
+                    alert('Please select a reason.');
+                    return;
+                }
+                
+                var fullReason = reason;
+                if (otherText) {
+                    fullReason += ': ' + otherText;
+                }
+                
+                $('#delay-reason-modal').remove();
+                $card.addClass('status-changed');
+                self.updateOrderStatus(orderId, newStatus, $btn, fullReason);
+            });
+        },
+        
+        updateOrderStatus: function(orderId, status, $btn, delayReason) {
             var self = this;
             
             ZAIKON_Toast.info('Updating order status...');
+            
+            var requestData = { status: status };
+            if (delayReason) {
+                requestData.delay_reason = delayReason;
+            }
             
             $.ajax({
                 url: rposKdsData.restUrl + 'orders/' + orderId,
@@ -591,7 +754,7 @@
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', rposKdsData.nonce);
                 },
-                data: JSON.stringify({ status: status }),
+                data: JSON.stringify(requestData),
                 success: function() {
                     var statusLabels = {
                         'cooking': 'Cooking Started',

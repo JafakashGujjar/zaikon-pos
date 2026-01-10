@@ -179,7 +179,7 @@
 }
 
 .zaikon-order-number {
-    font-size: var(--text-4xl);
+    font-size: var(--text-sm);
     font-weight: var(--font-extrabold);
     color: var(--zaikon-text-primary);
     margin: 0 0 var(--space-3) 0;
@@ -278,8 +278,8 @@
 
 .zaikon-item-name {
     flex: 1;
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
     color: var(--zaikon-text-primary);
 }
 
@@ -460,5 +460,20 @@
     
     .zaikon-kds-filter-btn {
         width: 100%;
+    }
+}
+
+/* New Order Alert Animation */
+.zaikon-order-card.new-order-alert {
+    animation: flash-border 1s ease-in-out 3;
+}
+
+@keyframes flash-border {
+    0%, 100% { 
+        border-color: var(--zaikon-border-light); 
+    }
+    50% { 
+        border-color: #FF7F00; 
+        box-shadow: 0 0 20px rgba(255, 127, 0, 0.5); 
     }
 }

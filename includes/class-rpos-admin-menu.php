@@ -117,6 +117,16 @@ class RPOS_Admin_Menu {
             array($this, 'ingredients_report_page')
         );
         
+        // Gas Cylinders
+        add_submenu_page(
+            'restaurant-pos',
+            __('Gas Cylinders', 'restaurant-pos'),
+            __('Gas Cylinders', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-gas-cylinders',
+            array($this, 'gas_cylinders_page')
+        );
+        
         // Orders
         add_submenu_page(
             'restaurant-pos',
@@ -202,6 +212,13 @@ class RPOS_Admin_Menu {
      */
     public function ingredients_report_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/ingredients-report.php';
+    }
+    
+    /**
+     * Gas Cylinders page
+     */
+    public function gas_cylinders_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/gas-cylinders.php';
     }
     
     /**

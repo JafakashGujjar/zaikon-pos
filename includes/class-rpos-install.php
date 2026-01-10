@@ -93,6 +93,59 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `ingredient_id` bigint(20) unsigned DEFAULT NULL AFTER `inventory_item_id`");
             $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `ingredient_id` (`ingredient_id`)");
         }
+        
+        // Check if new columns exist in ingredients table
+        $table_name = $wpdb->prefix . 'rpos_ingredients';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'purchasing_date'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `purchasing_date` date DEFAULT NULL AFTER `cost_per_unit`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'expiry_date'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `expiry_date` date DEFAULT NULL AFTER `purchasing_date`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'supplier_name'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_name` varchar(255) DEFAULT NULL AFTER `expiry_date`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'supplier_rating'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_rating` tinyint(1) DEFAULT NULL AFTER `supplier_name`");
+        }
+        
+        // Check if new columns exist in orders table for KDS tracking
+        $table_name = $wpdb->prefix . 'rpos_orders';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'target_prep_time'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `target_prep_time` int DEFAULT 10 AFTER `ingredients_deducted`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'actual_prep_time'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `actual_prep_time` int DEFAULT NULL AFTER `target_prep_time`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'is_late'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `is_late` tinyint(1) DEFAULT 0 AFTER `actual_prep_time`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'late_reason'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `late_reason` text DEFAULT NULL AFTER `is_late`");
+        }
+        
+        // Check if delay_reason column exists in kitchen_activity table
+        $table_name = $wpdb->prefix . 'rpos_kitchen_activity';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delay_reason'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `delay_reason` text DEFAULT NULL AFTER `new_status`");
+        }
     }
     
     /**
@@ -182,6 +235,10 @@ class RPOS_Install {
             special_instructions text,
             cashier_id bigint(20) unsigned,
             ingredients_deducted tinyint(1) DEFAULT 0,
+            target_prep_time int DEFAULT 10,
+            actual_prep_time int DEFAULT NULL,
+            is_late tinyint(1) DEFAULT 0,
+            late_reason text DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -236,6 +293,7 @@ class RPOS_Install {
             user_id bigint(20) unsigned NOT NULL,
             old_status varchar(50),
             new_status varchar(50) NOT NULL,
+            delay_reason text DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY order_id (order_id),
@@ -250,6 +308,10 @@ class RPOS_Install {
             unit varchar(20) NOT NULL DEFAULT 'pcs',
             current_stock_quantity decimal(10,3) NOT NULL DEFAULT 0.000,
             cost_per_unit decimal(10,2) DEFAULT 0.00,
+            purchasing_date date DEFAULT NULL,
+            expiry_date date DEFAULT NULL,
+            supplier_name varchar(255) DEFAULT NULL,
+            supplier_rating tinyint(1) DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -272,6 +334,45 @@ class RPOS_Install {
             KEY created_at (created_at)
         ) $charset_collate;";
         
+        // Gas Cylinder Types table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_gas_cylinder_types (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            description text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) $charset_collate;";
+        
+        // Gas Cylinder Product Mapping table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_gas_cylinder_product_map (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_type_id bigint(20) unsigned NOT NULL,
+            product_id bigint(20) unsigned NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cylinder_type_id (cylinder_type_id),
+            KEY product_id (product_id)
+        ) $charset_collate;";
+        
+        // Gas Cylinders table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_gas_cylinders (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_type_id bigint(20) unsigned NOT NULL,
+            purchase_date date DEFAULT NULL,
+            cost decimal(10,2) DEFAULT 0.00,
+            start_date date NOT NULL,
+            end_date date DEFAULT NULL,
+            status varchar(20) DEFAULT 'active',
+            notes text,
+            created_by bigint(20) unsigned,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cylinder_type_id (cylinder_type_id),
+            KEY status (status)
+        ) $charset_collate;";
+        
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         foreach ($tables as $table) {
@@ -291,7 +392,10 @@ class RPOS_Install {
             'low_stock_threshold' => '10',
             'date_format' => 'Y-m-d H:i:s',
             'tax_rate' => '0',
-            'enable_tax' => '0'
+            'enable_tax' => '0',
+            'restaurant_phone' => '',
+            'restaurant_address' => '',
+            'receipt_footer_message' => 'Thank you for your order!'
         );
         
         foreach ($default_settings as $key => $value) {
