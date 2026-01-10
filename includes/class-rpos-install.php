@@ -93,6 +93,29 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `ingredient_id` bigint(20) unsigned DEFAULT NULL AFTER `inventory_item_id`");
             $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `ingredient_id` (`ingredient_id`)");
         }
+        
+        // Check if new columns exist in ingredients table
+        $table_name = $wpdb->prefix . 'rpos_ingredients';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'purchasing_date'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `purchasing_date` date DEFAULT NULL AFTER `cost_per_unit`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'expiry_date'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `expiry_date` date DEFAULT NULL AFTER `purchasing_date`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'supplier_name'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_name` varchar(255) DEFAULT NULL AFTER `expiry_date`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'supplier_rating'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_rating` tinyint(1) DEFAULT NULL AFTER `supplier_name`");
+        }
     }
     
     /**
@@ -250,6 +273,10 @@ class RPOS_Install {
             unit varchar(20) NOT NULL DEFAULT 'pcs',
             current_stock_quantity decimal(10,3) NOT NULL DEFAULT 0.000,
             cost_per_unit decimal(10,2) DEFAULT 0.00,
+            purchasing_date date DEFAULT NULL,
+            expiry_date date DEFAULT NULL,
+            supplier_name varchar(255) DEFAULT NULL,
+            supplier_rating tinyint(1) DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),

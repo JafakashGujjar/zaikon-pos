@@ -64,7 +64,11 @@ class RPOS_Ingredients {
             'name' => '',
             'unit' => 'pcs',
             'current_stock_quantity' => 0,
-            'cost_per_unit' => 0
+            'cost_per_unit' => 0,
+            'purchasing_date' => null,
+            'expiry_date' => null,
+            'supplier_name' => null,
+            'supplier_rating' => null
         );
         
         $data = wp_parse_args($data, $defaults);
@@ -73,15 +77,39 @@ class RPOS_Ingredients {
             return false;
         }
         
+        $insert_data = array(
+            'name' => sanitize_text_field($data['name']),
+            'unit' => sanitize_text_field($data['unit']),
+            'current_stock_quantity' => floatval($data['current_stock_quantity']),
+            'cost_per_unit' => floatval($data['cost_per_unit'])
+        );
+        
+        $format = array('%s', '%s', '%f', '%f');
+        
+        if (!empty($data['purchasing_date'])) {
+            $insert_data['purchasing_date'] = sanitize_text_field($data['purchasing_date']);
+            $format[] = '%s';
+        }
+        
+        if (!empty($data['expiry_date'])) {
+            $insert_data['expiry_date'] = sanitize_text_field($data['expiry_date']);
+            $format[] = '%s';
+        }
+        
+        if (!empty($data['supplier_name'])) {
+            $insert_data['supplier_name'] = sanitize_text_field($data['supplier_name']);
+            $format[] = '%s';
+        }
+        
+        if (isset($data['supplier_rating']) && $data['supplier_rating'] !== null && $data['supplier_rating'] !== '') {
+            $insert_data['supplier_rating'] = absint($data['supplier_rating']);
+            $format[] = '%d';
+        }
+        
         $result = $wpdb->insert(
             $wpdb->prefix . 'rpos_ingredients',
-            array(
-                'name' => sanitize_text_field($data['name']),
-                'unit' => sanitize_text_field($data['unit']),
-                'current_stock_quantity' => floatval($data['current_stock_quantity']),
-                'cost_per_unit' => floatval($data['cost_per_unit'])
-            ),
-            array('%s', '%s', '%f', '%f')
+            $insert_data,
+            $format
         );
         
         if ($result) {
@@ -118,6 +146,26 @@ class RPOS_Ingredients {
         if (isset($data['cost_per_unit'])) {
             $update_data['cost_per_unit'] = floatval($data['cost_per_unit']);
             $format[] = '%f';
+        }
+        
+        if (isset($data['purchasing_date'])) {
+            $update_data['purchasing_date'] = !empty($data['purchasing_date']) ? sanitize_text_field($data['purchasing_date']) : null;
+            $format[] = '%s';
+        }
+        
+        if (isset($data['expiry_date'])) {
+            $update_data['expiry_date'] = !empty($data['expiry_date']) ? sanitize_text_field($data['expiry_date']) : null;
+            $format[] = '%s';
+        }
+        
+        if (isset($data['supplier_name'])) {
+            $update_data['supplier_name'] = !empty($data['supplier_name']) ? sanitize_text_field($data['supplier_name']) : null;
+            $format[] = '%s';
+        }
+        
+        if (isset($data['supplier_rating'])) {
+            $update_data['supplier_rating'] = ($data['supplier_rating'] !== null && $data['supplier_rating'] !== '') ? absint($data['supplier_rating']) : null;
+            $format[] = '%d';
         }
         
         if (empty($update_data)) {
