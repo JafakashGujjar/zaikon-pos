@@ -102,6 +102,14 @@
                 self.renderProducts();
             });
             
+            // Order Type Pills
+            $('.zaikon-order-type-pill').on('click', function() {
+                $('.zaikon-order-type-pill').removeClass('active');
+                $(this).addClass('active');
+                var orderType = $(this).data('order-type');
+                $('#rpos-order-type').val(orderType);
+            });
+            
             // Clear cart
             $('#rpos-clear-cart').on('click', function() {
                 if (confirm('Clear the entire cart?')) {
@@ -133,6 +141,8 @@
                 $('#rpos-cash-received').val('');
                 $('#rpos-discount').val('0.00');
                 $('#rpos-order-type').val('dine-in');
+                $('.zaikon-order-type-pill').removeClass('active');
+                $('.zaikon-order-type-pill[data-order-type="dine-in"]').addClass('active');
                 $('#rpos-special-instructions').val('');
             });
         },
@@ -289,7 +299,7 @@
             var cashReceived = parseFloat($('#rpos-cash-received').val()) || 0;
             var change = cashReceived - total;
             
-            $('#rpos-change-due').val(rposData.currency + (change >= 0 ? change.toFixed(2) : '0.00'));
+            $('#rpos-change-due').text(rposData.currency + (change >= 0 ? change.toFixed(2) : '0.00'));
         },
         
         completeOrder: function() {

@@ -20,7 +20,7 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             <div class="zaikon-pos-header">
                 <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-yellow);">POS</span></h2>
                 
-                <input type="search" class="zaikon-pos-search" placeholder="🔍 <?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search">
+                <input type="search" class="zaikon-pos-search" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search">
                 
                 <div class="zaikon-pos-categories">
                     <button class="zaikon-category-btn active rpos-category-btn" data-category="0">
@@ -78,11 +78,18 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                 <h4><?php echo esc_html__('Order Details', 'restaurant-pos'); ?></h4>
                 <div class="zaikon-order-field">
                     <label><?php echo esc_html__('Order Type:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
-                    <select id="rpos-order-type" required>
-                        <option value="dine-in"><?php echo esc_html__('🍽 Dine-in', 'restaurant-pos'); ?></option>
-                        <option value="takeaway"><?php echo esc_html__('🥡 Takeaway', 'restaurant-pos'); ?></option>
-                        <option value="delivery"><?php echo esc_html__('🚚 Delivery', 'restaurant-pos'); ?></option>
-                    </select>
+                    <div class="zaikon-order-type-pills">
+                        <button type="button" class="zaikon-order-type-pill active" data-order-type="dine-in">
+                            <?php echo esc_html__('Dine-in', 'restaurant-pos'); ?>
+                        </button>
+                        <button type="button" class="zaikon-order-type-pill" data-order-type="takeaway">
+                            <?php echo esc_html__('Takeaway', 'restaurant-pos'); ?>
+                        </button>
+                        <button type="button" class="zaikon-order-type-pill" data-order-type="delivery">
+                            <?php echo esc_html__('Delivery', 'restaurant-pos'); ?>
+                        </button>
+                    </div>
+                    <input type="hidden" id="rpos-order-type" value="dine-in">
                 </div>
                 <div class="zaikon-order-field">
                     <label><?php echo esc_html__('Special Instructions:', 'restaurant-pos'); ?></label>
@@ -94,17 +101,17 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                 <h4><?php echo esc_html__('Cash Payment', 'restaurant-pos'); ?></h4>
                 <div class="zaikon-payment-field">
                     <label><?php echo esc_html__('Cash Received:', 'restaurant-pos'); ?></label>
-                    <input type="number" id="rpos-cash-received" step="0.01" min="0" placeholder="0.00">
+                    <input type="number" id="rpos-cash-received" step="0.01" min="0" placeholder="0.00" inputmode="numeric">
                 </div>
-                <div class="zaikon-payment-field">
+                <div class="zaikon-payment-field zaikon-change-due-field">
                     <label><?php echo esc_html__('Change Due:', 'restaurant-pos'); ?></label>
-                    <input type="text" id="rpos-change-due" readonly value="<?php echo esc_attr($currency); ?>0.00">
+                    <div id="rpos-change-due" class="zaikon-change-due-display"><?php echo esc_html($currency); ?>0.00</div>
                 </div>
             </div>
             
             <div class="zaikon-checkout-actions">
                 <button class="zaikon-complete-order-btn" id="rpos-complete-order">
-                    💳 <?php echo esc_html__('Complete Order', 'restaurant-pos'); ?>
+                    <?php echo esc_html__('Complete Order', 'restaurant-pos'); ?>
                 </button>
             </div>
         </div>
@@ -154,10 +161,10 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
         
         <div class="zaikon-receipt-footer">
             <button class="zaikon-btn zaikon-btn-primary zaikon-btn-lg" onclick="window.print();">
-                🖨 <?php echo esc_html__('Print Receipt', 'restaurant-pos'); ?>
+                <?php echo esc_html__('Print Receipt', 'restaurant-pos'); ?>
             </button>
             <button class="zaikon-btn zaikon-btn-yellow zaikon-btn-lg" id="rpos-new-order">
-                ➕ <?php echo esc_html__('New Order', 'restaurant-pos'); ?>
+                <?php echo esc_html__('New Order', 'restaurant-pos'); ?>
             </button>
         </div>
     </div>
