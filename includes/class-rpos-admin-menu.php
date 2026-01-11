@@ -156,6 +156,46 @@ class RPOS_Admin_Menu {
             'restaurant-pos-settings',
             array($this, 'settings_page')
         );
+        
+        // Delivery Settings
+        add_submenu_page(
+            'restaurant-pos',
+            __('Delivery Settings', 'restaurant-pos'),
+            __('Delivery Settings', 'restaurant-pos'),
+            'rpos_manage_settings',
+            'restaurant-pos-delivery-settings',
+            array($this, 'delivery_settings_page')
+        );
+        
+        // Delivery/Riders section separator (using null parent creates a section)
+        add_submenu_page(
+            'restaurant-pos',
+            __('Delivery/Riders', 'restaurant-pos'),
+            __('— Delivery/Riders —', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-delivery-section',
+            '__return_null'
+        );
+        
+        // Daily Rider Log
+        add_submenu_page(
+            'restaurant-pos',
+            __('Daily Rider Log', 'restaurant-pos'),
+            __('Daily Rider Log', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-delivery-logs',
+            array($this, 'delivery_logs_page')
+        );
+        
+        // Delivery Reports
+        add_submenu_page(
+            'restaurant-pos',
+            __('Delivery Reports', 'restaurant-pos'),
+            __('Delivery Reports', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-delivery-reports',
+            array($this, 'delivery_reports_page')
+        );
     }
     
     /**
@@ -240,5 +280,26 @@ class RPOS_Admin_Menu {
      */
     public function settings_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/settings.php';
+    }
+    
+    /**
+     * Delivery Settings page
+     */
+    public function delivery_settings_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/delivery-settings.php';
+    }
+    
+    /**
+     * Delivery Logs page
+     */
+    public function delivery_logs_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/delivery-logs.php';
+    }
+    
+    /**
+     * Delivery Reports page
+     */
+    public function delivery_reports_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/delivery-reports.php';
     }
 }
