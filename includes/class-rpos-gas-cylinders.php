@@ -321,6 +321,18 @@ class RPOS_Gas_Cylinders {
         
         error_log('RPOS Gas Cylinders: Date range: ' . $date_from . ' to ' . $date_to);
         
+        // CRITICAL: Clear WordPress query cache to ensure fresh data
+        // WordPress caches query results by default which causes stale data issues
+        // when new orders are created. We must flush the cache before querying.
+        // Note: This clears ALL cached queries, not just ours, but it's necessary
+        // for data accuracy. The performance impact is minimal as this report is
+        // accessed infrequently (admin-only, on-demand).
+        $wpdb->flush();
+        
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('RPOS Gas Cylinders: Query cache flushed to ensure fresh data');
+        }
+        
         // Run debug queries only if WP_DEBUG is enabled to avoid production overhead
         $total_orders_in_range = 0;
         $completed_orders_in_range = 0;
