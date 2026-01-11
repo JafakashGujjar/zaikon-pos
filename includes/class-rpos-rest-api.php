@@ -192,6 +192,25 @@ class RPOS_REST_API {
             'callback' => array($this, 'assign_order_to_rider'),
             'permission_callback' => array($this, 'check_manage_inventory_permission')
         ));
+        
+        // Notifications endpoints
+        register_rest_route($namespace, '/notifications/unread', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_unread_notifications'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        register_rest_route($namespace, '/notifications/mark-read/(?P<id>\d+)', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'mark_notification_read'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        register_rest_route($namespace, '/notifications/mark-all-read', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'mark_all_notifications_read'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
     }
     
     /**
@@ -726,6 +745,57 @@ class RPOS_REST_API {
         return array(
             'success' => true,
             'message' => 'Order assigned to rider successfully'
+        );
+    }
+    
+    /**
+     * Get unread notifications for current user
+     */
+    public function get_unread_notifications($request) {
+        $user_id = get_current_user_id();
+        
+        $notifications = RPOS_Notifications::get_unread($user_id);
+        $count = RPOS_Notifications::get_unread_count($user_id);
+        
+        return array(
+            'notifications' => $notifications,
+            'unread_count' => $count
+        );
+    }
+    
+    /**
+     * Mark notification as read
+     */
+    public function mark_notification_read($request) {
+        $notification_id = $request['id'];
+        
+        $result = RPOS_Notifications::mark_as_read($notification_id);
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to mark notification as read', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Notification marked as read'
+        );
+    }
+    
+    /**
+     * Mark all notifications as read for current user
+     */
+    public function mark_all_notifications_read($request) {
+        $user_id = get_current_user_id();
+        
+        $result = RPOS_Notifications::mark_all_as_read($user_id);
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to mark notifications as read', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'All notifications marked as read'
         );
     }
 }
