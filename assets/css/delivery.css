@@ -1,0 +1,275 @@
+/**
+ * Delivery Modal Styles
+ * Consistent with ZAIKON design system
+ */
+
+/* Modal Overlay */
+.rpos-delivery-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.rpos-delivery-modal-overlay.active {
+    display: flex;
+}
+
+/* Modal Container */
+.rpos-delivery-modal {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modal Header */
+.rpos-delivery-modal-header {
+    padding: 24px;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rpos-delivery-modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #1a1a1a;
+}
+
+.rpos-delivery-modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.rpos-delivery-modal-close:hover {
+    background: #f5f5f5;
+    color: #1a1a1a;
+}
+
+/* Modal Body */
+.rpos-delivery-modal-body {
+    padding: 24px;
+}
+
+.rpos-delivery-form-group {
+    margin-bottom: 20px;
+}
+
+.rpos-delivery-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1a1a1a;
+    font-size: 14px;
+}
+
+.rpos-delivery-form-group label .required {
+    color: #e74c3c;
+    margin-left: 4px;
+}
+
+.rpos-delivery-form-group input,
+.rpos-delivery-form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+.rpos-delivery-form-group input:focus,
+.rpos-delivery-form-group select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.rpos-delivery-form-group input.error,
+.rpos-delivery-form-group select.error {
+    border-color: #e74c3c;
+}
+
+.rpos-delivery-form-group .error-message {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 4px;
+    display: none;
+}
+
+.rpos-delivery-form-group .error-message.visible {
+    display: block;
+}
+
+.rpos-delivery-charge-display {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+    border: 2px solid #e5e5e5;
+}
+
+.rpos-delivery-charge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.rpos-delivery-charge-row:last-child {
+    margin-bottom: 0;
+}
+
+.rpos-delivery-charge-row.total {
+    border-top: 2px solid #e5e5e5;
+    padding-top: 12px;
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 18px;
+    color: #1a1a1a;
+}
+
+.rpos-delivery-charge-label {
+    color: #666;
+}
+
+.rpos-delivery-charge-value {
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.rpos-delivery-free-badge {
+    display: inline-block;
+    background: #27ae60;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+/* Modal Footer */
+.rpos-delivery-modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.rpos-delivery-modal-footer button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rpos-delivery-modal-footer .btn-primary {
+    background: #3498db;
+    color: #fff;
+}
+
+.rpos-delivery-modal-footer .btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.rpos-delivery-modal-footer .btn-primary:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.rpos-delivery-modal-footer .btn-secondary {
+    background: #ecf0f1;
+    color: #7f8c8d;
+}
+
+.rpos-delivery-modal-footer .btn-secondary:hover {
+    background: #d5dbdb;
+    color: #34495e;
+}
+
+/* Loading State */
+.rpos-delivery-loading {
+    text-align: center;
+    padding: 20px;
+    color: #7f8c8d;
+}
+
+.rpos-delivery-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .rpos-delivery-modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .rpos-delivery-modal-header,
+    .rpos-delivery-modal-body,
+    .rpos-delivery-modal-footer {
+        padding: 16px;
+    }
+    
+    .rpos-delivery-modal-footer {
+        flex-direction: column;
+    }
+    
+    .rpos-delivery-modal-footer button {
+        width: 100%;
+    }
+}

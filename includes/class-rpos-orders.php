@@ -28,24 +28,40 @@ class RPOS_Orders {
         // Calculate totals
         $subtotal = floatval($data['subtotal'] ?? 0);
         $discount = floatval($data['discount'] ?? 0);
-        $total = $subtotal - $discount;
+        $delivery_charge = floatval($data['delivery_charge'] ?? 0);
+        $total = $subtotal + $delivery_charge - $discount;
+        
+        // Prepare order data
+        $order_data = array(
+            'order_number' => $order_number,
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'total' => $total,
+            'cash_received' => floatval($data['cash_received'] ?? 0),
+            'change_due' => floatval($data['change_due'] ?? 0),
+            'status' => sanitize_text_field($data['status'] ?? 'new'),
+            'order_type' => sanitize_text_field($data['order_type'] ?? 'dine-in'),
+            'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
+            'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
+        );
+        
+        $formats = array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%d');
+        
+        // Add delivery fields if it's a delivery order
+        if (isset($data['is_delivery']) && $data['is_delivery']) {
+            $order_data['is_delivery'] = 1;
+            $order_data['delivery_charge'] = $delivery_charge;
+            $order_data['area_id'] = isset($data['area_id']) ? absint($data['area_id']) : null;
+            $order_data['customer_name'] = sanitize_text_field($data['customer_name'] ?? '');
+            $order_data['customer_phone'] = sanitize_text_field($data['customer_phone'] ?? '');
+            $formats = array_merge($formats, array('%d', '%f', '%d', '%s', '%s'));
+        }
         
         // Insert order
         $result = $wpdb->insert(
             $wpdb->prefix . 'rpos_orders',
-            array(
-                'order_number' => $order_number,
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'total' => $total,
-                'cash_received' => floatval($data['cash_received'] ?? 0),
-                'change_due' => floatval($data['change_due'] ?? 0),
-                'status' => sanitize_text_field($data['status'] ?? 'new'),
-                'order_type' => sanitize_text_field($data['order_type'] ?? 'dine-in'),
-                'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
-                'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
-            ),
-            array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%d')
+            $order_data,
+            $formats
         );
         
         if (!$result) {
