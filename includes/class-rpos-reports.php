@@ -194,7 +194,7 @@ class RPOS_Reports {
         // Get low stock ingredients
         $threshold = RPOS_Settings::get('low_stock_threshold', 10);
         $low_stock_ingredients = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, name, unit, current_stock_quantity as quantity
+            "SELECT id, name as product_name, '' as sku, unit, current_stock_quantity as quantity, cost_per_unit as cost_price
              FROM {$wpdb->prefix}rpos_ingredients
              WHERE current_stock_quantity <= %d
              ORDER BY name ASC",
