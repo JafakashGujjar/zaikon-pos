@@ -6,6 +6,9 @@
 (function($) {
     'use strict';
     
+    // Notification Sound Data (base64 encoded WAV)
+    var NOTIFICATION_SOUND_DATA = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSyBzvLZiTYIGWi78OShTwsNUrDm77BZFApIoemMvGojAwAA';
+    
     // Toast Notification System
     var ZAIKON_Toast = {
         container: null,
@@ -456,7 +459,7 @@
             if (!document.getElementById('pos-notification-sound')) {
                 var audio = document.createElement('audio');
                 audio.id = 'pos-notification-sound';
-                audio.innerHTML = '<source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSyBzvLZiTYIGWi78OShTwsNUrDm77BZFApIoemMvGojAwAA" type="audio/wav" />';
+                audio.innerHTML = '<source src="' + NOTIFICATION_SOUND_DATA + '" type="audio/wav" />';
                 document.body.appendChild(audio);
             }
         },
@@ -550,6 +553,7 @@
         },
         
         renderNotifications: function(notifications) {
+            var self = this;
             var $list = $('#rpos-notification-list');
             $list.empty();
             
@@ -658,8 +662,12 @@
             $('#receipt-order-number').text('Order #' + order.order_number);
             
             // Add order type
-            var orderTypeText = orderData.order_type.charAt(0).toUpperCase() + orderData.order_type.slice(1).replace('-', ' ');
-            $('#receipt-order-type').text('Order Type: ' + orderTypeText);
+            if (orderData.order_type) {
+                var orderTypeText = orderData.order_type.charAt(0).toUpperCase() + orderData.order_type.slice(1).replace('-', ' ');
+                $('#receipt-order-type').text('Order Type: ' + orderTypeText);
+            } else {
+                $('#receipt-order-type').text('Order Type: Dine-in');
+            }
             
             $('#receipt-date-time').text(new Date().toLocaleString());
             
