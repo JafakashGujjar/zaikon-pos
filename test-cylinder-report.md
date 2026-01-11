@@ -21,12 +21,13 @@ RPOS Gas Cylinders: Found X mapped products: [1, 2, 3]
 RPOS Gas Cylinders: Date range: 2026-01-11 00:00:00 to 2026-01-11 23:59:59
 ```
 
-#### Stage 4: Order Counts (Debug Queries)
+#### Stage 4: Order Counts (Debug Queries - WP_DEBUG Only)
 ```
 RPOS Gas Cylinders: Total orders in date range: 10
 RPOS Gas Cylinders: Completed orders in date range: 8
 RPOS Gas Cylinders: Completed orders with mapped products: 5
 ```
+**Note:** These debug queries only run when `WP_DEBUG` is enabled to avoid production overhead.
 
 #### Stage 5: SQL Query Execution
 ```
@@ -80,6 +81,16 @@ No sales data found for the selected period.
 - ✅ Log injection attacks prevented
 
 ## Testing Instructions
+
+### 0. Enable Debug Mode (for full diagnostics)
+
+To enable comprehensive debug queries, add to your `wp-config.php`:
+```php
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+```
+
+**In production:** Leave WP_DEBUG disabled to avoid debug query overhead.
 
 ### 1. Check Server Error Logs
 
@@ -157,6 +168,14 @@ The implementation:
 - ✅ Queries the database fresh on every page load
 - ✅ Uses `created_at` field for date filtering
 - ✅ Filters by `status = 'completed'`
+
+## Performance Optimization
+
+- ✅ Debug queries **only run when WP_DEBUG is enabled**
+- ✅ In production (WP_DEBUG off): Zero debug query overhead
+- ✅ Basic logging always available
+- ✅ Execution time tracking always enabled
+- ✅ Smart logging (only logs >100ms queries)
 
 ## Benefits
 

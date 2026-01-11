@@ -321,38 +321,46 @@ class RPOS_Gas_Cylinders {
         
         error_log('RPOS Gas Cylinders: Date range: ' . $date_from . ' to ' . $date_to);
         
-        // Count total orders in date range (for debugging)
-        $total_orders_in_range = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
-             WHERE created_at >= %s AND created_at <= %s",
-            $date_from,
-            $date_to
-        ));
-        error_log('RPOS Gas Cylinders: Total orders in date range: ' . $total_orders_in_range);
+        // Run debug queries only if WP_DEBUG is enabled to avoid production overhead
+        $total_orders_in_range = 0;
+        $completed_orders_in_range = 0;
+        $order_items_with_products = 0;
         
-        // Count completed orders in date range (for debugging)
-        $completed_orders_in_range = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
-             WHERE created_at >= %s AND created_at <= %s AND status = 'completed'",
-            $date_from,
-            $date_to
-        ));
-        error_log('RPOS Gas Cylinders: Completed orders in date range: ' . $completed_orders_in_range);
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            // Count total orders in date range (for debugging)
+            $total_orders_in_range = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
+                 WHERE created_at >= %s AND created_at <= %s",
+                $date_from,
+                $date_to
+            ));
+            error_log('RPOS Gas Cylinders: Total orders in date range: ' . $total_orders_in_range);
+            
+            // Count completed orders in date range (for debugging)
+            $completed_orders_in_range = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
+                 WHERE created_at >= %s AND created_at <= %s AND status = 'completed'",
+                $date_from,
+                $date_to
+            ));
+            error_log('RPOS Gas Cylinders: Completed orders in date range: ' . $completed_orders_in_range);
+            
+            // Count order items with mapped products (for debugging)
+            $placeholders_debug = implode(',', array_fill(0, count($product_ids), '%d'));
+            $params_debug = array_merge($product_ids, array($date_from, $date_to));
+            $order_items_with_products = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(DISTINCT oi.order_id) 
+                 FROM {$wpdb->prefix}rpos_order_items oi
+                 INNER JOIN {$wpdb->prefix}rpos_orders o ON oi.order_id = o.id
+                 WHERE oi.product_id IN ($placeholders_debug)
+                 AND o.created_at >= %s
+                 AND o.created_at <= %s
+                 AND o.status = 'completed'",
+                $params_debug
+            ));
+            error_log('RPOS Gas Cylinders: Completed orders with mapped products: ' . $order_items_with_products);
+        }
         
-        // Count order items with mapped products (for debugging)
-        $placeholders_debug = implode(',', array_fill(0, count($product_ids), '%d'));
-        $params_debug = array_merge($product_ids, array($date_from, $date_to));
-        $order_items_with_products = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT oi.order_id) 
-             FROM {$wpdb->prefix}rpos_order_items oi
-             INNER JOIN {$wpdb->prefix}rpos_orders o ON oi.order_id = o.id
-             WHERE oi.product_id IN ($placeholders_debug)
-             AND o.created_at >= %s
-             AND o.created_at <= %s
-             AND o.status = 'completed'",
-            $params_debug
-        ));
-        error_log('RPOS Gas Cylinders: Completed orders with mapped products: ' . $order_items_with_products);
         
         // Get sales for mapped products during cylinder period
         $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
