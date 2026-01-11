@@ -6,6 +6,9 @@
 (function($) {
     'use strict';
     
+    // Notification Sound Data (base64 encoded WAV)
+    var NOTIFICATION_SOUND_DATA = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSyBzvLZiTYIGWi78OShTwsNUrDm77BZFApIoemMvGojAwAA';
+    
     // Toast Notification System
     var ZAIKON_Toast = {
         container: null,
@@ -84,11 +87,15 @@
         products: [],
         currentCategory: 0,
         deliveryData: null,
+        notificationInterval: null,
+        lastNotificationCheck: null,
         
         init: function() {
             if ($('.rpos-pos-screen').length || $('.zaikon-pos-screen').length) {
                 this.loadProducts();
                 this.bindEvents();
+                this.initNotifications();
+                this.initNotificationSound();
             }
         },
         
@@ -447,24 +454,266 @@
             });
         },
         
+        initNotificationSound: function() {
+            // Create audio element for notification sound
+            if (!document.getElementById('pos-notification-sound')) {
+                var audio = document.createElement('audio');
+                audio.id = 'pos-notification-sound';
+                audio.innerHTML = '<source src="' + NOTIFICATION_SOUND_DATA + '" type="audio/wav" />';
+                document.body.appendChild(audio);
+            }
+        },
+        
+        playNotificationSound: function() {
+            var audio = document.getElementById('pos-notification-sound');
+            if (audio) {
+                audio.play().catch(function(e) {
+                    console.log('Audio play failed:', e);
+                });
+            }
+        },
+        
+        initNotifications: function() {
+            var self = this;
+            
+            // Initial load
+            this.loadNotifications();
+            
+            // Poll every 20 seconds
+            this.notificationInterval = setInterval(function() {
+                self.loadNotifications();
+            }, 20000);
+            
+            // Bind notification bell click
+            $('#rpos-notification-bell').on('click', function() {
+                self.toggleNotificationDropdown();
+            });
+            
+            // Bind mark all as read
+            $('#rpos-mark-all-read').on('click', function() {
+                self.markAllAsRead();
+            });
+            
+            // Close dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#rpos-notification-bell, #rpos-notification-dropdown').length) {
+                    $('#rpos-notification-dropdown').hide();
+                }
+            });
+        },
+        
+        loadNotifications: function() {
+            var self = this;
+            
+            $.ajax({
+                url: rposData.restUrl + 'notifications/unread',
+                method: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(response) {
+                    var unreadCount = response.unread_count;
+                    var notifications = response.notifications;
+                    
+                    // Update badge
+                    if (unreadCount > 0) {
+                        $('#rpos-notification-badge').text(unreadCount).show();
+                    } else {
+                        $('#rpos-notification-badge').hide();
+                    }
+                    
+                    // Check for new notifications
+                    if (notifications.length > 0 && self.lastNotificationCheck) {
+                        var newNotifications = notifications.filter(function(n) {
+                            return new Date(n.created_at) > new Date(self.lastNotificationCheck);
+                        });
+                        
+                        if (newNotifications.length > 0) {
+                            // Show toast for the most recent one
+                            var latest = newNotifications[0];
+                            ZAIKON_Toast.info({
+                                title: 'Order Update',
+                                message: latest.message
+                            }, 5000);
+                            
+                            // Play sound if it's a ready order
+                            if (latest.type === 'order_ready') {
+                                self.playNotificationSound();
+                            }
+                        }
+                    }
+                    
+                    self.lastNotificationCheck = new Date().toISOString();
+                    self.renderNotifications(notifications);
+                },
+                error: function() {
+                    console.log('Failed to load notifications');
+                }
+            });
+        },
+        
+        renderNotifications: function(notifications) {
+            var self = this;
+            var $list = $('#rpos-notification-list');
+            $list.empty();
+            
+            if (notifications.length === 0) {
+                $list.append('<div class="zaikon-notification-empty">No new notifications</div>');
+                return;
+            }
+            
+            notifications.forEach(function(notification) {
+                var isHighlighted = notification.type === 'order_ready' || notification.type === 'order_completed';
+                var icon = '🔔';
+                
+                if (notification.type === 'order_ready') {
+                    icon = '✅';
+                } else if (notification.type === 'order_completed') {
+                    icon = '✓';
+                } else if (notification.type === 'order_cooking') {
+                    icon = '🍳';
+                } else if (notification.type === 'order_accepted') {
+                    icon = '👍';
+                }
+                
+                var timeAgo = self.getTimeAgo(notification.created_at);
+                var highlightClass = isHighlighted ? ' highlighted' : '';
+                
+                // Create elements safely using jQuery
+                var $item = $('<div class="zaikon-notification-item unread' + highlightClass + '">');
+                $item.attr('data-id', notification.id);
+                
+                var $content = $('<div class="zaikon-notification-content">');
+                var $icon = $('<div class="zaikon-notification-icon">').text(icon);
+                var $details = $('<div class="zaikon-notification-details">');
+                
+                var $order = $('<div class="zaikon-notification-order">').text('Order #' + notification.order_number);
+                var $message = $('<div class="zaikon-notification-message">').text(notification.message);
+                var $time = $('<div class="zaikon-notification-time">').text(timeAgo);
+                
+                $details.append($order, $message, $time);
+                $content.append($icon, $details);
+                
+                var $markReadBtn = $('<button class="zaikon-notification-mark-read">').text('✕');
+                $markReadBtn.attr('data-id', notification.id);
+                
+                $item.append($content, $markReadBtn);
+                $list.append($item);
+            });
+            
+            // Bind mark as read buttons
+            $('.zaikon-notification-mark-read').on('click', function(e) {
+                e.stopPropagation();
+                var notificationId = $(this).data('id');
+                self.markAsRead(notificationId);
+            });
+        },
+        
+        getTimeAgo: function(dateString) {
+            var now = new Date();
+            var past = new Date(dateString);
+            var diff = Math.floor((now - past) / 1000); // seconds
+            
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return Math.floor(diff / 60) + ' minutes ago';
+            if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+            return Math.floor(diff / 86400) + ' days ago';
+        },
+        
+        toggleNotificationDropdown: function() {
+            $('#rpos-notification-dropdown').toggle();
+        },
+        
+        markAsRead: function(notificationId) {
+            var self = this;
+            
+            $.ajax({
+                url: rposData.restUrl + 'notifications/mark-read/' + notificationId,
+                method: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function() {
+                    // Reload notifications
+                    self.loadNotifications();
+                },
+                error: function() {
+                    ZAIKON_Toast.error('Failed to mark notification as read');
+                }
+            });
+        },
+        
+        markAllAsRead: function() {
+            var self = this;
+            
+            $.ajax({
+                url: rposData.restUrl + 'notifications/mark-all-read',
+                method: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function() {
+                    ZAIKON_Toast.success('All notifications marked as read');
+                    // Reload notifications
+                    self.loadNotifications();
+                },
+                error: function() {
+                    ZAIKON_Toast.error('Failed to mark notifications as read');
+                }
+            });
+        },
+        
         showReceipt: function(order, orderData) {
             $('#receipt-restaurant-name').text(rposData.restaurantName);
             $('#receipt-restaurant-phone').text(rposData.restaurantPhone || '');
             $('#receipt-restaurant-address').text(rposData.restaurantAddress || '');
             $('#receipt-order-number').text('Order #' + order.order_number);
+            
+            // Add order type
+            if (orderData.order_type) {
+                var orderTypeText = orderData.order_type.charAt(0).toUpperCase() + orderData.order_type.slice(1).replace('-', ' ');
+                $('#receipt-order-type').text('Order Type: ' + orderTypeText);
+            } else {
+                $('#receipt-order-type').text('Order Type: Dine-in');
+            }
+            
             $('#receipt-date-time').text(new Date().toLocaleString());
+            
+            // Add special instructions if any
+            if (orderData.special_instructions && orderData.special_instructions.trim() !== '') {
+                $('#receipt-special-instructions').text('Instructions: ' + orderData.special_instructions).show();
+            } else {
+                $('#receipt-special-instructions').hide();
+            }
             
             var $items = $('#receipt-items');
             $items.empty();
             
+            // Create a proper table for items using jQuery for safe DOM manipulation
+            var $itemTable = $('<table class="zaikon-receipt-item-table">');
+            var $thead = $('<thead>').append(
+                $('<tr>').append(
+                    $('<th>').text('Item'),
+                    $('<th>').attr('style', 'text-align: center;').text('Qty'),
+                    $('<th>').attr('style', 'text-align: right;').text('Price'),
+                    $('<th>').attr('style', 'text-align: right;').text('Total')
+                )
+            );
+            
+            var $tbody = $('<tbody>');
             order.items.forEach(function(item) {
-                $items.append(
-                    '<div class="rpos-receipt-item">' +
-                    '<span>' + item.product_name + ' x' + item.quantity + '</span>' +
-                    '<span>' + rposData.currency + parseFloat(item.line_total).toFixed(2) + '</span>' +
-                    '</div>'
+                var $row = $('<tr>');
+                $row.append(
+                    $('<td>').text(item.product_name),
+                    $('<td>').attr('style', 'text-align: center;').text(item.quantity),
+                    $('<td>').attr('style', 'text-align: right;').text(rposData.currency + parseFloat(item.price).toFixed(2)),
+                    $('<td>').attr('style', 'text-align: right;').text(rposData.currency + parseFloat(item.line_total).toFixed(2))
                 );
+                $tbody.append($row);
             });
+            
+            $itemTable.append($thead, $tbody);
+            $items.append($itemTable);
             
             $('#receipt-subtotal').text(rposData.currency + parseFloat(orderData.subtotal).toFixed(2));
             

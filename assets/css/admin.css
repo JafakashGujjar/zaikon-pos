@@ -741,19 +741,71 @@
     }
     
     #rpos-receipt-print,
-    #rpos-receipt-print * {
+    #rpos-receipt-print *,
+    .zaikon-receipt-modal,
+    .zaikon-receipt-modal * {
         visibility: visible;
     }
     
-    #rpos-receipt-print {
+    #rpos-receipt-print,
+    .zaikon-receipt-modal {
         position: absolute;
         left: 0;
         top: 0;
-        width: 100%;
+        width: 80mm;
     }
     
-    .rpos-receipt-actions {
-        display: none;
+    .rpos-receipt-actions,
+    .zaikon-receipt-footer {
+        display: none !important;
+    }
+    
+    /* Thermal receipt paper sizing */
+    @page {
+        size: 80mm auto;
+        margin: 5mm;
+    }
+    
+    .zaikon-receipt {
+        max-width: 80mm;
+        width: 80mm;
+        box-shadow: none;
+        border-radius: 0;
+    }
+    
+    .zaikon-receipt-header {
+        background: white;
+        color: black;
+    }
+    
+    .zaikon-receipt-header h2,
+    .zaikon-receipt-body {
+        color: black;
+    }
+    
+    /* Item table for printing */
+    .zaikon-receipt-item-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11pt;
+    }
+    
+    .zaikon-receipt-item-table th,
+    .zaikon-receipt-item-table td {
+        padding: 4px 2px;
+        text-align: left;
+        border-bottom: 1px dashed #666;
+    }
+    
+    .zaikon-receipt-item-table th:last-child,
+    .zaikon-receipt-item-table td:last-child,
+    .zaikon-receipt-item-table th:nth-child(3),
+    .zaikon-receipt-item-table td:nth-child(3) {
+        text-align: right;
+    }
+    
+    .zaikon-receipt-item-table thead {
+        font-weight: bold;
     }
 }
 

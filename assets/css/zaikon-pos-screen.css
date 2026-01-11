@@ -697,3 +697,289 @@
         height: 80px;
     }
 }
+
+/* ===== NOTIFICATION SYSTEM ===== */
+.zaikon-pos-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+.zaikon-notification-bell {
+    position: relative;
+    cursor: pointer;
+    padding: var(--space-3);
+    background: var(--zaikon-bg-primary);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.zaikon-notification-bell:hover {
+    background: var(--zaikon-yellow);
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.zaikon-notification-bell .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: var(--zaikon-text-primary);
+}
+
+.zaikon-notification-bell:hover .dashicons {
+    color: var(--zaikon-dark);
+}
+
+.zaikon-notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--zaikon-red);
+    color: var(--zaikon-white);
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    animation: zaikon-pulse 2s infinite;
+}
+
+@keyframes zaikon-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.zaikon-notification-dropdown {
+    position: fixed;
+    top: 80px;
+    right: var(--space-4);
+    width: 400px;
+    max-height: 600px;
+    background: var(--zaikon-bg-secondary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    z-index: var(--z-dropdown);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: zaikon-slideDown var(--transition-base);
+}
+
+.zaikon-notification-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--zaikon-border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--zaikon-yellow);
+}
+
+.zaikon-notification-header h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--zaikon-dark);
+}
+
+.zaikon-btn-link {
+    background: none;
+    border: none;
+    color: var(--zaikon-dark);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    text-decoration: underline;
+    padding: 0;
+    transition: color var(--transition-base);
+}
+
+.zaikon-btn-link:hover {
+    color: var(--zaikon-orange);
+}
+
+.zaikon-notification-list {
+    overflow-y: auto;
+    max-height: 540px;
+}
+
+.zaikon-notification-empty {
+    padding: var(--space-8);
+    text-align: center;
+    color: var(--zaikon-text-secondary);
+    font-style: italic;
+}
+
+.zaikon-notification-item {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--zaikon-border-light);
+    cursor: pointer;
+    transition: background var(--transition-base);
+    position: relative;
+}
+
+.zaikon-notification-item:hover {
+    background: var(--zaikon-bg-tertiary);
+}
+
+.zaikon-notification-item.unread {
+    background: rgba(255, 127, 0, 0.05);
+    border-left: 3px solid var(--zaikon-orange);
+}
+
+.zaikon-notification-item.highlighted {
+    background: rgba(255, 215, 0, 0.15);
+    border-left: 3px solid var(--zaikon-yellow);
+}
+
+.zaikon-notification-item.highlighted .zaikon-notification-icon {
+    background: var(--zaikon-yellow);
+    color: var(--zaikon-dark);
+}
+
+.zaikon-notification-content {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.zaikon-notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--zaikon-orange);
+    color: var(--zaikon-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.zaikon-notification-details {
+    flex: 1;
+}
+
+.zaikon-notification-order {
+    font-weight: var(--font-bold);
+    color: var(--zaikon-text-primary);
+    margin-bottom: var(--space-1);
+}
+
+.zaikon-notification-message {
+    color: var(--zaikon-text-secondary);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-1);
+}
+
+.zaikon-notification-time {
+    color: var(--zaikon-text-tertiary);
+    font-size: var(--text-xs);
+}
+
+.zaikon-notification-mark-read {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    background: none;
+    border: none;
+    color: var(--zaikon-text-tertiary);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all var(--transition-base);
+}
+
+.zaikon-notification-mark-read:hover {
+    background: var(--zaikon-bg-tertiary);
+    color: var(--zaikon-text-primary);
+}
+
+/* ===== PRINT STYLES FOR RECEIPT ===== */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    .zaikon-receipt-modal,
+    .zaikon-receipt-modal * {
+        visibility: visible;
+    }
+    
+    .zaikon-receipt-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm;
+        background: white;
+        display: block;
+    }
+    
+    .zaikon-receipt {
+        max-width: 80mm;
+        width: 80mm;
+        max-height: none;
+        overflow: visible;
+        box-shadow: none;
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .zaikon-receipt-header {
+        background: white;
+        color: black;
+        border-radius: 0;
+    }
+    
+    .zaikon-receipt-header h2 {
+        color: black;
+    }
+    
+    .zaikon-receipt-footer {
+        display: none;
+    }
+    
+    /* Ensure text is readable */
+    .zaikon-receipt-body {
+        font-size: 12pt;
+    }
+    
+    /* Print item table properly */
+    #receipt-items {
+        page-break-inside: avoid;
+    }
+    
+    .zaikon-receipt-item-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .zaikon-receipt-item-table th,
+    .zaikon-receipt-item-table td {
+        padding: 4px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .zaikon-receipt-item-table th:last-child,
+    .zaikon-receipt-item-table td:last-child {
+        text-align: right;
+    }
+}

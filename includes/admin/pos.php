@@ -18,7 +18,15 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
         <!-- Left Side: Product Grid -->
         <div class="zaikon-pos-left">
             <div class="zaikon-pos-header">
-                <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-yellow);">POS</span></h2>
+                <div class="zaikon-pos-header-top">
+                    <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-yellow);">POS</span></h2>
+                    
+                    <!-- Notification Bell -->
+                    <div class="zaikon-notification-bell" id="rpos-notification-bell">
+                        <span class="dashicons dashicons-bell"></span>
+                        <span class="zaikon-notification-badge" id="rpos-notification-badge" style="display: none;">0</span>
+                    </div>
+                </div>
                 
                 <input type="search" class="zaikon-pos-search" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search">
                 
@@ -132,7 +140,9 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             <p id="receipt-restaurant-phone" style="font-size: var(--text-sm); color: var(--zaikon-dark-secondary);"></p>
             <p id="receipt-restaurant-address" style="font-size: var(--text-sm); color: var(--zaikon-dark-secondary); white-space: pre-line;"></p>
             <p id="receipt-order-number" style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--zaikon-dark); margin-top: var(--space-3);"></p>
+            <p id="receipt-order-type" style="color: var(--zaikon-dark-secondary); font-weight: var(--font-semibold);"></p>
             <p id="receipt-date-time" style="color: var(--zaikon-dark-secondary);"></p>
+            <p id="receipt-special-instructions" style="color: var(--zaikon-dark-secondary); font-style: italic; margin-top: var(--space-2);"></p>
         </div>
         
         <div class="zaikon-receipt-body">
@@ -174,6 +184,21 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             <button class="zaikon-btn zaikon-btn-yellow zaikon-btn-lg" id="rpos-new-order">
                 <?php echo esc_html__('New Order', 'restaurant-pos'); ?>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Dropdown -->
+<div id="rpos-notification-dropdown" class="zaikon-notification-dropdown" style="display: none;">
+    <div class="zaikon-notification-header">
+        <h3><?php echo esc_html__('Notifications', 'restaurant-pos'); ?></h3>
+        <button class="zaikon-btn-link" id="rpos-mark-all-read">
+            <?php echo esc_html__('Mark all as read', 'restaurant-pos'); ?>
+        </button>
+    </div>
+    <div class="zaikon-notification-list" id="rpos-notification-list">
+        <div class="zaikon-notification-empty">
+            <?php echo esc_html__('No new notifications', 'restaurant-pos'); ?>
         </div>
     </div>
 </div>
