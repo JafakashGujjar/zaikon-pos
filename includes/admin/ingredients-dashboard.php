@@ -9,19 +9,11 @@ if (!defined('ABSPATH')) {
 
 global $wpdb;
 
-// Get configurable days for expiry warning (default 7)
-$expiry_warning_days = 7;
+// Get expiry warning days from settings
+$expiry_warning_days = RPOS_Inventory_Settings::get('expiry_warning_days', 7);
 
-// Section A: Ingredients Near Expiry
-$expiring_ingredients = $wpdb->get_results($wpdb->prepare(
-    "SELECT *, 
-            DATEDIFF(expiry_date, CURDATE()) as days_until_expiry
-     FROM {$wpdb->prefix}rpos_ingredients 
-     WHERE expiry_date IS NOT NULL 
-     AND expiry_date <= DATE_ADD(CURDATE(), INTERVAL %d DAY)
-     ORDER BY expiry_date ASC",
-    $expiry_warning_days
-));
+// Section A: Batches Near Expiry (using batch data instead of ingredient expiry)
+$expiring_batches = RPOS_Batches::get_expiring_batches($expiry_warning_days);
 
 // Section B: Low Stock Alerts
 $low_stock_ingredients = $wpdb->get_results(
@@ -33,7 +25,7 @@ $low_stock_ingredients = $wpdb->get_results(
      ORDER BY current_stock_quantity ASC"
 );
 
-// Section C: Fast-Moving Ingredients
+// Section C: Fast-Moving Ingredients (Top Consumed)
 $fast_moving_ingredients = $wpdb->get_results(
     "SELECT 
         i.id,
@@ -54,7 +46,7 @@ $fast_moving_ingredients = $wpdb->get_results(
         END as days_remaining
     FROM {$wpdb->prefix}rpos_ingredient_movements im
     JOIN {$wpdb->prefix}rpos_ingredients i ON im.ingredient_id = i.id
-    WHERE im.movement_type = 'Consumption'
+    WHERE im.movement_type IN ('Consumption', 'Waste')
     AND im.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
     GROUP BY im.ingredient_id
     HAVING avg_daily_usage > 0
@@ -62,11 +54,71 @@ $fast_moving_ingredients = $wpdb->get_results(
     LIMIT 20"
 );
 
+// Section D: Supplier Performance (Top 10)
+$supplier_performance = $wpdb->get_results(
+    "SELECT 
+        s.id,
+        s.supplier_name,
+        s.rating,
+        COUNT(DISTINCT b.id) as total_batches,
+        SUM(b.quantity_purchased) as total_quantity_purchased,
+        AVG(b.cost_per_unit) as avg_cost_per_unit,
+        SUM(CASE WHEN b.status = 'active' THEN b.quantity_remaining * b.cost_per_unit ELSE 0 END) as current_inventory_value
+    FROM {$wpdb->prefix}rpos_suppliers s
+    LEFT JOIN {$wpdb->prefix}rpos_ingredient_batches b ON s.id = b.supplier_id
+    WHERE b.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+    GROUP BY s.id
+    ORDER BY total_batches DESC
+    LIMIT 10"
+);
+
+// Section E: Inventory Valuation
+$total_valuation = RPOS_Batches::get_inventory_valuation();
+
+// Section F: Current consumption strategy
+$consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FEFO');
+
 ?>
 
 <div class="wrap">
     <h1 class="wp-heading-inline"><?php esc_html_e('Stock Intelligence Dashboard', 'restaurant-pos'); ?></h1>
+    <a href="?page=restaurant-pos-inventory-settings" class="page-title-action"><?php esc_html_e('Settings', 'restaurant-pos'); ?></a>
     <hr class="wp-header-end">
+    
+    <!-- Summary Cards -->
+    <div class="rpos-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+        <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #2271b1;">
+            <h3 style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase;"><?php esc_html_e('Inventory Value', 'restaurant-pos'); ?></h3>
+            <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: #2271b1;">
+                $<?php echo esc_html(number_format($total_valuation, 2)); ?>
+            </p>
+            <p style="font-size: 11px; color: #999; margin: 0;"><?php esc_html_e('From active batches', 'restaurant-pos'); ?></p>
+        </div>
+        
+        <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid <?php echo count($expiring_batches) > 0 ? '#d63638' : '#00a32a'; ?>;">
+            <h3 style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase;"><?php esc_html_e('Expiring Soon', 'restaurant-pos'); ?></h3>
+            <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: <?php echo count($expiring_batches) > 0 ? '#d63638' : '#00a32a'; ?>;">
+                <?php echo esc_html(count($expiring_batches)); ?>
+            </p>
+            <p style="font-size: 11px; color: #999; margin: 0;"><?php printf(esc_html__('Within %d days', 'restaurant-pos'), $expiry_warning_days); ?></p>
+        </div>
+        
+        <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid <?php echo count($low_stock_ingredients) > 0 ? '#dba617' : '#00a32a'; ?>;">
+            <h3 style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase;"><?php esc_html_e('Low Stock Items', 'restaurant-pos'); ?></h3>
+            <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: <?php echo count($low_stock_ingredients) > 0 ? '#dba617' : '#00a32a'; ?>;">
+                <?php echo esc_html(count($low_stock_ingredients)); ?>
+            </p>
+            <p style="font-size: 11px; color: #999; margin: 0;"><?php esc_html_e('Below reorder level', 'restaurant-pos'); ?></p>
+        </div>
+        
+        <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #7356bf;">
+            <h3 style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase;"><?php esc_html_e('Strategy', 'restaurant-pos'); ?></h3>
+            <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: #7356bf;">
+                <?php echo esc_html($consumption_strategy); ?>
+            </p>
+            <p style="font-size: 11px; color: #999; margin: 0;"><?php esc_html_e('Consumption strategy', 'restaurant-pos'); ?></p>
+        </div>
+    </div>
     
     <style>
         .rpos-dashboard-card {
@@ -114,26 +166,28 @@ $fast_moving_ingredients = $wpdb->get_results(
         }
     </style>
     
-    <!-- Section A: Ingredients Near Expiry -->
+    <!-- Section A: Batches Near Expiry (Batch-Aware) -->
     <div class="rpos-dashboard-card">
-        <h2>🗓️ <?php esc_html_e('Ingredients Near Expiry', 'restaurant-pos'); ?></h2>
-        <p><?php printf(esc_html__('Showing ingredients expiring within %d days', 'restaurant-pos'), $expiry_warning_days); ?></p>
+        <h2>🗓️ <?php esc_html_e('Batches Near Expiry', 'restaurant-pos'); ?></h2>
+        <p><?php printf(esc_html__('Showing batches expiring within %d days (based on %s strategy)', 'restaurant-pos'), $expiry_warning_days, $consumption_strategy); ?></p>
         
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
                     <th><?php esc_html_e('Status', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Ingredient', 'restaurant-pos'); ?></th>
-                    <th><?php esc_html_e('Current Stock', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Batch Number', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Supplier', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Remaining Qty', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Expiry Date', 'restaurant-pos'); ?></th>
-                    <th><?php esc_html_e('Days Until Expiry', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Days Left', 'restaurant-pos'); ?></th>
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($expiring_ingredients)): ?>
-                    <?php foreach ($expiring_ingredients as $ing): ?>
+                <?php if (!empty($expiring_batches)): ?>
+                    <?php foreach ($expiring_batches as $batch): ?>
                         <?php
-                        $days_left = intval($ing->days_until_expiry);
+                        $days_left = intval($batch->days_until_expiry);
                         if ($days_left < 0) {
                             $status_class = 'rpos-badge-red';
                             $status_text = __('Expired', 'restaurant-pos');
@@ -150,21 +204,25 @@ $fast_moving_ingredients = $wpdb->get_results(
                         ?>
                         <tr>
                             <td><span class="rpos-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_text); ?></span></td>
-                            <td><strong><?php echo esc_html($ing->name); ?></strong></td>
-                            <td><?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?> <?php echo esc_html($ing->unit); ?></td>
-                            <td><?php echo esc_html($ing->expiry_date); ?></td>
+                            <td><strong><?php echo esc_html($batch->ingredient_name); ?></strong></td>
+                            <td><code><?php echo esc_html($batch->batch_number); ?></code></td>
+                            <td><?php echo esc_html($batch->supplier_name ?: '-'); ?></td>
+                            <td><?php echo esc_html(number_format($batch->quantity_remaining, 3)); ?> <?php echo esc_html($batch->unit); ?></td>
+                            <td><?php echo esc_html(date('M d, Y', strtotime($batch->expiry_date))); ?></td>
                             <td>
                                 <?php if ($days_left < 0): ?>
-                                    <strong style="color: #c62828;"><?php printf(esc_html__('Expired %d days ago', 'restaurant-pos'), abs($days_left)); ?></strong>
+                                    <strong style="color: #d63638;"><?php echo abs($days_left); ?> days ago</strong>
                                 <?php else: ?>
-                                    <?php echo esc_html($days_left); ?> <?php esc_html_e('days', 'restaurant-pos'); ?>
+                                    <?php echo esc_html($days_left); ?> days
                                 <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="5"><?php esc_html_e('No ingredients expiring soon. All good!', 'restaurant-pos'); ?> ✅</td>
+                        <td colspan="7" style="text-align: center; padding: 20px; color: #00a32a;">
+                            ✓ <?php esc_html_e('No batches expiring soon! All stock is fresh.', 'restaurant-pos'); ?>
+                        </td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -267,5 +325,60 @@ $fast_moving_ingredients = $wpdb->get_results(
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+    
+    <!-- Section D: Supplier Performance (Last 90 Days) -->
+    <?php if (!empty($supplier_performance)): ?>
+    <div class="rpos-dashboard-card">
+        <h2>🏪 <?php esc_html_e('Supplier Performance', 'restaurant-pos'); ?></h2>
+        <p><?php esc_html_e('Top suppliers by activity (last 90 days)', 'restaurant-pos'); ?></p>
+        
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Supplier', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Rating', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Total Batches', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Avg Cost/Unit', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Current Inventory Value', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Actions', 'restaurant-pos'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($supplier_performance as $sp): ?>
+                    <tr>
+                        <td><strong><?php echo esc_html($sp->supplier_name); ?></strong></td>
+                        <td>
+                            <?php if ($sp->rating): ?>
+                                <?php echo str_repeat('⭐', intval($sp->rating)); ?>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo esc_html($sp->total_batches); ?></td>
+                        <td>$<?php echo esc_html(number_format($sp->avg_cost_per_unit, 2)); ?></td>
+                        <td><strong>$<?php echo esc_html(number_format($sp->current_inventory_value, 2)); ?></strong></td>
+                        <td>
+                            <a href="?page=restaurant-pos-suppliers&view=performance&id=<?php echo esc_attr($sp->id); ?>" class="button button-small">
+                                <?php esc_html_e('View Details', 'restaurant-pos'); ?>
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php endif; ?>
+    
+    <!-- Quick Links -->
+    <div class="rpos-dashboard-card" style="background: #f0f6fc;">
+        <h2>🔗 <?php esc_html_e('Quick Actions', 'restaurant-pos'); ?></h2>
+        <p>
+            <a href="?page=restaurant-pos-ingredients" class="button button-primary"><?php esc_html_e('Manage Ingredients', 'restaurant-pos'); ?></a>
+            <a href="?page=restaurant-pos-suppliers" class="button"><?php esc_html_e('Manage Suppliers', 'restaurant-pos'); ?></a>
+            <a href="?page=restaurant-pos-batches" class="button"><?php esc_html_e('View All Batches', 'restaurant-pos'); ?></a>
+            <a href="?page=restaurant-pos-ingredients-waste" class="button"><?php esc_html_e('Log Waste', 'restaurant-pos'); ?></a>
+            <a href="?page=restaurant-pos-inventory-settings" class="button"><?php esc_html_e('Settings', 'restaurant-pos'); ?></a>
+        </p>
     </div>
 </div>
