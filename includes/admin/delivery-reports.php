@@ -147,35 +147,6 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
             </div>
         </div>
     </div>
-            $total_charges += floatval($row->total_delivery_charges);
-        }
-        
-        $avg_km_per_delivery = $total_deliveries > 0 ? ($total_km / $total_deliveries) : 0;
-        ?>
-        
-        <h2><?php echo esc_html__('Summary', 'restaurant-pos'); ?></h2>
-        <div class="rpos-summary-boxes">
-            <div class="rpos-summary-box">
-                <div class="rpos-summary-label"><?php echo esc_html__('Total Deliveries', 'restaurant-pos'); ?></div>
-                <div class="rpos-summary-value"><?php echo esc_html(number_format($total_deliveries)); ?></div>
-            </div>
-            
-            <div class="rpos-summary-box">
-                <div class="rpos-summary-label"><?php echo esc_html__('Total KM', 'restaurant-pos'); ?></div>
-                <div class="rpos-summary-value"><?php echo esc_html(number_format($total_km, 2)); ?></div>
-            </div>
-            
-            <div class="rpos-summary-box">
-                <div class="rpos-summary-label"><?php echo esc_html__('Avg KM per Delivery', 'restaurant-pos'); ?></div>
-                <div class="rpos-summary-value"><?php echo esc_html(number_format($avg_km_per_delivery, 2)); ?></div>
-            </div>
-            
-            <div class="rpos-summary-box">
-                <div class="rpos-summary-label"><?php echo esc_html__('Total Delivery Charges', 'restaurant-pos'); ?></div>
-                <div class="rpos-summary-value"><?php echo esc_html($currency . number_format($total_charges, 2)); ?></div>
-            </div>
-        </div>
-    </div>
     
     <div class="rpos-reports-table">
         <h2><?php echo esc_html__('Detailed Report', 'restaurant-pos'); ?></h2>
