@@ -51,7 +51,7 @@ foreach ($batches as $batch) {
         
         <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <h3 style="margin: 0; font-size: 14px; color: #666;"><?php esc_html_e('Total Value', 'restaurant-pos'); ?></h3>
-            <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: #2271b1;">$<?php echo esc_html(number_format($total_value, 2)); ?></p>
+            <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: #2271b1;"><?php echo esc_html(RPOS_Inventory_Settings::format_currency($total_value)); ?></p>
         </div>
         
         <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -155,10 +155,10 @@ foreach ($batches as $batch) {
                                     -
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo esc_html(number_format($batch->quantity_purchased, 3)); ?> <?php echo esc_html($batch->unit); ?></td>
-                            <td><strong><?php echo esc_html(number_format($batch->quantity_remaining, 3)); ?> <?php echo esc_html($batch->unit); ?></strong></td>
-                            <td>$<?php echo esc_html(number_format($batch->cost_per_unit, 2)); ?></td>
-                            <td><strong>$<?php echo esc_html(number_format($batch_value, 2)); ?></strong></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($batch->quantity_purchased, $batch->unit)); ?></td>
+                            <td><strong><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($batch->quantity_remaining, $batch->unit)); ?></strong></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_currency($batch->cost_per_unit)); ?></td>
+                            <td><strong><?php echo esc_html(RPOS_Inventory_Settings::format_currency($batch_value)); ?></strong></td>
                             <td>
                                 <span style="color: <?php echo $status_color; ?>; font-weight: bold;">
                                     ● <?php echo esc_html(ucfirst($batch->status)); ?>
