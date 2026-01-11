@@ -286,11 +286,11 @@ class RPOS_Gas_Cylinders {
         $cylinder = self::get_cylinder($cylinder_id);
         
         if (!$cylinder) {
-            error_log('RPOS Gas Cylinders: Cylinder not found with ID: ' . $cylinder_id);
+            error_log('RPOS Gas Cylinders: Cylinder not found with ID: ' . absint($cylinder_id));
             return false;
         }
         
-        error_log('RPOS Gas Cylinders: Generating usage report for cylinder #' . $cylinder_id . ' (Type: ' . $cylinder->type_name . ')');
+        error_log('RPOS Gas Cylinders: Generating usage report for cylinder #' . absint($cylinder_id) . ' (Type: ' . sanitize_text_field($cylinder->type_name) . ')');
         
         // Get product mappings for this cylinder type
         $product_ids = $wpdb->get_col($wpdb->prepare(
@@ -299,7 +299,7 @@ class RPOS_Gas_Cylinders {
             $cylinder->cylinder_type_id
         ));
         
-        error_log('RPOS Gas Cylinders: Found ' . count($product_ids) . ' mapped products: [' . implode(', ', $product_ids) . ']');
+        error_log('RPOS Gas Cylinders: Found ' . count($product_ids) . ' mapped products: [' . implode(', ', array_map('absint', $product_ids)) . ']');
         
         if (empty($product_ids)) {
             error_log('RPOS Gas Cylinders: No products mapped to cylinder type #' . $cylinder->cylinder_type_id);
@@ -373,7 +373,7 @@ class RPOS_Gas_Cylinders {
                   ORDER BY total_sales DESC";
         
         $prepared_query = $wpdb->prepare($query, $params);
-        error_log('RPOS Gas Cylinders: Executing SQL query: ' . $prepared_query);
+        error_log('RPOS Gas Cylinders: Executing query for ' . count($product_ids) . ' products in date range');
         
         $products = $wpdb->get_results($prepared_query);
         
@@ -382,11 +382,12 @@ class RPOS_Gas_Cylinders {
         $total_sales = 0;
         foreach ($products as $product) {
             $total_sales += floatval($product->total_sales);
-            error_log('RPOS Gas Cylinders: Product: ' . $product->product_name . ', Qty: ' . $product->total_quantity . ', Sales: ' . $product->total_sales);
         }
         
+        error_log('RPOS Gas Cylinders: Found ' . count($products) . ' distinct products with total sales: ' . number_format($total_sales, 2));
+        
         $execution_time = round((microtime(true) - $start_time) * 1000, 2);
-        error_log('RPOS Gas Cylinders: Report generated in ' . $execution_time . 'ms. Total sales: ' . $total_sales);
+        error_log('RPOS Gas Cylinders: Report generated in ' . $execution_time . 'ms');
         
         return array(
             'cylinder' => $cylinder,
@@ -399,8 +400,7 @@ class RPOS_Gas_Cylinders {
                 'completed_orders_in_range' => $completed_orders_in_range,
                 'orders_with_mapped_products' => $order_items_with_products,
                 'product_results' => count($products),
-                'execution_time' => $execution_time . 'ms',
-                'sql_query' => $prepared_query
+                'execution_time' => $execution_time . 'ms'
             )
         );
     }

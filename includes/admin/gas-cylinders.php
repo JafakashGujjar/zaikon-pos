@@ -206,10 +206,6 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                             <p><strong>Orders with Mapped Products:</strong> <?php echo esc_html($report['debug_info']['orders_with_mapped_products']); ?></p>
                             <p><strong>Product Results Returned:</strong> <?php echo esc_html($report['debug_info']['product_results']); ?></p>
                             <p><strong>Execution Time:</strong> <?php echo esc_html($report['debug_info']['execution_time']); ?></p>
-                            <details>
-                                <summary style="cursor: pointer; color: #2271b1;">Show SQL Query</summary>
-                                <pre style="background: white; padding: 10px; overflow-x: auto; margin-top: 10px;"><?php echo esc_html($report['debug_info']['sql_query']); ?></pre>
-                            </details>
                             <p style="margin-top: 10px;"><em>Note: Check server error logs for detailed debugging output.</em></p>
                         </div>
                     <?php endif; ?>
