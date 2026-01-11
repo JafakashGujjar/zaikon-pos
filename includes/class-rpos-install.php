@@ -174,6 +174,32 @@ class RPOS_Install {
         if (empty($column_exists)) {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `is_delivery` tinyint(1) DEFAULT 0 AFTER `delivery_charge`");
         }
+        
+        // New delivery rider fields
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_status'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `delivery_status` varchar(50) DEFAULT NULL AFTER `is_delivery`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_km'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `delivery_km` decimal(10,2) DEFAULT 0 AFTER `delivery_status`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'rider_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `rider_id` bigint(20) unsigned DEFAULT NULL AFTER `delivery_km`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'kitchen_late'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `kitchen_late` tinyint(1) DEFAULT 0 AFTER `rider_id`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'ready_at'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `ready_at` datetime DEFAULT NULL AFTER `kitchen_late`");
+        }
     }
     
     /**
@@ -454,6 +480,20 @@ class RPOS_Install {
             KEY date (date),
             KEY rider_id (rider_id),
             KEY bike_id (bike_id)
+        ) $charset_collate;";
+        
+        // Notifications table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_notifications (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            order_id bigint(20) unsigned NOT NULL,
+            type varchar(50) NOT NULL,
+            message text NOT NULL,
+            is_read tinyint(1) DEFAULT 0,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_user_read (user_id, is_read),
+            KEY idx_created (created_at)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

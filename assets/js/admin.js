@@ -417,6 +417,7 @@
                 orderData.area_id = this.deliveryData.area_id;
                 orderData.customer_name = this.deliveryData.customer_name;
                 orderData.customer_phone = this.deliveryData.customer_phone;
+                orderData.special_instructions = this.deliveryData.special_instructions || '';
             }
             
             ZAIKON_Toast.info('Processing order...');
