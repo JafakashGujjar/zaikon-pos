@@ -422,29 +422,33 @@ class RPOS_Ingredients {
     public static function get_usage_report_with_waste($date_from = null, $date_to = null) {
         global $wpdb;
         
+        // Build date condition once for reuse
+        $date_condition = '';
         $where_values = array();
         
         if ($date_from && $date_to) {
-            // Both dates provided - use BETWEEN
-            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at BETWEEN %s AND %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
-            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at BETWEEN %s AND %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
-            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at BETWEEN %s AND %s THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
-            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at BETWEEN %s AND %s THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
-            $where_values = array($date_from, $date_to, $date_from, $date_to, $date_from, $date_to, $date_from, $date_to);
+            $date_condition = "BETWEEN %s AND %s";
+            $date_params = array($date_from, $date_to);
         } elseif ($date_from) {
-            // Only start date
-            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at >= %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
-            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at >= %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
-            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at >= %s THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
-            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at >= %s THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
-            $where_values = array($date_from, $date_from, $date_from, $date_from);
+            $date_condition = ">= %s";
+            $date_params = array($date_from);
         } elseif ($date_to) {
-            // Only end date
-            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at <= %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
-            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at <= %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
-            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at <= %s THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
-            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at <= %s THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
-            $where_values = array($date_to, $date_to, $date_to, $date_to);
+            $date_condition = "<= %s";
+            $date_params = array($date_to);
+        } else {
+            $date_condition = "IS NOT NULL";
+            $date_params = array();
+        }
+        
+        // Build CASE statements using the date condition
+        if (!empty($date_params)) {
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at {$date_condition} THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at {$date_condition} THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
+            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at {$date_condition} THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
+            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at {$date_condition} THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
+            
+            // Build parameter array: date_params repeated 4 times (one for each CASE)
+            $where_values = array_merge($date_params, $date_params, $date_params, $date_params);
         } else {
             // No date filtering
             $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' THEN im.change_amount ELSE 0 END), 0) as total_purchased";
@@ -486,28 +490,9 @@ class RPOS_Ingredients {
         }
         
         // Get cost information from batches before consuming
-        $batches = RPOS_Batches::get_available_batches(
-            $ingredient_id, 
-            RPOS_Inventory_Settings::get('consumption_strategy', 'FEFO')
-        );
+        $cost_per_unit = RPOS_Batches::get_weighted_average_cost($ingredient_id);
         
-        // Calculate average cost per unit from available batches
-        $cost_per_unit = 0;
-        if (!empty($batches)) {
-            $total_cost_value = 0;
-            $total_quantity = 0;
-            foreach ($batches as $batch) {
-                $batch_qty = floatval($batch->quantity_remaining);
-                $batch_cost = floatval($batch->cost_per_unit);
-                $total_cost_value += $batch_qty * $batch_cost;
-                $total_quantity += $batch_qty;
-            }
-            if ($total_quantity > 0) {
-                $cost_per_unit = $total_cost_value / $total_quantity;
-            }
-        }
-        
-        // If no batches, try to get cost from ingredient record
+        // If no cost from batches, try to get cost from ingredient record
         if ($cost_per_unit == 0) {
             $ingredient = self::get($ingredient_id);
             if ($ingredient) {
@@ -516,6 +501,10 @@ class RPOS_Ingredients {
         }
         
         // Get the batch_id that will be consumed (first batch)
+        $batches = RPOS_Batches::get_available_batches(
+            $ingredient_id, 
+            RPOS_Inventory_Settings::get('consumption_strategy', 'FEFO')
+        );
         $batch_id = null;
         if (!empty($batches)) {
             $batch_id = $batches[0]->id;

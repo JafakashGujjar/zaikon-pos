@@ -384,4 +384,30 @@ class RPOS_Batches {
             return floatval($wpdb->get_var($query));
         }
     }
+    
+    /**
+     * Get weighted average cost per unit for an ingredient from available batches
+     */
+    public static function get_weighted_average_cost($ingredient_id) {
+        $batches = self::get_available_batches(
+            $ingredient_id, 
+            RPOS_Inventory_Settings::get('consumption_strategy', 'FEFO')
+        );
+        
+        if (empty($batches)) {
+            return 0;
+        }
+        
+        $total_cost_value = 0;
+        $total_quantity = 0;
+        
+        foreach ($batches as $batch) {
+            $batch_qty = floatval($batch->quantity_remaining);
+            $batch_cost = floatval($batch->cost_per_unit);
+            $total_cost_value += $batch_qty * $batch_cost;
+            $total_quantity += $batch_qty;
+        }
+        
+        return $total_quantity > 0 ? ($total_cost_value / $total_quantity) : 0;
+    }
 }

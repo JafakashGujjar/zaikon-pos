@@ -26,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_settin
         'require_batch_on_purchase' => isset($_POST['require_batch_on_purchase']) ? '1' : '0',
         'auto_expire_batches' => isset($_POST['auto_expire_batches']) ? '1' : '0',
         'inventory_currency_symbol' => sanitize_text_field($_POST['inventory_currency_symbol'] ?? 'Rs'),
-        'quantity_decimal_places' => absint($_POST['quantity_decimal_places'] ?? 0),
-        'price_decimal_places' => absint($_POST['price_decimal_places'] ?? 2)
+        'quantity_decimal_places' => min(3, max(0, absint($_POST['quantity_decimal_places'] ?? 0))),
+        'price_decimal_places' => in_array($_POST['price_decimal_places'] ?? '2', array('0', '2')) ? absint($_POST['price_decimal_places']) : 2
     );
     
     foreach ($settings_to_save as $key => $value) {
