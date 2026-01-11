@@ -47,6 +47,12 @@ class RPOS_Roles {
             'rpos_manage_inventory' => true,
         ));
         
+        // Delivery Rider - View assigned deliveries only
+        add_role('delivery_rider', __('Delivery Rider', 'restaurant-pos'), array(
+            'read' => true,
+            'rpos_view_deliveries' => true,
+        ));
+        
         // Add capabilities to administrator
         $admin = get_role('administrator');
         if ($admin) {
@@ -69,6 +75,7 @@ class RPOS_Roles {
         remove_role('cashier');
         remove_role('kitchen_staff');
         remove_role('inventory_manager');
+        remove_role('delivery_rider');
         
         // Remove capabilities from administrator
         $admin = get_role('administrator');

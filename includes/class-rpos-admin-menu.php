@@ -26,6 +26,22 @@ class RPOS_Admin_Menu {
      * Add admin menu items
      */
     public function add_menu() {
+        $current_user = wp_get_current_user();
+        
+        // If user is a delivery rider, only show rider menu
+        if (in_array('delivery_rider', (array) $current_user->roles)) {
+            add_menu_page(
+                __('My Deliveries', 'restaurant-pos'),
+                __('My Deliveries', 'restaurant-pos'),
+                'read',
+                'restaurant-pos-rider',
+                array($this, 'rider_deliveries_page'),
+                'dashicons-car',
+                30
+            );
+            return;
+        }
+        
         // Main menu
         add_menu_page(
             __('Restaurant POS', 'restaurant-pos'),
@@ -301,5 +317,12 @@ class RPOS_Admin_Menu {
      */
     public function delivery_reports_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/delivery-reports.php';
+    }
+    
+    /**
+     * Rider Deliveries page (for delivery riders only)
+     */
+    public function rider_deliveries_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/rider-deliveries.php';
     }
 }
