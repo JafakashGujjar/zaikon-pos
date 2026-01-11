@@ -24,6 +24,13 @@ class RPOS_Roles {
             'rpos_view_reports' => true,
             'rpos_manage_settings' => true,
             'rpos_view_orders' => true,
+            'rpos_manage_suppliers' => true,
+            'rpos_view_inventory_dashboard' => true,
+            'rpos_manage_batches' => true,
+            'rpos_log_waste' => true,
+            'rpos_adjust_inventory' => true,
+            'rpos_view_inventory_reports' => true,
+            'rpos_manage_inventory_settings' => true,
         ));
         
         // Cashier - POS and orders only
@@ -45,6 +52,12 @@ class RPOS_Roles {
             'read' => true,
             'rpos_manage_products' => true,
             'rpos_manage_inventory' => true,
+            'rpos_manage_suppliers' => true,
+            'rpos_view_inventory_dashboard' => true,
+            'rpos_manage_batches' => true,
+            'rpos_log_waste' => true,
+            'rpos_adjust_inventory' => true,
+            'rpos_view_inventory_reports' => true,
         ));
         
         // Delivery Rider - View assigned deliveries only
@@ -64,6 +77,13 @@ class RPOS_Roles {
             $admin->add_cap('rpos_view_reports');
             $admin->add_cap('rpos_manage_settings');
             $admin->add_cap('rpos_view_orders');
+            $admin->add_cap('rpos_manage_suppliers');
+            $admin->add_cap('rpos_view_inventory_dashboard');
+            $admin->add_cap('rpos_manage_batches');
+            $admin->add_cap('rpos_log_waste');
+            $admin->add_cap('rpos_adjust_inventory');
+            $admin->add_cap('rpos_view_inventory_reports');
+            $admin->add_cap('rpos_manage_inventory_settings');
         }
     }
     
@@ -88,6 +108,13 @@ class RPOS_Roles {
             $admin->remove_cap('rpos_view_reports');
             $admin->remove_cap('rpos_manage_settings');
             $admin->remove_cap('rpos_view_orders');
+            $admin->remove_cap('rpos_manage_suppliers');
+            $admin->remove_cap('rpos_view_inventory_dashboard');
+            $admin->remove_cap('rpos_manage_batches');
+            $admin->remove_cap('rpos_log_waste');
+            $admin->remove_cap('rpos_adjust_inventory');
+            $admin->remove_cap('rpos_view_inventory_reports');
+            $admin->remove_cap('rpos_manage_inventory_settings');
         }
     }
 }

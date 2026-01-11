@@ -57,7 +57,7 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                         <label for="ingredient_id"><?php esc_html_e('Ingredient', 'restaurant-pos'); ?> <span class="required">*</span></label>
                     </th>
                     <td>
-                        <select name="ingredient_id" id="ingredient_id" class="regular-text" required>
+                        <select name="ingredient_id" id="ingredient_id" class="regular-text" required onchange="loadBatches(this.value)">
                             <option value=""><?php esc_html_e('-- Select Ingredient --', 'restaurant-pos'); ?></option>
                             <?php foreach ($ingredients as $ing): ?>
                                 <option value="<?php echo esc_attr($ing->id); ?>">
@@ -65,6 +65,18 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </td>
+                </tr>
+                
+                <tr id="batch_selector" style="display:none;">
+                    <th scope="row">
+                        <label for="batch_id"><?php esc_html_e('Batch (Optional)', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <select name="batch_id" id="batch_id" class="regular-text">
+                            <option value=""><?php esc_html_e('-- Auto-select by FIFO/FEFO --', 'restaurant-pos'); ?></option>
+                        </select>
+                        <p class="description"><?php esc_html_e('Leave empty to let the system auto-select batches based on your consumption strategy.', 'restaurant-pos'); ?></p>
                     </td>
                 </tr>
                 
@@ -87,9 +99,13 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                         <select name="reason" id="reason" required>
                             <option value=""><?php esc_html_e('-- Select Reason --', 'restaurant-pos'); ?></option>
                             <option value="Expired"><?php esc_html_e('Expired', 'restaurant-pos'); ?></option>
-                            <option value="Spoiled"><?php esc_html_e('Spoiled', 'restaurant-pos'); ?></option>
-                            <option value="Waste"><?php esc_html_e('Waste', 'restaurant-pos'); ?></option>
-                            <option value="Damaged"><?php esc_html_e('Damaged', 'restaurant-pos'); ?></option>
+                            <option value="Spoiled"><?php esc_html_e('Spoiled / Contaminated', 'restaurant-pos'); ?></option>
+                            <option value="Burnt"><?php esc_html_e('Burnt / Overcooked', 'restaurant-pos'); ?></option>
+                            <option value="Returned"><?php esc_html_e('Returned by Customer', 'restaurant-pos'); ?></option>
+                            <option value="Preparation Error"><?php esc_html_e('Preparation Error', 'restaurant-pos'); ?></option>
+                            <option value="Lost"><?php esc_html_e('Lost / Miscount', 'restaurant-pos'); ?></option>
+                            <option value="Theft"><?php esc_html_e('Theft (Sensitive)', 'restaurant-pos'); ?></option>
+                            <option value="Damaged"><?php esc_html_e('Damaged / Broken', 'restaurant-pos'); ?></option>
                             <option value="Other"><?php esc_html_e('Other', 'restaurant-pos'); ?></option>
                         </select>
                     </td>
@@ -114,6 +130,54 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
         </form>
     </div>
     
+    <script>
+    function loadBatches(ingredientId) {
+        if (!ingredientId) {
+            document.getElementById('batch_selector').style.display = 'none';
+            return;
+        }
+        
+        // Show batch selector
+        document.getElementById('batch_selector').style.display = 'table-row';
+        
+        // Load batches via AJAX (simplified - in production use proper AJAX)
+        var batchSelect = document.getElementById('batch_id');
+        batchSelect.innerHTML = '<option value=""><?php esc_html_e('-- Auto-select by FIFO/FEFO --', 'restaurant-pos'); ?></option>';
+        
+        <?php
+        // Pre-load batch data for all ingredients (simplified approach)
+        global $wpdb;
+        $all_batches = $wpdb->get_results(
+            "SELECT b.*, i.unit
+             FROM {$wpdb->prefix}rpos_ingredient_batches b
+             LEFT JOIN {$wpdb->prefix}rpos_ingredients i ON b.ingredient_id = i.id
+             WHERE b.status = 'active' AND b.quantity_remaining > 0
+             ORDER BY b.expiry_date ASC, b.purchase_date ASC"
+        );
+        
+        $batches_by_ingredient = array();
+        foreach ($all_batches as $batch) {
+            if (!isset($batches_by_ingredient[$batch->ingredient_id])) {
+                $batches_by_ingredient[$batch->ingredient_id] = array();
+            }
+            $batches_by_ingredient[$batch->ingredient_id][] = $batch;
+        }
+        ?>
+        
+        var batchData = <?php echo json_encode($batches_by_ingredient); ?>;
+        
+        if (batchData[ingredientId]) {
+            batchData[ingredientId].forEach(function(batch) {
+                var option = document.createElement('option');
+                option.value = batch.id;
+                var expiryText = batch.expiry_date ? ' (Exp: ' + batch.expiry_date + ')' : '';
+                option.textContent = batch.batch_number + ' - ' + parseFloat(batch.quantity_remaining).toFixed(3) + ' ' + batch.unit + expiryText;
+                batchSelect.appendChild(option);
+            });
+        }
+    }
+    </script>
+    
     <hr style="margin: 40px 0;">
     
     <h2><?php esc_html_e('Waste History', 'restaurant-pos'); ?></h2>
@@ -123,6 +187,7 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
             <tr>
                 <th><?php esc_html_e('Date', 'restaurant-pos'); ?></th>
                 <th><?php esc_html_e('Ingredient', 'restaurant-pos'); ?></th>
+                <th><?php esc_html_e('Batch', 'restaurant-pos'); ?></th>
                 <th><?php esc_html_e('Quantity', 'restaurant-pos'); ?></th>
                 <th><?php esc_html_e('Reason', 'restaurant-pos'); ?></th>
                 <th><?php esc_html_e('Notes', 'restaurant-pos'); ?></th>
@@ -132,9 +197,26 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
         <tbody>
             <?php if (!empty($waste_history)): ?>
                 <?php foreach ($waste_history as $record): ?>
+                    <?php
+                    // Get batch info if batch_id exists
+                    $batch_info = '';
+                    if (!empty($record->batch_id)) {
+                        $batch = RPOS_Batches::get($record->batch_id);
+                        if ($batch) {
+                            $batch_info = $batch->batch_number;
+                        }
+                    }
+                    ?>
                     <tr>
                         <td><?php echo esc_html(date('Y-m-d H:i', strtotime($record->created_at))); ?></td>
                         <td><strong><?php echo esc_html($record->ingredient_name); ?></strong></td>
+                        <td>
+                            <?php if ($batch_info): ?>
+                                <code><?php echo esc_html($batch_info); ?></code>
+                            <?php else: ?>
+                                <span style="color: #999;">-</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo esc_html(number_format($record->quantity, 3)); ?> <?php echo esc_html($record->unit); ?></td>
                         <td>
                             <span class="badge" style="padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; background-color: 
@@ -142,6 +224,8 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                                 switch($record->reason) {
                                     case 'Expired': echo '#ffebee; color: #c62828;'; break;
                                     case 'Spoiled': echo '#fff3e0; color: #ef6c00;'; break;
+                                    case 'Burnt': echo '#fff8e1; color: #f57c00;'; break;
+                                    case 'Theft': echo '#fce4ec; color: #ad1457;'; break;
                                     case 'Damaged': echo '#fce4ec; color: #c2185b;'; break;
                                     default: echo '#f5f5f5; color: #616161;';
                                 }
@@ -156,7 +240,7 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="6"><?php esc_html_e('No waste records found.', 'restaurant-pos'); ?></td>
+                    <td colspan="7"><?php esc_html_e('No waste records found.', 'restaurant-pos'); ?></td>
                 </tr>
             <?php endif; ?>
         </tbody>

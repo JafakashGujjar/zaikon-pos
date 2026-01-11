@@ -80,6 +80,11 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-delivery-logs.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-riders.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-notifications.php';
+        
+        // Batch/Lot inventory system classes
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-suppliers.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-batches.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-inventory-settings.php';
     }
     
     /**
