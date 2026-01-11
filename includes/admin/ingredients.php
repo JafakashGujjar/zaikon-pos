@@ -342,7 +342,58 @@ foreach ($ingredients as $ing) {
     <?php elseif ($view === 'add' || $view === 'edit'): ?>
         <hr class="wp-header-end">
         
-        <form method="post" action="?page=restaurant-pos-ingredients">
+        <?php if ($view === 'add'): ?>
+            <!-- Existing Ingredient Selector -->
+            <div class="rpos-form-section" id="ingredient-selector" style="max-width: 600px;">
+                <h3>🔍 <?php esc_html_e('Select Existing Ingredient or Create New', 'restaurant-pos'); ?></h3>
+                <p><?php esc_html_e('To avoid duplicates, first check if the ingredient already exists:', 'restaurant-pos'); ?></p>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="existing_ingredient"><?php esc_html_e('Search Existing Ingredients', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <select id="existing_ingredient" class="regular-text" style="width: 100%;">
+                                <option value=""><?php esc_html_e('-- Type to search or create new --', 'restaurant-pos'); ?></option>
+                                <?php foreach ($ingredients as $ing): ?>
+                                    <option value="<?php echo esc_attr($ing->id); ?>" data-url="?page=restaurant-pos-ingredients&view=edit&id=<?php echo esc_attr($ing->id); ?>">
+                                        <?php echo esc_html($ing->name); ?> (<?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?> <?php echo esc_html($ing->unit); ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description"><?php esc_html_e('Select to edit existing ingredient, or leave empty to create new.', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p>
+                    <button type="button" id="show-new-form" class="button button-primary">
+                        ➕ <?php esc_html_e('Create New Ingredient', 'restaurant-pos'); ?>
+                    </button>
+                </p>
+            </div>
+            
+            <script>
+            jQuery(document).ready(function($) {
+                // Handle existing ingredient selection
+                $('#existing_ingredient').on('change', function() {
+                    var url = $(this).find(':selected').data('url');
+                    if (url) {
+                        window.location.href = url;
+                    }
+                });
+                
+                // Show new ingredient form
+                $('#show-new-form').on('click', function() {
+                    $('#ingredient-selector').hide();
+                    $('#new-ingredient-form').show();
+                });
+            });
+            </script>
+        <?php endif; ?>
+        
+        <form method="post" action="?page=restaurant-pos-ingredients" id="new-ingredient-form" <?php if ($view === 'add'): ?>style="display: none;"<?php endif; ?>>
             <?php wp_nonce_field('rpos_ingredient_action', 'rpos_ingredient_nonce'); ?>
             <input type="hidden" name="action" value="<?php echo $view === 'edit' ? 'update' : 'create'; ?>">
             <?php if ($view === 'edit'): ?>
@@ -532,11 +583,25 @@ foreach ($ingredients as $ing) {
         </div>
         
         <p class="submit">
-                <button type="submit" class="button button-primary">
-                    <?php echo $view === 'edit' ? esc_html__('Update Ingredient', 'restaurant-pos') : esc_html__('Add Ingredient', 'restaurant-pos'); ?>
-                </button>
-                <a href="?page=restaurant-pos-ingredients" class="button"><?php esc_html_e('Cancel', 'restaurant-pos'); ?></a>
-            </p>
-        </form>
+            <button type="submit" class="button button-primary">
+                <?php echo $view === 'edit' ? esc_html__('Update Ingredient', 'restaurant-pos') : esc_html__('Add Ingredient', 'restaurant-pos'); ?>
+            </button>
+            <?php if ($view === 'add'): ?>
+                <button type="button" id="back-to-selector" class="button"><?php esc_html_e('← Back to Selector', 'restaurant-pos'); ?></button>
+            <?php endif; ?>
+            <a href="?page=restaurant-pos-ingredients" class="button"><?php esc_html_e('Cancel', 'restaurant-pos'); ?></a>
+        </p>
+    </form>
+    
+    <?php if ($view === 'add'): ?>
+    <script>
+    jQuery(document).ready(function($) {
+        $('#back-to-selector').on('click', function() {
+            $('#new-ingredient-form').hide();
+            $('#ingredient-selector').show();
+        });
+    });
+    </script>
     <?php endif; ?>
+<?php endif; ?>
 </div>
