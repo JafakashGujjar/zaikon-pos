@@ -125,7 +125,7 @@ class RPOS_Admin_Menu {
         
         // Ingredients Usage Report
         add_submenu_page(
-            'restaurant-pos-ingredients',
+            'restaurant-pos',
             __('Ingredients Usage Report', 'restaurant-pos'),
             __('Usage Report', 'restaurant-pos'),
             'rpos_manage_inventory',
@@ -135,7 +135,7 @@ class RPOS_Admin_Menu {
         
         // Ingredients Waste/Spoilage
         add_submenu_page(
-            'restaurant-pos-ingredients',
+            'restaurant-pos',
             __('Waste / Spoilage', 'restaurant-pos'),
             __('Waste / Spoilage', 'restaurant-pos'),
             'rpos_manage_inventory',
@@ -145,7 +145,7 @@ class RPOS_Admin_Menu {
         
         // Stock Intelligence Dashboard
         add_submenu_page(
-            'restaurant-pos-ingredients',
+            'restaurant-pos',
             __('Stock Dashboard', 'restaurant-pos'),
             __('Stock Dashboard', 'restaurant-pos'),
             'rpos_manage_inventory',
