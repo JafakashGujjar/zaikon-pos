@@ -20,11 +20,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_supplier_nonce']
     $action = $_POST['action'] ?? '';
     
     if ($action === 'create') {
+        // Validate and sanitize rating
+        $rating = null;
+        if (isset($_POST['rating']) && $_POST['rating'] !== '') {
+            $rating_val = absint($_POST['rating']);
+            if ($rating_val >= 1 && $rating_val <= 5) {
+                $rating = $rating_val;
+            }
+        }
+        
         $data = array(
             'supplier_name' => sanitize_text_field($_POST['supplier_name'] ?? ''),
             'phone' => sanitize_text_field($_POST['phone'] ?? ''),
             'address' => sanitize_textarea_field($_POST['address'] ?? ''),
-            'rating' => isset($_POST['rating']) && $_POST['rating'] !== '' ? absint($_POST['rating']) : null,
+            'rating' => $rating,
             'contact_person' => sanitize_text_field($_POST['contact_person'] ?? ''),
             'gst_tax_id' => sanitize_text_field($_POST['gst_tax_id'] ?? ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
@@ -40,11 +49,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_supplier_nonce']
         }
     } elseif ($action === 'update' && isset($_POST['supplier_id'])) {
         $supplier_id = absint($_POST['supplier_id']);
+        
+        // Validate and sanitize rating
+        $rating = null;
+        if (isset($_POST['rating']) && $_POST['rating'] !== '') {
+            $rating_val = absint($_POST['rating']);
+            if ($rating_val >= 1 && $rating_val <= 5) {
+                $rating = $rating_val;
+            }
+        }
         $data = array(
             'supplier_name' => sanitize_text_field($_POST['supplier_name'] ?? ''),
             'phone' => sanitize_text_field($_POST['phone'] ?? ''),
             'address' => sanitize_textarea_field($_POST['address'] ?? ''),
-            'rating' => isset($_POST['rating']) && $_POST['rating'] !== '' ? absint($_POST['rating']) : null,
+            'rating' => $rating,
             'contact_person' => sanitize_text_field($_POST['contact_person'] ?? ''),
             'gst_tax_id' => sanitize_text_field($_POST['gst_tax_id'] ?? ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,

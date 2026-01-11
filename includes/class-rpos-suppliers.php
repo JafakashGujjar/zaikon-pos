@@ -106,8 +106,12 @@ class RPOS_Suppliers {
         $format = array('%s', '%s', '%s', '%s', '%s', '%d', '%s');
         
         if (isset($data['rating']) && $data['rating'] !== null && $data['rating'] !== '') {
-            $insert_data['rating'] = absint($data['rating']);
-            $format[] = '%d';
+            $rating_val = absint($data['rating']);
+            // Validate rating range (1-5)
+            if ($rating_val >= 1 && $rating_val <= 5) {
+                $insert_data['rating'] = $rating_val;
+                $format[] = '%d';
+            }
         }
         
         $result = $wpdb->insert(
@@ -148,8 +152,13 @@ class RPOS_Suppliers {
         }
         
         if (isset($data['rating'])) {
-            $update_data['rating'] = ($data['rating'] !== null && $data['rating'] !== '') ? absint($data['rating']) : null;
-            $format[] = '%d';
+            $rating_val = ($data['rating'] !== null && $data['rating'] !== '') ? absint($data['rating']) : null;
+            // Validate rating range (1-5) if provided
+            if ($rating_val !== null && ($rating_val < 1 || $rating_val > 5)) {
+                $rating_val = null;
+            }
+            $update_data['rating'] = $rating_val;
+            $format[] = $rating_val !== null ? '%d' : '%s';
         }
         
         if (isset($data['contact_person'])) {

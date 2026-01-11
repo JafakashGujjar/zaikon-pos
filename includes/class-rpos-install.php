@@ -284,31 +284,42 @@ class RPOS_Install {
         );
         
         // Migrate existing suppliers from ingredients table to suppliers table
-        $existing_suppliers = $wpdb->get_results(
-            "SELECT DISTINCT supplier_name, supplier_phone, supplier_location, supplier_rating
-             FROM {$wpdb->prefix}rpos_ingredients
-             WHERE supplier_name IS NOT NULL AND supplier_name != ''
-             ORDER BY supplier_name"
+        // Check if required columns exist first
+        $columns_exist = $wpdb->get_results(
+            "SHOW COLUMNS FROM {$wpdb->prefix}rpos_ingredients WHERE Field IN ('supplier_name', 'supplier_phone', 'supplier_location', 'supplier_rating')"
         );
         
-        $supplier_map = array();
-        foreach ($existing_suppliers as $supplier) {
-            $result = $wpdb->insert(
-                $wpdb->prefix . 'rpos_suppliers',
-                array(
-                    'supplier_name' => $supplier->supplier_name,
-                    'phone' => $supplier->supplier_phone,
-                    'address' => $supplier->supplier_location,
-                    'rating' => $supplier->supplier_rating,
-                    'is_active' => 1,
-                    'notes' => 'Migrated from legacy ingredient data'
-                ),
-                array('%s', '%s', '%s', '%d', '%d', '%s')
+        $has_supplier_fields = count($columns_exist) >= 1; // At least supplier_name should exist
+        
+        if ($has_supplier_fields) {
+            $existing_suppliers = $wpdb->get_results(
+                "SELECT DISTINCT supplier_name, supplier_phone, supplier_location, supplier_rating
+                 FROM {$wpdb->prefix}rpos_ingredients
+                 WHERE supplier_name IS NOT NULL AND supplier_name != ''
+                 ORDER BY supplier_name"
             );
             
-            if ($result) {
-                $supplier_map[$supplier->supplier_name] = $wpdb->insert_id;
+            $supplier_map = array();
+            foreach ($existing_suppliers as $supplier) {
+                $result = $wpdb->insert(
+                    $wpdb->prefix . 'rpos_suppliers',
+                    array(
+                        'supplier_name' => $supplier->supplier_name,
+                        'phone' => isset($supplier->supplier_phone) ? $supplier->supplier_phone : null,
+                        'address' => isset($supplier->supplier_location) ? $supplier->supplier_location : null,
+                        'rating' => isset($supplier->supplier_rating) ? $supplier->supplier_rating : null,
+                        'is_active' => 1,
+                        'notes' => 'Migrated from legacy ingredient data'
+                    ),
+                    array('%s', '%s', '%s', '%d', '%d', '%s')
+                );
+                
+                if ($result) {
+                    $supplier_map[$supplier->supplier_name] = $wpdb->insert_id;
+                }
             }
+        } else {
+            $supplier_map = array();
         }
         
         // Create legacy batches for existing ingredients with stock

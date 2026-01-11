@@ -263,8 +263,17 @@ class RPOS_Ingredients {
                 $user_id
             );
             
-            // Update total ingredient stock
-            $new_quantity = floatval($ingredient->current_stock_quantity) - $quantity_to_consume;
+            // Verify if we could consume the full amount
+            $total_consumed = 0;
+            if (is_array($consumed)) {
+                foreach ($consumed as $batch_consumption) {
+                    $total_consumed += $batch_consumption['consumed'];
+                }
+            }
+            
+            // Update total ingredient stock by the amount actually consumed
+            $actual_deduction = min($quantity_to_consume, $total_consumed);
+            $new_quantity = floatval($ingredient->current_stock_quantity) - $actual_deduction;
             if ($new_quantity < 0) {
                 $new_quantity = 0;
             }
@@ -276,6 +285,11 @@ class RPOS_Ingredients {
                 array('%f'),
                 array('%d')
             );
+            
+            // Log warning if we couldn't consume the full amount
+            if ($total_consumed < $quantity_to_consume) {
+                error_log("RPOS: Warning - Could only consume {$total_consumed} of {$quantity_to_consume} requested for ingredient ID {$ingredient_id}");
+            }
             
             return $new_quantity;
         }
