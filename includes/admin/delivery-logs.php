@@ -204,7 +204,15 @@ $users = get_users(array('orderby' => 'display_name'));
                         <td colspan="9"><?php echo esc_html__('No logs found.', 'restaurant-pos'); ?></td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($logs as $log): ?>
+                    <?php foreach ($logs as $log): 
+                        // Get actual delivery count from orders if rider_id is available
+                        $actual_delivery_count = null;
+                        $actual_total_km = null;
+                        if ($log->rider_id) {
+                            $actual_delivery_count = RPOS_Delivery_Logs::get_delivery_count_for_rider($log->rider_id, $log->date);
+                            $actual_total_km = RPOS_Delivery_Logs::get_total_km_for_rider($log->rider_id, $log->date);
+                        }
+                    ?>
                         <tr>
                             <td><?php echo esc_html(date('Y-m-d', strtotime($log->date))); ?></td>
                             <td><?php echo esc_html($log->rider_name); ?></td>
@@ -212,8 +220,18 @@ $users = get_users(array('orderby' => 'display_name'));
                             <td><?php echo esc_html(number_format($log->fuel_amount, 2) . ' ' . $log->fuel_unit); ?></td>
                             <td><?php echo esc_html(number_format($log->km_start, 2)); ?></td>
                             <td><?php echo esc_html(number_format($log->km_end, 2)); ?></td>
-                            <td><?php echo esc_html(number_format($log->total_km, 2)); ?></td>
-                            <td><?php echo esc_html($log->deliveries_count); ?></td>
+                            <td>
+                                <?php echo esc_html(number_format($log->total_km, 2)); ?>
+                                <?php if ($actual_total_km !== null && $actual_total_km > 0): ?>
+                                    <br><small style="color: #666;">(Orders: <?php echo esc_html(number_format($actual_total_km, 2)); ?> km)</small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php echo esc_html($log->deliveries_count); ?>
+                                <?php if ($actual_delivery_count !== null): ?>
+                                    <br><small style="color: #2271b1; font-weight: bold;">(Actual: <?php echo esc_html($actual_delivery_count); ?>)</small>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <button type="button" class="button button-small" onclick="editLog(<?php echo esc_js(json_encode($log)); ?>)"><?php echo esc_html__('Edit', 'restaurant-pos'); ?></button>
                                 <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=restaurant-pos-delivery-logs&action=delete&id=' . $log->id), 'delete_log_' . $log->id)); ?>" 

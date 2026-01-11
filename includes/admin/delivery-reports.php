@@ -93,11 +93,60 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
         $total_deliveries = 0;
         $total_km = 0;
         $total_charges = 0;
+        $actual_deliveries = 0;
+        $actual_km = 0;
         
         foreach ($report_data as $row) {
             $total_fuel += floatval($row->fuel_amount);
             $total_deliveries += intval($row->deliveries_count);
             $total_km += floatval($row->total_km);
+            $total_charges += floatval($row->total_delivery_charges ?? 0);
+            
+            // Get actual delivery data from orders if rider_id is available
+            if ($row->rider_id) {
+                $actual_deliveries += RPOS_Delivery_Logs::get_delivery_count_for_rider($row->rider_id, $row->date);
+                $actual_km += RPOS_Delivery_Logs::get_total_km_for_rider($row->rider_id, $row->date);
+            }
+        }
+        
+        // Calculate averages
+        $avg_km_per_delivery = ($actual_deliveries > 0) ? ($actual_km / $actual_deliveries) : 0;
+        ?>
+        
+        <h2><?php echo esc_html__('Summary', 'restaurant-pos'); ?></h2>
+        <div class="rpos-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">
+            <div class="rpos-summary-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 10px 0; color: #666; font-size: 14px;"><?php echo esc_html__('Total Deliveries', 'restaurant-pos'); ?></h3>
+                <p style="margin: 0; font-size: 32px; font-weight: bold; color: #2271b1;"><?php echo esc_html($actual_deliveries); ?></p>
+                <?php if ($total_deliveries != $actual_deliveries): ?>
+                    <small style="color: #999;">(Logged: <?php echo esc_html($total_deliveries); ?>)</small>
+                <?php endif; ?>
+            </div>
+            
+            <div class="rpos-summary-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 10px 0; color: #666; font-size: 14px;"><?php echo esc_html__('Total KM', 'restaurant-pos'); ?></h3>
+                <p style="margin: 0; font-size: 32px; font-weight: bold; color: #2271b1;"><?php echo esc_html(number_format($actual_km, 2)); ?></p>
+                <?php if (abs($total_km - $actual_km) > 0.1): ?>
+                    <small style="color: #999;">(Logged: <?php echo esc_html(number_format($total_km, 2)); ?>)</small>
+                <?php endif; ?>
+            </div>
+            
+            <div class="rpos-summary-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 10px 0; color: #666; font-size: 14px;"><?php echo esc_html__('Fuel Filled', 'restaurant-pos'); ?></h3>
+                <p style="margin: 0; font-size: 32px; font-weight: bold; color: #d63638;"><?php echo esc_html($currency . number_format($total_fuel, 2)); ?></p>
+            </div>
+            
+            <div class="rpos-summary-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 10px 0; color: #666; font-size: 14px;"><?php echo esc_html__('Avg KM per Delivery', 'restaurant-pos'); ?></h3>
+                <p style="margin: 0; font-size: 32px; font-weight: bold; color: #00a32a;"><?php echo esc_html(number_format($avg_km_per_delivery, 2)); ?></p>
+            </div>
+            
+            <div class="rpos-summary-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 10px 0; color: #666; font-size: 14px;"><?php echo esc_html__('Delivery Charges Collected', 'restaurant-pos'); ?></h3>
+                <p style="margin: 0; font-size: 32px; font-weight: bold; color: #00a32a;"><?php echo esc_html($currency . number_format($total_charges, 2)); ?></p>
+            </div>
+        </div>
+    </div>
             $total_charges += floatval($row->total_delivery_charges);
         }
         

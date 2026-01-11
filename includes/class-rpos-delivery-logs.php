@@ -259,4 +259,48 @@ class RPOS_Delivery_Logs {
         
         return $wpdb->get_results($query);
     }
+    
+    /**
+     * Get delivery count for rider on a specific date (from actual orders)
+     */
+    public static function get_delivery_count_for_rider($rider_id, $date) {
+        global $wpdb;
+        
+        $date_start = $date . ' 00:00:00';
+        $date_end = $date . ' 23:59:59';
+        
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
+             WHERE rider_id = %d 
+             AND is_delivery = 1
+             AND delivery_status = 'delivered'
+             AND created_at >= %s 
+             AND created_at <= %s",
+            $rider_id, $date_start, $date_end
+        ));
+        
+        return intval($count);
+    }
+    
+    /**
+     * Get total km from delivered orders for rider on a specific date
+     */
+    public static function get_total_km_for_rider($rider_id, $date) {
+        global $wpdb;
+        
+        $date_start = $date . ' 00:00:00';
+        $date_end = $date . ' 23:59:59';
+        
+        $total_km = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(delivery_km) FROM {$wpdb->prefix}rpos_orders 
+             WHERE rider_id = %d 
+             AND is_delivery = 1
+             AND delivery_status = 'delivered'
+             AND created_at >= %s 
+             AND created_at <= %s",
+            $rider_id, $date_start, $date_end
+        ));
+        
+        return floatval($total_km);
+    }
 }
