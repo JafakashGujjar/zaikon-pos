@@ -163,6 +163,16 @@ class RPOS_Admin_Menu {
             array($this, 'reports_page')
         );
         
+        // Kitchen Staff Report (under Reports)
+        add_submenu_page(
+            'restaurant-pos',
+            __('Kitchen Staff Report', 'restaurant-pos'),
+            __('Kitchen Staff Report', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-kitchen-staff-report',
+            array($this, 'kitchen_staff_report_page')
+        );
+        
         // Settings
         add_submenu_page(
             'restaurant-pos',
@@ -317,6 +327,13 @@ class RPOS_Admin_Menu {
      */
     public function delivery_reports_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/delivery-reports.php';
+    }
+    
+    /**
+     * Kitchen Staff Report page
+     */
+    public function kitchen_staff_report_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/kitchen-staff-report.php';
     }
     
     /**
