@@ -579,17 +579,25 @@
                 var timeAgo = self.getTimeAgo(notification.created_at);
                 var highlightClass = isHighlighted ? ' highlighted' : '';
                 
-                var $item = $('<div class="zaikon-notification-item unread' + highlightClass + '" data-id="' + notification.id + '">');
-                $item.append('<div class="zaikon-notification-content">' +
-                    '<div class="zaikon-notification-icon">' + icon + '</div>' +
-                    '<div class="zaikon-notification-details">' +
-                    '<div class="zaikon-notification-order">Order #' + notification.order_number + '</div>' +
-                    '<div class="zaikon-notification-message">' + notification.message + '</div>' +
-                    '<div class="zaikon-notification-time">' + timeAgo + '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<button class="zaikon-notification-mark-read" data-id="' + notification.id + '">✕</button>');
+                // Create elements safely using jQuery
+                var $item = $('<div class="zaikon-notification-item unread' + highlightClass + '">');
+                $item.attr('data-id', notification.id);
                 
+                var $content = $('<div class="zaikon-notification-content">');
+                var $icon = $('<div class="zaikon-notification-icon">').text(icon);
+                var $details = $('<div class="zaikon-notification-details">');
+                
+                var $order = $('<div class="zaikon-notification-order">').text('Order #' + notification.order_number);
+                var $message = $('<div class="zaikon-notification-message">').text(notification.message);
+                var $time = $('<div class="zaikon-notification-time">').text(timeAgo);
+                
+                $details.append($order, $message, $time);
+                $content.append($icon, $details);
+                
+                var $markReadBtn = $('<button class="zaikon-notification-mark-read">').text('✕');
+                $markReadBtn.attr('data-id', notification.id);
+                
+                $item.append($content, $markReadBtn);
                 $list.append($item);
             });
             
@@ -681,27 +689,31 @@
             var $items = $('#receipt-items');
             $items.empty();
             
-            // Create a proper table for items
-            var itemTable = '<table class="zaikon-receipt-item-table">';
-            itemTable += '<thead><tr>';
-            itemTable += '<th>Item</th>';
-            itemTable += '<th style="text-align: center;">Qty</th>';
-            itemTable += '<th style="text-align: right;">Price</th>';
-            itemTable += '<th style="text-align: right;">Total</th>';
-            itemTable += '</tr></thead>';
-            itemTable += '<tbody>';
+            // Create a proper table for items using jQuery for safe DOM manipulation
+            var $itemTable = $('<table class="zaikon-receipt-item-table">');
+            var $thead = $('<thead>').append(
+                $('<tr>').append(
+                    $('<th>').text('Item'),
+                    $('<th>').attr('style', 'text-align: center;').text('Qty'),
+                    $('<th>').attr('style', 'text-align: right;').text('Price'),
+                    $('<th>').attr('style', 'text-align: right;').text('Total')
+                )
+            );
             
+            var $tbody = $('<tbody>');
             order.items.forEach(function(item) {
-                itemTable += '<tr>';
-                itemTable += '<td>' + item.product_name + '</td>';
-                itemTable += '<td style="text-align: center;">' + item.quantity + '</td>';
-                itemTable += '<td style="text-align: right;">' + rposData.currency + parseFloat(item.price).toFixed(2) + '</td>';
-                itemTable += '<td style="text-align: right;">' + rposData.currency + parseFloat(item.line_total).toFixed(2) + '</td>';
-                itemTable += '</tr>';
+                var $row = $('<tr>');
+                $row.append(
+                    $('<td>').text(item.product_name),
+                    $('<td>').attr('style', 'text-align: center;').text(item.quantity),
+                    $('<td>').attr('style', 'text-align: right;').text(rposData.currency + parseFloat(item.price).toFixed(2)),
+                    $('<td>').attr('style', 'text-align: right;').text(rposData.currency + parseFloat(item.line_total).toFixed(2))
+                );
+                $tbody.append($row);
             });
             
-            itemTable += '</tbody></table>';
-            $items.append(itemTable);
+            $itemTable.append($thead, $tbody);
+            $items.append($itemTable);
             
             $('#receipt-subtotal').text(rposData.currency + parseFloat(orderData.subtotal).toFixed(2));
             
