@@ -73,6 +73,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_ingredient_nonce
         } else {
             echo '<div class="notice notice-error"><p>' . esc_html__('Failed to delete ingredient. It may be used in product recipes.', 'restaurant-pos') . '</p></div>';
         }
+    } elseif ($action === 'purchase' && isset($_POST['ingredient_id'])) {
+        $ingredient_id = absint($_POST['ingredient_id']);
+        
+        // Prepare purchase data for batch creation
+        $purchase_data = array(
+            'quantity' => floatval($_POST['quantity'] ?? 0),
+            'cost_per_unit' => floatval($_POST['cost_per_unit'] ?? 0),
+            'supplier_id' => !empty($_POST['supplier_id']) ? absint($_POST['supplier_id']) : null,
+            'purchase_date' => !empty($_POST['purchase_date']) ? sanitize_text_field($_POST['purchase_date']) : date('Y-m-d'),
+            'manufacturing_date' => !empty($_POST['manufacturing_date']) ? sanitize_text_field($_POST['manufacturing_date']) : null,
+            'expiry_date' => !empty($_POST['expiry_date']) ? sanitize_text_field($_POST['expiry_date']) : null,
+            'invoice_url' => !empty($_POST['invoice_url']) ? esc_url_raw($_POST['invoice_url']) : '',
+            'notes' => sanitize_textarea_field($_POST['notes'] ?? '')
+        );
+        
+        // Use the new purchase method which creates batch
+        $batch_id = RPOS_Ingredients::purchase($ingredient_id, $purchase_data);
+        
+        if ($batch_id) {
+            echo '<div class="notice notice-success"><p>' . esc_html__('Purchase recorded successfully! New batch created.', 'restaurant-pos') . '</p></div>';
+        } else {
+            echo '<div class="notice notice-error"><p>' . esc_html__('Failed to record purchase.', 'restaurant-pos') . '</p></div>';
+        }
     }
 }
 
@@ -80,9 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_ingredient_nonce
 $view = $_GET['view'] ?? 'list';
 $ingredient_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 
-// Get ingredient data for edit
+// Get ingredient data for edit or purchase
 $ingredient = null;
-if ($view === 'edit' && $ingredient_id) {
+if (($view === 'edit' || $view === 'purchase') && $ingredient_id) {
     $ingredient = RPOS_Ingredients::get($ingredient_id);
     if (!$ingredient) {
         $view = 'list';
@@ -321,6 +344,9 @@ foreach ($ingredients as $ing) {
                                 <?php endif; ?>
                             </td>
                             <td>
+                                <a href="?page=restaurant-pos-ingredients&view=purchase&id=<?php echo esc_attr($ing->id); ?>" class="button button-small button-primary">
+                                    <?php esc_html_e('Purchase', 'restaurant-pos'); ?>
+                                </a>
                                 <a href="?page=restaurant-pos-ingredients&view=edit&id=<?php echo esc_attr($ing->id); ?>" class="button button-small"><?php esc_html_e('Edit', 'restaurant-pos'); ?></a>
                                 <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e('Are you sure you want to delete this ingredient?', 'restaurant-pos'); ?>');">
                                     <?php wp_nonce_field('rpos_ingredient_action', 'rpos_ingredient_nonce'); ?>
@@ -560,6 +586,162 @@ foreach ($ingredients as $ing) {
             <a href="?page=restaurant-pos-ingredients" class="button"><?php esc_html_e('Cancel', 'restaurant-pos'); ?></a>
         </p>
     </form>
+    
+    <?php elseif ($view === 'purchase' && $ingredient): ?>
+        <a href="?page=restaurant-pos-ingredients" class="button">← <?php esc_html_e('Back to List', 'restaurant-pos'); ?></a>
+        <hr class="wp-header-end">
+        
+        <h2><?php esc_html_e('Purchase / Restock Ingredient', 'restaurant-pos'); ?></h2>
+        <div style="background: #f0f6fc; padding: 15px; border-left: 4px solid #2271b1; border-radius: 4px; margin: 20px 0; max-width: 800px;">
+            <p><strong><?php esc_html_e('Ingredient:', 'restaurant-pos'); ?></strong> <?php echo esc_html($ingredient->name); ?></p>
+            <p><strong><?php esc_html_e('Current Stock:', 'restaurant-pos'); ?></strong> <?php echo esc_html(number_format($ingredient->current_stock_quantity, 3)); ?> <?php echo esc_html($ingredient->unit); ?></p>
+        </div>
+        
+        <form method="post" action="" style="max-width: 800px;">
+            <?php wp_nonce_field('rpos_ingredient_action', 'rpos_ingredient_nonce'); ?>
+            <input type="hidden" name="action" value="purchase">
+            <input type="hidden" name="ingredient_id" value="<?php echo esc_attr($ingredient->id); ?>">
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="quantity"><?php esc_html_e('Quantity Purchased', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                    </th>
+                    <td>
+                        <input type="number" name="quantity" id="quantity" step="0.001" min="0.001" class="regular-text" required>
+                        <span><?php echo esc_html($ingredient->unit); ?></span>
+                        <p class="description"><?php esc_html_e('Amount of ingredient being purchased.', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="cost_per_unit"><?php esc_html_e('Cost per Unit', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cost_per_unit" id="cost_per_unit" step="0.01" min="0" 
+                               value="<?php echo esc_attr($ingredient->cost_per_unit); ?>" class="regular-text" required>
+                        <p class="description"><?php esc_html_e('Cost per unit for this batch.', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="supplier_id"><?php esc_html_e('Supplier', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <select name="supplier_id" id="supplier_id" class="regular-text">
+                            <option value=""><?php esc_html_e('-- Select Supplier --', 'restaurant-pos'); ?></option>
+                            <?php
+                            $suppliers = RPOS_Suppliers::get_all(array('is_active' => 1));
+                            foreach ($suppliers as $sup):
+                            ?>
+                                <option value="<?php echo esc_attr($sup->id); ?>" <?php selected($ingredient->default_supplier_id, $sup->id); ?>>
+                                    <?php echo esc_html($sup->supplier_name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="description">
+                            <?php esc_html_e('Select the supplier for this batch. ', 'restaurant-pos'); ?>
+                            <a href="?page=restaurant-pos-suppliers&view=add" target="_blank"><?php esc_html_e('Add New Supplier', 'restaurant-pos'); ?></a>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="purchase_date"><?php esc_html_e('Purchase Date', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <input type="date" name="purchase_date" id="purchase_date" value="<?php echo date('Y-m-d'); ?>" class="regular-text">
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="manufacturing_date"><?php esc_html_e('Manufacturing Date', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <input type="date" name="manufacturing_date" id="manufacturing_date" class="regular-text">
+                        <p class="description"><?php esc_html_e('Optional: Date when the ingredient was manufactured.', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="expiry_date"><?php esc_html_e('Expiry Date', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <input type="date" name="expiry_date" id="expiry_date" class="regular-text">
+                        <p class="description"><?php esc_html_e('Important for FEFO (First Expire First Out) consumption strategy.', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="invoice_url"><?php esc_html_e('Invoice URL', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <input type="url" name="invoice_url" id="invoice_url" class="regular-text" placeholder="https://">
+                        <p class="description"><?php esc_html_e('Optional: Link to uploaded invoice (PDF/image).', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="notes"><?php esc_html_e('Notes', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <textarea name="notes" id="notes" rows="4" class="large-text"></textarea>
+                        <p class="description"><?php esc_html_e('Any additional notes about this purchase/batch.', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+            </table>
+            
+            <p class="submit">
+                <input type="submit" name="submit" id="submit" class="button button-primary" value="<?php esc_attr_e('Record Purchase', 'restaurant-pos'); ?>">
+                <a href="?page=restaurant-pos-ingredients" class="button"><?php esc_html_e('Cancel', 'restaurant-pos'); ?></a>
+            </p>
+        </form>
+        
+        <!-- Display recent batches for this ingredient -->
+        <?php
+        $recent_batches = RPOS_Batches::get_all(array(
+            'ingredient_id' => $ingredient->id,
+            'orderby' => 'purchase_date',
+            'order' => 'DESC',
+            'limit' => 5
+        ));
+        
+        if (!empty($recent_batches)):
+        ?>
+            <hr style="margin: 30px 0;">
+            <h3><?php esc_html_e('Recent Batches', 'restaurant-pos'); ?></h3>
+            <table class="wp-list-table widefat fixed striped" style="max-width: 800px;">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e('Batch #', 'restaurant-pos'); ?></th>
+                        <th><?php esc_html_e('Purchase Date', 'restaurant-pos'); ?></th>
+                        <th><?php esc_html_e('Expiry Date', 'restaurant-pos'); ?></th>
+                        <th><?php esc_html_e('Remaining', 'restaurant-pos'); ?></th>
+                        <th><?php esc_html_e('Status', 'restaurant-pos'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($recent_batches as $batch): ?>
+                        <tr>
+                            <td><?php echo esc_html($batch->batch_number); ?></td>
+                            <td><?php echo esc_html(date('M d, Y', strtotime($batch->purchase_date))); ?></td>
+                            <td><?php echo $batch->expiry_date ? esc_html(date('M d, Y', strtotime($batch->expiry_date))) : '-'; ?></td>
+                            <td><?php echo esc_html(number_format($batch->quantity_remaining, 3)); ?> <?php echo esc_html($ingredient->unit); ?></td>
+                            <td><?php echo esc_html(ucfirst($batch->status)); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+        
+    <?php endif; ?>
     
     <?php if ($view === 'add'): ?>
     <script>
