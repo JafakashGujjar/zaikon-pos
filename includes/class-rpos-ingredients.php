@@ -417,6 +417,69 @@ class RPOS_Ingredients {
     }
     
     /**
+     * Get usage report with waste information
+     */
+    public static function get_usage_report_with_waste($date_from = null, $date_to = null) {
+        global $wpdb;
+        
+        // Build date condition once for reuse
+        $date_condition = '';
+        $where_values = array();
+        
+        if ($date_from && $date_to) {
+            $date_condition = "BETWEEN %s AND %s";
+            $date_params = array($date_from, $date_to);
+        } elseif ($date_from) {
+            $date_condition = ">= %s";
+            $date_params = array($date_from);
+        } elseif ($date_to) {
+            $date_condition = "<= %s";
+            $date_params = array($date_to);
+        } else {
+            $date_condition = "IS NOT NULL";
+            $date_params = array();
+        }
+        
+        // Build CASE statements using the date condition
+        if (!empty($date_params)) {
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at {$date_condition} THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at {$date_condition} THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
+            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at {$date_condition} THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
+            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at {$date_condition} THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
+            
+            // Build parameter array: date_params repeated 4 times (one for each CASE)
+            $where_values = array_merge($date_params, $date_params, $date_params, $date_params);
+        } else {
+            // No date filtering
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
+            $waste_qty_case = "COALESCE(SUM(w.quantity), 0) as total_waste_quantity";
+            $waste_cost_case = "COALESCE(SUM(w.quantity * w.cost_per_unit), 0) as total_waste_cost";
+        }
+        
+        $query = "SELECT 
+                    i.id,
+                    i.name,
+                    i.unit,
+                    i.current_stock_quantity,
+                    {$purchased_case},
+                    {$consumed_case},
+                    {$waste_qty_case},
+                    {$waste_cost_case}
+                  FROM {$wpdb->prefix}rpos_ingredients i
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredient_movements im ON i.id = im.ingredient_id
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredient_waste w ON i.id = w.ingredient_id
+                  GROUP BY i.id
+                  ORDER BY i.name ASC";
+        
+        if (!empty($where_values)) {
+            return $wpdb->get_results($wpdb->prepare($query, $where_values));
+        } else {
+            return $wpdb->get_results($query);
+        }
+    }
+    
+    /**
      * Log waste/spoilage
      */
     public static function log_waste($ingredient_id, $quantity, $reason, $notes = '', $user_id = null) {
@@ -426,17 +489,40 @@ class RPOS_Ingredients {
             $user_id = get_current_user_id();
         }
         
-        // Insert waste record
+        // Get cost information from batches before consuming
+        $cost_per_unit = RPOS_Batches::get_weighted_average_cost($ingredient_id);
+        
+        // If no cost from batches, try to get cost from ingredient record
+        if ($cost_per_unit == 0) {
+            $ingredient = self::get($ingredient_id);
+            if ($ingredient) {
+                $cost_per_unit = floatval($ingredient->cost_per_unit);
+            }
+        }
+        
+        // Get the batch_id that will be consumed (first batch)
+        $batches = RPOS_Batches::get_available_batches(
+            $ingredient_id, 
+            RPOS_Inventory_Settings::get('consumption_strategy', 'FEFO')
+        );
+        $batch_id = null;
+        if (!empty($batches)) {
+            $batch_id = $batches[0]->id;
+        }
+        
+        // Insert waste record with cost information
         $result = $wpdb->insert(
             $wpdb->prefix . 'rpos_ingredient_waste',
             array(
                 'ingredient_id' => $ingredient_id,
+                'batch_id' => $batch_id,
                 'quantity' => floatval($quantity),
+                'cost_per_unit' => $cost_per_unit,
                 'reason' => sanitize_text_field($reason),
                 'notes' => sanitize_textarea_field($notes),
                 'user_id' => $user_id
             ),
-            array('%d', '%f', '%s', '%s', '%d')
+            array('%d', '%d', '%f', '%f', '%s', '%s', '%d')
         );
         
         if ($result) {
@@ -488,6 +574,81 @@ class RPOS_Ingredients {
                   LEFT JOIN {$wpdb->users} u ON w.user_id = u.ID
                   WHERE {$where_clause}
                   ORDER BY w.created_at DESC
+                  LIMIT %d";
+        
+        $where_values[] = $limit;
+        
+        return $wpdb->get_results($wpdb->prepare($query, $where_values));
+    }
+    
+    /**
+     * Get waste cost summary for date range
+     */
+    public static function get_waste_cost_summary($date_from = null, $date_to = null) {
+        global $wpdb;
+        
+        $where = array('1=1');
+        $where_values = array();
+        
+        if ($date_from) {
+            $where[] = 'w.created_at >= %s';
+            $where_values[] = $date_from;
+        }
+        
+        if ($date_to) {
+            $where[] = 'w.created_at <= %s';
+            $where_values[] = $date_to;
+        }
+        
+        $where_clause = implode(' AND ', $where);
+        
+        // Get total waste quantity and cost
+        $query = "SELECT 
+                    SUM(w.quantity) as total_waste_quantity,
+                    SUM(w.quantity * w.cost_per_unit) as total_waste_cost
+                  FROM {$wpdb->prefix}rpos_ingredient_waste w
+                  WHERE {$where_clause}";
+        
+        if (!empty($where_values)) {
+            return $wpdb->get_row($wpdb->prepare($query, $where_values));
+        } else {
+            return $wpdb->get_row($query);
+        }
+    }
+    
+    /**
+     * Get top wasted ingredients by cost
+     */
+    public static function get_top_wasted_by_cost($date_from = null, $date_to = null, $limit = 10) {
+        global $wpdb;
+        
+        $where = array('1=1');
+        $where_values = array();
+        
+        if ($date_from) {
+            $where[] = 'w.created_at >= %s';
+            $where_values[] = $date_from;
+        }
+        
+        if ($date_to) {
+            $where[] = 'w.created_at <= %s';
+            $where_values[] = $date_to;
+        }
+        
+        $where_clause = implode(' AND ', $where);
+        
+        $query = "SELECT 
+                    i.id,
+                    i.name as ingredient_name,
+                    i.unit,
+                    SUM(w.quantity) as total_waste_quantity,
+                    SUM(w.quantity * w.cost_per_unit) as total_waste_cost,
+                    COUNT(w.id) as waste_count
+                  FROM {$wpdb->prefix}rpos_ingredient_waste w
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredients i ON w.ingredient_id = i.id
+                  WHERE {$where_clause}
+                  GROUP BY i.id
+                  ORDER BY total_waste_cost DESC
                   LIMIT %d";
         
         $where_values[] = $limit;

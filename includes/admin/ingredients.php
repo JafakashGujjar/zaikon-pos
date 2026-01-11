@@ -225,7 +225,7 @@ foreach ($ingredients as $ing) {
             </div>
             <div class="rpos-summary-card success">
                 <h3><?php esc_html_e('Total Inventory Value', 'restaurant-pos'); ?></h3>
-                <div class="value"><?php echo esc_html(RPOS_Settings::get('currency_symbol', 'Rs')); ?><?php echo esc_html(number_format($total_value, 2)); ?></div>
+                <div class="value"><?php echo esc_html(RPOS_Inventory_Settings::format_currency($total_value)); ?></div>
             </div>
             <div class="rpos-summary-card warning">
                 <h3><?php esc_html_e('Low Stock Items', 'restaurant-pos'); ?></h3>
@@ -302,12 +302,12 @@ foreach ($ingredients as $ing) {
                             <td><?php echo esc_html($ing->unit); ?></td>
                             <td>
                                 <span class="rpos-icon">📦</span>
-                                <?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?>
+                                <?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->current_stock_quantity)); ?>
                             </td>
-                            <td><?php echo esc_html(number_format($ing->reorder_level ?? 0, 3)); ?></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->reorder_level ?? 0)); ?></td>
                             <td>
                                 <span class="rpos-icon">💰</span>
-                                <?php echo esc_html(RPOS_Settings::get('currency_symbol', 'Rs')) . esc_html(number_format($ing->cost_per_unit, 2)); ?>
+                                <?php echo esc_html(RPOS_Inventory_Settings::format_currency($ing->cost_per_unit)); ?>
                             </td>
                             <td><?php echo !empty($ing->supplier_name) ? esc_html($ing->supplier_name) : '-'; ?></td>
                             <td>
@@ -384,7 +384,7 @@ foreach ($ingredients as $ing) {
                                 <option value=""><?php esc_html_e('-- Type to search or create new --', 'restaurant-pos'); ?></option>
                                 <?php foreach ($ingredients as $ing): ?>
                                     <option value="<?php echo esc_attr($ing->id); ?>" data-url="?page=restaurant-pos-ingredients&view=edit&id=<?php echo esc_attr($ing->id); ?>">
-                                        <?php echo esc_html($ing->name); ?> (<?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?> <?php echo esc_html($ing->unit); ?>)
+                                        <?php echo esc_html($ing->name); ?> (<?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->current_stock_quantity, $ing->unit)); ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -594,7 +594,7 @@ foreach ($ingredients as $ing) {
         <h2><?php esc_html_e('Purchase / Restock Ingredient', 'restaurant-pos'); ?></h2>
         <div style="background: #f0f6fc; padding: 15px; border-left: 4px solid #2271b1; border-radius: 4px; margin: 20px 0; max-width: 800px;">
             <p><strong><?php esc_html_e('Ingredient:', 'restaurant-pos'); ?></strong> <?php echo esc_html($ingredient->name); ?></p>
-            <p><strong><?php esc_html_e('Current Stock:', 'restaurant-pos'); ?></strong> <?php echo esc_html(number_format($ingredient->current_stock_quantity, 3)); ?> <?php echo esc_html($ingredient->unit); ?></p>
+            <p><strong><?php esc_html_e('Current Stock:', 'restaurant-pos'); ?></strong> <?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ingredient->current_stock_quantity, $ingredient->unit)); ?></p>
         </div>
         
         <form method="post" action="" style="max-width: 800px;">
@@ -733,7 +733,7 @@ foreach ($ingredients as $ing) {
                             <td><?php echo esc_html($batch->batch_number); ?></td>
                             <td><?php echo esc_html(date('M d, Y', strtotime($batch->purchase_date))); ?></td>
                             <td><?php echo $batch->expiry_date ? esc_html(date('M d, Y', strtotime($batch->expiry_date))) : '-'; ?></td>
-                            <td><?php echo esc_html(number_format($batch->quantity_remaining, 3)); ?> <?php echo esc_html($ingredient->unit); ?></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($batch->quantity_remaining, $ingredient->unit)); ?></td>
                             <td><?php echo esc_html(ucfirst($batch->status)); ?></td>
                         </tr>
                     <?php endforeach; ?>
