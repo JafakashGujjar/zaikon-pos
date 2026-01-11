@@ -153,6 +153,36 @@ class RPOS_Admin_Menu {
             array($this, 'ingredients_dashboard_page')
         );
         
+        // Suppliers
+        add_submenu_page(
+            'restaurant-pos',
+            __('Suppliers', 'restaurant-pos'),
+            __('Suppliers', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-suppliers',
+            array($this, 'suppliers_page')
+        );
+        
+        // Batches/Lots
+        add_submenu_page(
+            'restaurant-pos',
+            __('Batches / Lots', 'restaurant-pos'),
+            __('Batches / Lots', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-batches',
+            array($this, 'batches_page')
+        );
+        
+        // Inventory Settings
+        add_submenu_page(
+            'restaurant-pos',
+            __('Inventory Settings', 'restaurant-pos'),
+            __('Inventory Settings', 'restaurant-pos'),
+            'rpos_manage_settings',
+            'restaurant-pos-inventory-settings',
+            array($this, 'inventory_settings_page')
+        );
+        
         // Gas Cylinders
         add_submenu_page(
             'restaurant-pos',
@@ -347,6 +377,27 @@ class RPOS_Admin_Menu {
      */
     public function delivery_settings_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/delivery-settings.php';
+    }
+    
+    /**
+     * Suppliers page
+     */
+    public function suppliers_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/suppliers.php';
+    }
+    
+    /**
+     * Batches page
+     */
+    public function batches_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/batches.php';
+    }
+    
+    /**
+     * Inventory Settings page
+     */
+    public function inventory_settings_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/inventory-settings.php';
     }
     
     /**
