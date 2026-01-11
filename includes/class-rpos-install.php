@@ -216,6 +216,144 @@ class RPOS_Install {
         if (empty($column_exists)) {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `ready_at` datetime DEFAULT NULL AFTER `kitchen_late`");
         }
+        
+        // Add batch_id column to ingredient_movements table
+        $table_name = $wpdb->prefix . 'rpos_ingredient_movements';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'batch_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `batch_id` bigint(20) unsigned DEFAULT NULL AFTER `ingredient_id`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `idx_batch` (`batch_id`)");
+        }
+        
+        // Add batch_id column to ingredient_waste table
+        $table_name = $wpdb->prefix . 'rpos_ingredient_waste';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'batch_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `batch_id` bigint(20) unsigned DEFAULT NULL AFTER `ingredient_id`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `idx_batch` (`batch_id`)");
+        }
+        
+        // Add new fields to ingredients table for batch system
+        $table_name = $wpdb->prefix . 'rpos_ingredients';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'default_supplier_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `default_supplier_id` bigint(20) unsigned DEFAULT NULL AFTER `reorder_level`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `idx_default_supplier` (`default_supplier_id`)");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'lead_time_days'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `lead_time_days` int DEFAULT 0 AFTER `default_supplier_id`");
+        }
+        
+        // Run batch system migration if not already done
+        $migration_done = get_option('rpos_batch_migration_done', false);
+        if (!$migration_done) {
+            self::migrate_to_batch_system();
+            update_option('rpos_batch_migration_done', true);
+        }
+    }
+    
+    /**
+     * Migrate existing inventory to batch-based system
+     */
+    private static function migrate_to_batch_system() {
+        global $wpdb;
+        
+        // Set default inventory consumption strategy to FEFO
+        $wpdb->replace(
+            $wpdb->prefix . 'rpos_inventory_settings',
+            array(
+                'setting_key' => 'consumption_strategy',
+                'setting_value' => 'FEFO',
+                'setting_type' => 'select'
+            ),
+            array('%s', '%s', '%s')
+        );
+        
+        // Set default expiry warning days
+        $wpdb->replace(
+            $wpdb->prefix . 'rpos_inventory_settings',
+            array(
+                'setting_key' => 'expiry_warning_days',
+                'setting_value' => '7',
+                'setting_type' => 'number'
+            ),
+            array('%s', '%s', '%s')
+        );
+        
+        // Migrate existing suppliers from ingredients table to suppliers table
+        $existing_suppliers = $wpdb->get_results(
+            "SELECT DISTINCT supplier_name, supplier_phone, supplier_location, supplier_rating
+             FROM {$wpdb->prefix}rpos_ingredients
+             WHERE supplier_name IS NOT NULL AND supplier_name != ''
+             ORDER BY supplier_name"
+        );
+        
+        $supplier_map = array();
+        foreach ($existing_suppliers as $supplier) {
+            $result = $wpdb->insert(
+                $wpdb->prefix . 'rpos_suppliers',
+                array(
+                    'supplier_name' => $supplier->supplier_name,
+                    'phone' => $supplier->supplier_phone,
+                    'address' => $supplier->supplier_location,
+                    'rating' => $supplier->supplier_rating,
+                    'is_active' => 1,
+                    'notes' => 'Migrated from legacy ingredient data'
+                ),
+                array('%s', '%s', '%s', '%d', '%d', '%s')
+            );
+            
+            if ($result) {
+                $supplier_map[$supplier->supplier_name] = $wpdb->insert_id;
+            }
+        }
+        
+        // Create legacy batches for existing ingredients with stock
+        $ingredients = $wpdb->get_results(
+            "SELECT * FROM {$wpdb->prefix}rpos_ingredients 
+             WHERE current_stock_quantity > 0"
+        );
+        
+        foreach ($ingredients as $ingredient) {
+            $batch_number = 'LEGACY-' . $ingredient->id . '-' . date('YmdHis');
+            $supplier_id = null;
+            
+            // Map to new supplier if exists
+            if (!empty($ingredient->supplier_name) && isset($supplier_map[$ingredient->supplier_name])) {
+                $supplier_id = $supplier_map[$ingredient->supplier_name];
+                
+                // Update ingredient with default supplier
+                $wpdb->update(
+                    $wpdb->prefix . 'rpos_ingredients',
+                    array('default_supplier_id' => $supplier_id),
+                    array('id' => $ingredient->id),
+                    array('%d'),
+                    array('%d')
+                );
+            }
+            
+            // Create legacy batch
+            $wpdb->insert(
+                $wpdb->prefix . 'rpos_ingredient_batches',
+                array(
+                    'batch_number' => $batch_number,
+                    'ingredient_id' => $ingredient->id,
+                    'supplier_id' => $supplier_id,
+                    'purchase_date' => !empty($ingredient->purchasing_date) ? $ingredient->purchasing_date : date('Y-m-d'),
+                    'expiry_date' => $ingredient->expiry_date,
+                    'cost_per_unit' => $ingredient->cost_per_unit,
+                    'quantity_purchased' => $ingredient->current_stock_quantity,
+                    'quantity_remaining' => $ingredient->current_stock_quantity,
+                    'notes' => 'Legacy batch created during migration',
+                    'status' => 'active',
+                    'created_by' => get_current_user_id()
+                ),
+                array('%s', '%d', '%d', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%d')
+            );
+        }
     }
     
     /**
@@ -528,6 +666,59 @@ class RPOS_Install {
             PRIMARY KEY (id),
             KEY idx_user_read (user_id, is_read),
             KEY idx_created (created_at)
+        ) $charset_collate;";
+        
+        // Suppliers table - Multi-supplier support
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_suppliers (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            supplier_name varchar(255) NOT NULL,
+            phone varchar(50),
+            address text,
+            rating tinyint(1) DEFAULT NULL,
+            contact_person varchar(255),
+            gst_tax_id varchar(100),
+            is_active tinyint(1) DEFAULT 1,
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_name (supplier_name),
+            KEY idx_active (is_active)
+        ) $charset_collate;";
+        
+        // Ingredient Batches table - Batch/Lot tracking with FIFO/FEFO
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_ingredient_batches (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            batch_number varchar(100) NOT NULL,
+            ingredient_id bigint(20) unsigned NOT NULL,
+            supplier_id bigint(20) unsigned,
+            purchase_date date NOT NULL,
+            manufacturing_date date,
+            expiry_date date,
+            cost_per_unit decimal(10,2) NOT NULL DEFAULT 0.00,
+            quantity_purchased decimal(10,3) NOT NULL,
+            quantity_remaining decimal(10,3) NOT NULL,
+            purchase_invoice_url varchar(500),
+            notes text,
+            status varchar(20) DEFAULT 'active',
+            created_by bigint(20) unsigned,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_batch_number (batch_number),
+            KEY idx_ingredient (ingredient_id),
+            KEY idx_supplier (supplier_id),
+            KEY idx_purchase_date (purchase_date),
+            KEY idx_expiry_date (expiry_date),
+            KEY idx_status (status)
+        ) $charset_collate;";
+        
+        // Inventory Settings table - FIFO/FEFO and other settings
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_inventory_settings (
+            setting_key varchar(100) NOT NULL,
+            setting_value text,
+            setting_type varchar(50) DEFAULT 'text',
+            PRIMARY KEY (setting_key)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
