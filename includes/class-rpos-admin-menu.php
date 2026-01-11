@@ -133,6 +133,26 @@ class RPOS_Admin_Menu {
             array($this, 'ingredients_report_page')
         );
         
+        // Ingredients Waste/Spoilage
+        add_submenu_page(
+            'restaurant-pos-ingredients',
+            __('Waste / Spoilage', 'restaurant-pos'),
+            __('Waste / Spoilage', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-ingredients-waste',
+            array($this, 'ingredients_waste_page')
+        );
+        
+        // Stock Intelligence Dashboard
+        add_submenu_page(
+            'restaurant-pos-ingredients',
+            __('Stock Dashboard', 'restaurant-pos'),
+            __('Stock Dashboard', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-ingredients-dashboard',
+            array($this, 'ingredients_dashboard_page')
+        );
+        
         // Gas Cylinders
         add_submenu_page(
             'restaurant-pos',
@@ -278,6 +298,20 @@ class RPOS_Admin_Menu {
      */
     public function ingredients_report_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/ingredients-report.php';
+    }
+    
+    /**
+     * Ingredients waste page
+     */
+    public function ingredients_waste_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/ingredients-waste.php';
+    }
+    
+    /**
+     * Ingredients dashboard page
+     */
+    public function ingredients_dashboard_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/ingredients-dashboard.php';
     }
     
     /**

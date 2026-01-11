@@ -117,6 +117,22 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_rating` tinyint(1) DEFAULT NULL AFTER `supplier_name`");
         }
         
+        // Add new supplier detail fields
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'supplier_phone'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_phone` varchar(50) DEFAULT NULL AFTER `supplier_rating`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'supplier_location'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `supplier_location` text DEFAULT NULL AFTER `supplier_phone`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'reorder_level'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `reorder_level` decimal(10,3) DEFAULT 0.000 AFTER `supplier_location`");
+        }
+        
         // Check if new columns exist in orders table for KDS tracking
         $table_name = $wpdb->prefix . 'rpos_orders';
         
@@ -366,6 +382,9 @@ class RPOS_Install {
             expiry_date date DEFAULT NULL,
             supplier_name varchar(255) DEFAULT NULL,
             supplier_rating tinyint(1) DEFAULT NULL,
+            supplier_phone varchar(50) DEFAULT NULL,
+            supplier_location text DEFAULT NULL,
+            reorder_level decimal(10,3) DEFAULT 0.000,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -385,6 +404,21 @@ class RPOS_Install {
             PRIMARY KEY (id),
             KEY ingredient_id (ingredient_id),
             KEY movement_type (movement_type),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+        
+        // Ingredient waste table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_ingredient_waste (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            ingredient_id bigint(20) unsigned NOT NULL,
+            quantity decimal(10,3) NOT NULL,
+            reason varchar(50) NOT NULL,
+            notes text,
+            user_id bigint(20) unsigned,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY ingredient_id (ingredient_id),
+            KEY reason (reason),
             KEY created_at (created_at)
         ) $charset_collate;";
         

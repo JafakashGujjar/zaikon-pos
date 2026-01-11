@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_ingredient_nonce
             'purchasing_date' => sanitize_text_field($_POST['purchasing_date'] ?? ''),
             'expiry_date' => sanitize_text_field($_POST['expiry_date'] ?? ''),
             'supplier_name' => sanitize_text_field($_POST['supplier_name'] ?? ''),
-            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null
+            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null,
+            'supplier_phone' => sanitize_text_field($_POST['supplier_phone'] ?? ''),
+            'supplier_location' => sanitize_textarea_field($_POST['supplier_location'] ?? ''),
+            'reorder_level' => floatval($_POST['reorder_level'] ?? 0)
         );
         
         $ingredient_id = RPOS_Ingredients::create($data);
@@ -48,7 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_ingredient_nonce
             'purchasing_date' => sanitize_text_field($_POST['purchasing_date'] ?? ''),
             'expiry_date' => sanitize_text_field($_POST['expiry_date'] ?? ''),
             'supplier_name' => sanitize_text_field($_POST['supplier_name'] ?? ''),
-            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null
+            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null,
+            'supplier_phone' => sanitize_text_field($_POST['supplier_phone'] ?? ''),
+            'supplier_location' => sanitize_textarea_field($_POST['supplier_location'] ?? ''),
+            'reorder_level' => floatval($_POST['reorder_level'] ?? 0)
         );
         
         $result = RPOS_Ingredients::update($ingredient_id, $data);
@@ -99,11 +105,13 @@ $ingredients = RPOS_Ingredients::get_all();
                 <tr>
                     <th><?php esc_html_e('Ingredient Name', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Unit', 'restaurant-pos'); ?></th>
-                    <th><?php esc_html_e('Current Stock Quantity', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Current Stock', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Reorder Level', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Cost per Unit', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Supplier', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Phone', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Location', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Rating', 'restaurant-pos'); ?></th>
-                    <th><?php esc_html_e('Purchase Date', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Expiry Date', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Actions', 'restaurant-pos'); ?></th>
                 </tr>
@@ -115,8 +123,11 @@ $ingredients = RPOS_Ingredients::get_all();
                             <td><strong><?php echo esc_html($ing->name); ?></strong></td>
                             <td><?php echo esc_html($ing->unit); ?></td>
                             <td><?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?></td>
+                            <td><?php echo esc_html(number_format($ing->reorder_level ?? 0, 3)); ?></td>
                             <td><?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')) . esc_html(number_format($ing->cost_per_unit, 2)); ?></td>
                             <td><?php echo !empty($ing->supplier_name) ? esc_html($ing->supplier_name) : '-'; ?></td>
+                            <td><?php echo !empty($ing->supplier_phone) ? esc_html($ing->supplier_phone) : '-'; ?></td>
+                            <td><?php echo !empty($ing->supplier_location) ? esc_html($ing->supplier_location) : '-'; ?></td>
                             <td>
                                 <?php 
                                 if (!empty($ing->supplier_rating)) {
@@ -128,7 +139,6 @@ $ingredients = RPOS_Ingredients::get_all();
                                 }
                                 ?>
                             </td>
-                            <td><?php echo !empty($ing->purchasing_date) ? esc_html($ing->purchasing_date) : '-'; ?></td>
                             <td><?php echo !empty($ing->expiry_date) ? esc_html($ing->expiry_date) : '-'; ?></td>
                             <td>
                                 <a href="?page=restaurant-pos-ingredients&view=edit&id=<?php echo esc_attr($ing->id); ?>" class="button button-small"><?php esc_html_e('Edit', 'restaurant-pos'); ?></a>
@@ -143,7 +153,7 @@ $ingredients = RPOS_Ingredients::get_all();
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="9"><?php esc_html_e('No ingredients found.', 'restaurant-pos'); ?></td>
+                        <td colspan="11"><?php esc_html_e('No ingredients found.', 'restaurant-pos'); ?></td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -244,6 +254,27 @@ $ingredients = RPOS_Ingredients::get_all();
                 
                 <tr>
                     <th scope="row">
+                        <label for="supplier_phone"><?php esc_html_e('Supplier Phone', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" name="supplier_phone" id="supplier_phone" class="regular-text"
+                               value="<?php echo $ingredient && !empty($ingredient->supplier_phone) ? esc_attr($ingredient->supplier_phone) : ''; ?>">
+                        <p class="description"><?php esc_html_e('Phone number of the supplier (optional).', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="supplier_location"><?php esc_html_e('Supplier Location', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <textarea name="supplier_location" id="supplier_location" class="regular-text" rows="3"><?php echo $ingredient && !empty($ingredient->supplier_location) ? esc_textarea($ingredient->supplier_location) : ''; ?></textarea>
+                        <p class="description"><?php esc_html_e('Address or location of the supplier (optional).', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
                         <label for="supplier_rating"><?php esc_html_e('Supplier Rating', 'restaurant-pos'); ?></label>
                     </th>
                     <td>
@@ -256,6 +287,18 @@ $ingredients = RPOS_Ingredients::get_all();
                             <option value="5" <?php selected($ingredient && !empty($ingredient->supplier_rating) ? $ingredient->supplier_rating : '', '5'); ?>>⭐⭐⭐⭐⭐ (5 Stars)</option>
                         </select>
                         <p class="description"><?php esc_html_e('Rate the supplier quality (optional).', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="reorder_level"><?php esc_html_e('Reorder Level', 'restaurant-pos'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="reorder_level" id="reorder_level" 
+                               step="0.001" min="0" class="regular-text"
+                               value="<?php echo $ingredient ? esc_attr($ingredient->reorder_level ?? 0) : '0'; ?>">
+                        <p class="description"><?php esc_html_e('Alert when stock falls below this level.', 'restaurant-pos'); ?></p>
                     </td>
                 </tr>
             </table>
