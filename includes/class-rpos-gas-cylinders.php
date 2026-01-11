@@ -280,12 +280,17 @@ class RPOS_Gas_Cylinders {
     public static function get_cylinder_usage_report($cylinder_id) {
         global $wpdb;
         
+        $start_time = microtime(true);
+        
         // Get cylinder details
         $cylinder = self::get_cylinder($cylinder_id);
         
         if (!$cylinder) {
+            error_log('RPOS Gas Cylinders: Cylinder not found with ID: ' . absint($cylinder_id));
             return false;
         }
+        
+        error_log('RPOS Gas Cylinders: Generating usage report for cylinder #' . absint($cylinder_id) . ' (Type: ' . sanitize_text_field($cylinder->type_name) . ')');
         
         // Get product mappings for this cylinder type
         $product_ids = $wpdb->get_col($wpdb->prepare(
@@ -294,11 +299,19 @@ class RPOS_Gas_Cylinders {
             $cylinder->cylinder_type_id
         ));
         
+        error_log('RPOS Gas Cylinders: Found ' . count($product_ids) . ' mapped products: [' . implode(', ', array_map('absint', $product_ids)) . ']');
+        
         if (empty($product_ids)) {
+            error_log('RPOS Gas Cylinders: No products mapped to cylinder type #' . absint($cylinder->cylinder_type_id));
             return array(
                 'cylinder' => $cylinder,
                 'products' => array(),
-                'total_sales' => 0
+                'total_sales' => 0,
+                'debug_info' => array(
+                    'mapped_products' => 0,
+                    'date_range' => 'N/A',
+                    'execution_time' => round((microtime(true) - $start_time) * 1000, 2) . 'ms'
+                )
             );
         }
         
@@ -306,7 +319,54 @@ class RPOS_Gas_Cylinders {
         $date_from = $cylinder->start_date . ' 00:00:00';
         $date_to = $cylinder->end_date ? ($cylinder->end_date . ' 23:59:59') : date('Y-m-d H:i:s');
         
+        error_log('RPOS Gas Cylinders: Date range: ' . $date_from . ' to ' . $date_to);
+        
+        // Run debug queries only if WP_DEBUG is enabled to avoid production overhead
+        $total_orders_in_range = 0;
+        $completed_orders_in_range = 0;
+        $order_items_with_products = 0;
+        
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            // Count total orders in date range (for debugging)
+            $total_orders_in_range = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
+                 WHERE created_at >= %s AND created_at <= %s",
+                $date_from,
+                $date_to
+            ));
+            error_log('RPOS Gas Cylinders: Total orders in date range: ' . $total_orders_in_range);
+            
+            // Count completed orders in date range (for debugging)
+            $completed_orders_in_range = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
+                 WHERE created_at >= %s AND created_at <= %s AND status = 'completed'",
+                $date_from,
+                $date_to
+            ));
+            error_log('RPOS Gas Cylinders: Completed orders in date range: ' . $completed_orders_in_range);
+            
+            // Count order items with mapped products (for debugging)
+            // Note: $placeholders_debug is safe - it contains only '%d' strings from array_fill()
+            // The actual product IDs are sanitized by wpdb->prepare() via $params_debug
+            $placeholders_debug = implode(',', array_fill(0, count($product_ids), '%d'));
+            $params_debug = array_merge($product_ids, array($date_from, $date_to));
+            $order_items_with_products = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(DISTINCT oi.order_id) 
+                 FROM {$wpdb->prefix}rpos_order_items oi
+                 INNER JOIN {$wpdb->prefix}rpos_orders o ON oi.order_id = o.id
+                 WHERE oi.product_id IN ($placeholders_debug)
+                 AND o.created_at >= %s
+                 AND o.created_at <= %s
+                 AND o.status = 'completed'",
+                $params_debug
+            ));
+            error_log('RPOS Gas Cylinders: Completed orders with mapped products: ' . $order_items_with_products);
+        }
+        
+        
         // Get sales for mapped products during cylinder period
+        // Note: $placeholders is safe - it contains only '%d' strings from array_fill()
+        // The actual product IDs are sanitized by wpdb->prepare() via $params
         $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
         $params = array_merge($product_ids, array($date_from, $date_to));
         
@@ -324,17 +384,43 @@ class RPOS_Gas_Cylinders {
                   GROUP BY oi.product_id, p.name
                   ORDER BY total_sales DESC";
         
-        $products = $wpdb->get_results($wpdb->prepare($query, $params));
+        $prepared_query = $wpdb->prepare($query, $params);
+        error_log('RPOS Gas Cylinders: Executing query for ' . count($product_ids) . ' products in date range');
+        
+        $products = $wpdb->get_results($prepared_query);
+        
+        error_log('RPOS Gas Cylinders: Query returned ' . count($products) . ' product results');
         
         $total_sales = 0;
         foreach ($products as $product) {
             $total_sales += floatval($product->total_sales);
         }
         
+        error_log('RPOS Gas Cylinders: Found ' . count($products) . ' distinct products with total sales: ' . number_format($total_sales, 2));
+        
+        $execution_time = round((microtime(true) - $start_time) * 1000, 2);
+        
+        // Log execution time with appropriate level based on performance
+        if ($execution_time > 1000) {
+            error_log('RPOS Gas Cylinders: WARNING - Report generated in ' . $execution_time . 'ms (slow query)');
+        } elseif ($execution_time > 100) {
+            error_log('RPOS Gas Cylinders: Report generated in ' . $execution_time . 'ms');
+        }
+        // Queries under 100ms are considered normal and not logged
+        
         return array(
             'cylinder' => $cylinder,
             'products' => $products,
-            'total_sales' => $total_sales
+            'total_sales' => $total_sales,
+            'debug_info' => array(
+                'mapped_products' => count($product_ids),
+                'date_range' => $date_from . ' to ' . $date_to,
+                'total_orders_in_range' => $total_orders_in_range,
+                'completed_orders_in_range' => $completed_orders_in_range,
+                'orders_with_mapped_products' => $order_items_with_products,
+                'product_results' => count($products),
+                'execution_time' => $execution_time . 'ms'
+            )
         );
     }
 }

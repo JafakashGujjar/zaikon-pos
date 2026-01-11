@@ -195,16 +195,35 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                     <h3>Cylinder: <?php echo esc_html($report['cylinder']->type_name); ?></h3>
                     <p>Period: <?php echo esc_html($report['cylinder']->start_date); ?> to <?php echo $report['cylinder']->end_date ? esc_html($report['cylinder']->end_date) : 'Present'; ?></p>
                     <p><strong>Total Sales: <?php echo esc_html($currency . number_format($report['total_sales'], 2)); ?></strong></p>
+                    
+                    <?php if (isset($report['debug_info']) && current_user_can('manage_options')): ?>
+                        <div style="background: #f0f0f1; padding: 15px; margin: 15px 0; border-left: 4px solid #2271b1; font-family: monospace; font-size: 12px;">
+                            <h4 style="margin-top: 0;">Debug Information</h4>
+                            <p><strong>Date Range:</strong> <?php echo esc_html($report['debug_info']['date_range']); ?></p>
+                            <p><strong>Mapped Products:</strong> <?php echo esc_html($report['debug_info']['mapped_products']); ?></p>
+                            <p><strong>Total Orders in Range:</strong> <?php echo esc_html($report['debug_info']['total_orders_in_range']); ?></p>
+                            <p><strong>Completed Orders in Range:</strong> <?php echo esc_html($report['debug_info']['completed_orders_in_range']); ?></p>
+                            <p><strong>Orders with Mapped Products:</strong> <?php echo esc_html($report['debug_info']['orders_with_mapped_products']); ?></p>
+                            <p><strong>Product Results Returned:</strong> <?php echo esc_html($report['debug_info']['product_results']); ?></p>
+                            <p><strong>Execution Time:</strong> <?php echo esc_html($report['debug_info']['execution_time']); ?></p>
+                            <p style="margin-top: 10px;"><em>Note: Check server error logs for detailed debugging output.</em></p>
+                        </div>
+                    <?php endif; ?>
+                    
                     <table class="wp-list-table widefat fixed striped">
                         <thead><tr><th>Product</th><th>Quantity Sold</th><th>Sales Value</th></tr></thead>
                         <tbody>
-                            <?php foreach ($report['products'] as $product): ?>
-                                <tr>
-                                    <td><?php echo esc_html($product->product_name); ?></td>
-                                    <td><?php echo esc_html($product->total_quantity); ?></td>
-                                    <td><?php echo esc_html($currency . number_format($product->total_sales, 2)); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
+                            <?php if (empty($report['products'])): ?>
+                                <tr><td colspan="3" style="text-align: center;">No sales data found for the selected period.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($report['products'] as $product): ?>
+                                    <tr>
+                                        <td><?php echo esc_html($product->product_name); ?></td>
+                                        <td><?php echo esc_html($product->total_quantity); ?></td>
+                                        <td><?php echo esc_html($currency . number_format($product->total_sales, 2)); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
