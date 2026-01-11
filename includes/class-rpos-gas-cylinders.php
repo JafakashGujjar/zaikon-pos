@@ -320,7 +320,7 @@ class RPOS_Gas_Cylinders {
                   WHERE oi.product_id IN ($placeholders)
                   AND o.created_at >= %s
                   AND o.created_at <= %s
-                  AND o.status NOT IN ('cancelled', 'refunded')
+                  AND o.status = 'completed'
                   GROUP BY oi.product_id, p.name
                   ORDER BY total_sales DESC";
         

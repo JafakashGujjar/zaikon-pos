@@ -186,7 +186,23 @@ class RPOS_Reports {
      * Get low stock report
      */
     public static function get_low_stock_report() {
-        return RPOS_Inventory::get_all(array('low_stock_only' => true));
+        global $wpdb;
+        
+        // Get low stock products
+        $low_stock_products = RPOS_Inventory::get_all(array('low_stock_only' => true));
+        
+        // Get low stock ingredients
+        $threshold = RPOS_Settings::get('low_stock_threshold', 10);
+        $low_stock_ingredients = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, name, unit, current_stock_quantity as quantity
+             FROM {$wpdb->prefix}rpos_ingredients
+             WHERE current_stock_quantity <= %d
+             ORDER BY name ASC",
+            $threshold
+        ));
+        
+        // Merge both arrays
+        return array_merge($low_stock_products, $low_stock_ingredients);
     }
     
     /**
