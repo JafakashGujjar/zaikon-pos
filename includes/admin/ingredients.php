@@ -529,45 +529,13 @@ foreach ($ingredients as $ing) {
                             <textarea name="supplier_location" id="supplier_location" class="regular-text" rows="3"><?php echo $ingredient && !empty($ingredient->supplier_location) ? esc_textarea($ingredient->supplier_location) : ''; ?></textarea>
                             <p class="description"><?php esc_html_e('Address or location of the supplier (optional).', 'restaurant-pos'); ?></p>
                         </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="supplier_name"><?php esc_html_e('Supplier Name', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <input type="text" name="supplier_name" id="supplier_name" class="regular-text"
-                               value="<?php echo $ingredient && !empty($ingredient->supplier_name) ? esc_attr($ingredient->supplier_name) : ''; ?>">
-                        <p class="description"><?php esc_html_e('Name of the supplier for this ingredient (optional).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="supplier_phone"><?php esc_html_e('Supplier Phone', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <input type="text" name="supplier_phone" id="supplier_phone" class="regular-text"
-                               value="<?php echo $ingredient && !empty($ingredient->supplier_phone) ? esc_attr($ingredient->supplier_phone) : ''; ?>">
-                        <p class="description"><?php esc_html_e('Phone number of the supplier (optional).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="supplier_location"><?php esc_html_e('Supplier Location', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <textarea name="supplier_location" id="supplier_location" class="regular-text" rows="3"><?php echo $ingredient && !empty($ingredient->supplier_location) ? esc_textarea($ingredient->supplier_location) : ''; ?></textarea>
-                        <p class="description"><?php esc_html_e('Address or location of the supplier (optional).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="supplier_rating"><?php esc_html_e('Supplier Rating', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="supplier_rating"><?php esc_html_e('Supplier Rating', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
                         <select name="supplier_rating" id="supplier_rating">
                             <option value=""><?php esc_html_e('-- No Rating --', 'restaurant-pos'); ?></option>
                             <option value="1" <?php selected($ingredient && !empty($ingredient->supplier_rating) ? $ingredient->supplier_rating : '', '1'); ?>>⭐ (1 Star)</option>
