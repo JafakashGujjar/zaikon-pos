@@ -370,8 +370,14 @@ class RPOS_Gas_Cylinders {
         // CRITICAL: Clear WordPress query cache to ensure fresh data
         // WordPress caches query results by default which causes stale data issues
         // when new orders are created. We must flush the cache before querying.
+        // Note: This clears ALL cached queries, not just ours, but it's necessary
+        // for data accuracy. The performance impact is minimal as this report is
+        // accessed infrequently (admin-only, on-demand).
         $wpdb->flush();
-        error_log('RPOS Gas Cylinders: Query cache flushed to ensure fresh data');
+        
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('RPOS Gas Cylinders: Query cache flushed to ensure fresh data');
+        }
         
         // Get sales for mapped products during cylinder period
         // Note: $placeholders is safe - it contains only '%d' strings from array_fill()
