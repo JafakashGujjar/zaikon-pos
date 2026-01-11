@@ -99,13 +99,13 @@ RPOS Gas Cylinders: Date range: 2026-01-11 00:00:00 to 2026-01-11 23:59:59
 RPOS Gas Cylinders: Total orders in date range: 15
 RPOS Gas Cylinders: Completed orders in date range: 12
 RPOS Gas Cylinders: Completed orders with mapped products: 8
-RPOS Gas Cylinders: Executing SQL query: SELECT p.name as product_name, ...
+RPOS Gas Cylinders: Executing query for 3 products in date range
 RPOS Gas Cylinders: Query returned 3 product results
-RPOS Gas Cylinders: Product: Zinger Burger, Qty: 20, Sales: 5600
-RPOS Gas Cylinders: Product: Chicken Wings, Qty: 10, Sales: 3000
-RPOS Gas Cylinders: Product: Fries, Qty: 15, Sales: 1500
-RPOS Gas Cylinders: Report generated in 42.15ms. Total sales: 10100
+RPOS Gas Cylinders: Found 3 distinct products with total sales: 10,100.00
+RPOS Gas Cylinders: Report generated in 142.15ms
 ```
+
+**Note:** Queries under 100ms don't log execution time (considered fast). Queries over 1000ms log as WARNING.
 
 ## Diagnostic Scenarios
 
@@ -142,10 +142,11 @@ Debug Panel Shows:
 ## Key Benefits
 
 1. **Real-time Debugging:** See what's happening as it happens
-2. **SQL Transparency:** View the exact query being executed
-3. **Performance Monitoring:** Track execution time
+2. **Security:** All data sanitized, no SQL exposure
+3. **Performance Monitoring:** Track execution time with warnings for slow queries
 4. **Issue Diagnosis:** Pinpoint exactly where data is being filtered out
 5. **No Caching:** Confirmed fresh data on every load
+6. **Log Efficiency:** Only logs meaningful information (reduces noise)
 
 ## Files Modified
 

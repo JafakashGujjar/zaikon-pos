@@ -4,7 +4,7 @@
 
 ### 1. Enhanced Logging in `get_cylinder_usage_report()`
 
-The method now logs comprehensive diagnostic information at each stage:
+The method now logs comprehensive diagnostic information at each stage with **performance-based logging** to reduce noise.
 
 #### Stage 1: Cylinder Lookup
 ```
@@ -30,20 +30,25 @@ RPOS Gas Cylinders: Completed orders with mapped products: 5
 
 #### Stage 5: SQL Query Execution
 ```
-RPOS Gas Cylinders: Executing SQL query: SELECT p.name as product_name, ...
+RPOS Gas Cylinders: Executing query for 3 products in date range
 RPOS Gas Cylinders: Query returned 3 product results
 ```
 
-#### Stage 6: Individual Product Results
+#### Stage 6: Individual Product Results (Aggregated)
 ```
-RPOS Gas Cylinders: Product: Zinger Burger, Qty: 10, Sales: 2800
-RPOS Gas Cylinders: Product: Chicken Wings, Qty: 5, Sales: 1500
+RPOS Gas Cylinders: Found 3 distinct products with total sales: 4,300.00
 ```
 
-#### Stage 7: Summary
+#### Stage 7: Performance Summary
 ```
-RPOS Gas Cylinders: Report generated in 45.23ms. Total sales: 4300
+RPOS Gas Cylinders: Report generated in 145.23ms
 ```
+OR for slow queries (>1 second):
+```
+RPOS Gas Cylinders: WARNING - Report generated in 1245.50ms (slow query)
+```
+
+**Note:** Queries under 100ms are considered fast and not logged to reduce log noise.
 
 ### 2. Enhanced Admin UI
 
@@ -56,7 +61,8 @@ The usage report page now shows a **Debug Information** panel (for administrator
 - **Orders with Mapped Products:** Completed orders containing mapped products
 - **Product Results Returned:** Number of distinct products in the final report
 - **Execution Time:** Query execution time in milliseconds
-- **SQL Query:** Expandable section showing the exact SQL query executed
+
+**Security:** SQL queries are NOT displayed to prevent database structure exposure.
 
 ### 3. Empty State Handling
 
@@ -64,6 +70,14 @@ When no sales data is found, the table shows:
 ```
 No sales data found for the selected period.
 ```
+
+## Security Features
+
+- ✅ All logged data is sanitized (IDs, names, values)
+- ✅ SQL queries never exposed in logs or UI
+- ✅ Debug panel only visible to administrators
+- ✅ Business data aggregated, not individual records
+- ✅ Log injection attacks prevented
 
 ## Testing Instructions
 
@@ -90,7 +104,7 @@ The debug panel will show you:
 - If orders exist in the date range
 - If completed orders exist
 - If completed orders contain the mapped products
-- The actual SQL query being executed
+- Performance metrics
 
 ### 4. Diagnose Issues
 
@@ -120,14 +134,20 @@ Total Orders in Range: 0
 ```
 **Solution:** Orders are being created with `created_at` timestamps outside the cylinder's date range. Check the cylinder's start_date and end_date.
 
+#### Scenario E: Performance Issues
+```
+WARNING - Report generated in 1245.50ms (slow query)
+```
+**Solution:** Query is slow. Check database indexes or the number of orders/products.
+
 ## Expected Behavior
 
 After creating new POS sales for mapped products and completing the orders:
 
 1. The report should automatically reflect the new sales on next page load
 2. Debug logs will show the new order counts
-3. The SQL query will be logged for verification
-4. Individual product sales will be logged
+3. Performance metrics will indicate query speed
+4. Individual product sales will be aggregated in logs
 
 ## No Caching Issues
 
@@ -142,5 +162,7 @@ The implementation:
 
 1. **Transparency:** See exactly what the query is doing
 2. **Debugging:** Identify the exact stage where data is being filtered out
-3. **Performance:** Track query execution time
-4. **Verification:** Confirm the SQL query matches expectations
+3. **Performance:** Track query execution time with warnings for slow queries
+4. **Security:** All data sanitized, no SQL exposure
+5. **Log Efficiency:** Only logs meaningful information (slow queries, errors)
+
