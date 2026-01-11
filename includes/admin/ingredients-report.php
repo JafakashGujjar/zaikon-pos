@@ -25,9 +25,8 @@ function validate_date($date) {
 $date_from = validate_date($date_from) ?: date('Y-m-d');
 $date_to = validate_date($date_to) ?: date('Y-m-d');
 
-// Get usage report
-$report_data = RPOS_Ingredients::get_usage_report($date_from . ' 00:00:00', $date_to . ' 23:59:59');
-$currency_symbol = RPOS_Settings::get('currency_symbol', '$');
+// Get usage report with waste information
+$report_data = RPOS_Ingredients::get_usage_report_with_waste($date_from . ' 00:00:00', $date_to . ' 23:59:59');
 
 // Calculate total inventory value
 $all_ingredients = RPOS_Ingredients::get_all();
@@ -93,7 +92,7 @@ $most_used_ingredients = $wpdb->get_results($wpdb->prepare($most_used_query, $da
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px; color: white;">
                 <h3 style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;"><?php esc_html_e('Current Total Value', 'restaurant-pos'); ?></h3>
-                <p style="margin: 0; font-size: 32px; font-weight: bold;"><?php echo esc_html($currency_symbol . number_format($total_inventory_value, 2)); ?></p>
+                <p style="margin: 0; font-size: 32px; font-weight: bold;"><?php echo esc_html(RPOS_Inventory_Settings::format_currency($total_inventory_value)); ?></p>
             </div>
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
                 <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #6c757d;"><?php esc_html_e('Total Ingredients', 'restaurant-pos'); ?></h3>
@@ -119,9 +118,9 @@ $most_used_ingredients = $wpdb->get_results($wpdb->prepare($most_used_query, $da
                         <tr>
                             <td><strong><?php echo esc_html($ing->name); ?></strong></td>
                             <td><?php echo esc_html($ing->unit); ?></td>
-                            <td><?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?></td>
-                            <td><?php echo esc_html($currency_symbol . number_format($ing->cost_per_unit, 2)); ?></td>
-                            <td><strong><?php echo esc_html($currency_symbol . number_format($item_value, 2)); ?></strong></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->current_stock_quantity)); ?></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_currency($ing->cost_per_unit)); ?></td>
+                            <td><strong><?php echo esc_html(RPOS_Inventory_Settings::format_currency($item_value)); ?></strong></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -155,7 +154,7 @@ $most_used_ingredients = $wpdb->get_results($wpdb->prepare($most_used_query, $da
                             <td><strong>#<?php echo $rank++; ?></strong></td>
                             <td><strong><?php echo esc_html($item->name); ?></strong></td>
                             <td><?php echo esc_html($item->unit); ?></td>
-                            <td style="color: #dc3545; font-weight: bold;"><?php echo esc_html(number_format(floatval($item->total_used), 3)); ?></td>
+                            <td style="color: #dc3545; font-weight: bold;"><?php echo esc_html(RPOS_Inventory_Settings::format_quantity(floatval($item->total_used))); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -169,7 +168,7 @@ $most_used_ingredients = $wpdb->get_results($wpdb->prepare($most_used_query, $da
     
     <hr>
     
-    <h2><?php esc_html_e('Usage Summary', 'restaurant-pos'); ?></h2>
+    <h2><?php esc_html_e('Usage Summary with Waste Analysis', 'restaurant-pos'); ?></h2>
     <p><?php printf(esc_html__('Showing data from %s to %s', 'restaurant-pos'), esc_html($date_from), esc_html($date_to)); ?></p>
     
     <table class="wp-list-table widefat fixed striped">
@@ -178,20 +177,50 @@ $most_used_ingredients = $wpdb->get_results($wpdb->prepare($most_used_query, $da
                 <th><?php esc_html_e('Ingredient', 'restaurant-pos'); ?></th>
                 <th><?php esc_html_e('Unit', 'restaurant-pos'); ?></th>
                 <th><?php esc_html_e('Purchased', 'restaurant-pos'); ?></th>
-                <th><?php esc_html_e('Consumed', 'restaurant-pos'); ?></th>
+                <th><?php esc_html_e('Consumed (Sales)', 'restaurant-pos'); ?></th>
+                <th><?php esc_html_e('Waste Qty', 'restaurant-pos'); ?></th>
+                <th><?php esc_html_e('Waste Cost', 'restaurant-pos'); ?></th>
+                <th><?php esc_html_e('Waste %', 'restaurant-pos'); ?></th>
                 <th><?php esc_html_e('Current Balance', 'restaurant-pos'); ?></th>
             </tr>
         </thead>
         <tbody>
             <?php if (!empty($report_data)): ?>
                 <?php foreach ($report_data as $row): ?>
+                    <?php 
+                    $total_usage = floatval($row->total_consumed) + floatval($row->total_waste_quantity);
+                    $waste_percentage = $total_usage > 0 ? (floatval($row->total_waste_quantity) / $total_usage) * 100 : 0;
+                    ?>
                     <tr>
                         <td><strong><?php echo esc_html($row->name); ?></strong></td>
                         <td><?php echo esc_html($row->unit); ?></td>
-                        <td><?php echo esc_html(number_format(floatval($row->total_purchased), 3)); ?></td>
-                        <td><?php echo esc_html(number_format(floatval($row->total_consumed), 3)); ?></td>
+                        <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity(floatval($row->total_purchased))); ?></td>
+                        <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity(floatval($row->total_consumed))); ?></td>
                         <td>
-                            <strong><?php echo esc_html(number_format(floatval($row->current_stock_quantity), 3)); ?></strong>
+                            <?php if (floatval($row->total_waste_quantity) > 0): ?>
+                                <span style="color: #d63638; font-weight: bold;"><?php echo esc_html(RPOS_Inventory_Settings::format_quantity(floatval($row->total_waste_quantity))); ?></span>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if (floatval($row->total_waste_cost) > 0): ?>
+                                <strong style="color: #d63638;"><?php echo esc_html(RPOS_Inventory_Settings::format_currency(floatval($row->total_waste_cost))); ?></strong>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($waste_percentage > 0): ?>
+                                <span style="<?php echo $waste_percentage > 10 ? 'color: #d63638; font-weight: bold;' : 'color: #dba617;'; ?>">
+                                    <?php echo number_format($waste_percentage, 1); ?>%
+                                </span>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <strong><?php echo esc_html(RPOS_Inventory_Settings::format_quantity(floatval($row->current_stock_quantity))); ?></strong>
                             <?php if (floatval($row->current_stock_quantity) < 10): ?>
                                 <span style="color: #dc3232;"><?php esc_html_e('(Low Stock)', 'restaurant-pos'); ?></span>
                             <?php endif; ?>
@@ -200,7 +229,7 @@ $most_used_ingredients = $wpdb->get_results($wpdb->prepare($most_used_query, $da
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="5"><?php esc_html_e('No data available for the selected date range.', 'restaurant-pos'); ?></td>
+                    <td colspan="8"><?php esc_html_e('No data available for the selected date range.', 'restaurant-pos'); ?></td>
                 </tr>
             <?php endif; ?>
         </tbody>

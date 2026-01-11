@@ -61,7 +61,7 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                             <option value=""><?php esc_html_e('-- Select Ingredient --', 'restaurant-pos'); ?></option>
                             <?php foreach ($ingredients as $ing): ?>
                                 <option value="<?php echo esc_attr($ing->id); ?>">
-                                    <?php echo esc_html($ing->name); ?> (<?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?> <?php echo esc_html($ing->unit); ?> available)
+                                    <?php echo esc_html($ing->name); ?> (<?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->current_stock_quantity, $ing->unit)); ?> available)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -217,7 +217,7 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                                 <span style="color: #999;">-</span>
                             <?php endif; ?>
                         </td>
-                        <td><?php echo esc_html(number_format($record->quantity, 3)); ?> <?php echo esc_html($record->unit); ?></td>
+                        <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($record->quantity, $record->unit)); ?></td>
                         <td>
                             <span class="badge" style="padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; background-color: 
                                 <?php 

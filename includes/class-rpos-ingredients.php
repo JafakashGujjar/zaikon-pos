@@ -417,6 +417,65 @@ class RPOS_Ingredients {
     }
     
     /**
+     * Get usage report with waste information
+     */
+    public static function get_usage_report_with_waste($date_from = null, $date_to = null) {
+        global $wpdb;
+        
+        $where_values = array();
+        
+        if ($date_from && $date_to) {
+            // Both dates provided - use BETWEEN
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at BETWEEN %s AND %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at BETWEEN %s AND %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
+            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at BETWEEN %s AND %s THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
+            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at BETWEEN %s AND %s THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
+            $where_values = array($date_from, $date_to, $date_from, $date_to, $date_from, $date_to, $date_from, $date_to);
+        } elseif ($date_from) {
+            // Only start date
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at >= %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at >= %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
+            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at >= %s THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
+            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at >= %s THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
+            $where_values = array($date_from, $date_from, $date_from, $date_from);
+        } elseif ($date_to) {
+            // Only end date
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' AND im.created_at <= %s THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') AND im.created_at <= %s THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
+            $waste_qty_case = "COALESCE(SUM(CASE WHEN w.created_at <= %s THEN w.quantity ELSE 0 END), 0) as total_waste_quantity";
+            $waste_cost_case = "COALESCE(SUM(CASE WHEN w.created_at <= %s THEN w.quantity * w.cost_per_unit ELSE 0 END), 0) as total_waste_cost";
+            $where_values = array($date_to, $date_to, $date_to, $date_to);
+        } else {
+            // No date filtering
+            $purchased_case = "COALESCE(SUM(CASE WHEN im.movement_type = 'Purchase' THEN im.change_amount ELSE 0 END), 0) as total_purchased";
+            $consumed_case = "COALESCE(SUM(CASE WHEN im.movement_type IN ('Consumption', 'Sale') THEN ABS(im.change_amount) ELSE 0 END), 0) as total_consumed";
+            $waste_qty_case = "COALESCE(SUM(w.quantity), 0) as total_waste_quantity";
+            $waste_cost_case = "COALESCE(SUM(w.quantity * w.cost_per_unit), 0) as total_waste_cost";
+        }
+        
+        $query = "SELECT 
+                    i.id,
+                    i.name,
+                    i.unit,
+                    i.current_stock_quantity,
+                    {$purchased_case},
+                    {$consumed_case},
+                    {$waste_qty_case},
+                    {$waste_cost_case}
+                  FROM {$wpdb->prefix}rpos_ingredients i
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredient_movements im ON i.id = im.ingredient_id
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredient_waste w ON i.id = w.ingredient_id
+                  GROUP BY i.id
+                  ORDER BY i.name ASC";
+        
+        if (!empty($where_values)) {
+            return $wpdb->get_results($wpdb->prepare($query, $where_values));
+        } else {
+            return $wpdb->get_results($query);
+        }
+    }
+    
+    /**
      * Log waste/spoilage
      */
     public static function log_waste($ingredient_id, $quantity, $reason, $notes = '', $user_id = null) {

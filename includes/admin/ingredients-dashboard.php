@@ -78,6 +78,18 @@ $total_valuation = RPOS_Batches::get_inventory_valuation();
 // Section F: Current consumption strategy
 $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FEFO');
 
+// Section G: Waste Cost Analysis (Last 30 Days)
+$waste_summary = RPOS_Ingredients::get_waste_cost_summary(
+    date('Y-m-d H:i:s', strtotime('-30 days')),
+    date('Y-m-d H:i:s')
+);
+
+$top_wasted = RPOS_Ingredients::get_top_wasted_by_cost(
+    date('Y-m-d H:i:s', strtotime('-30 days')),
+    date('Y-m-d H:i:s'),
+    10
+);
+
 ?>
 
 <div class="wrap">
@@ -90,7 +102,7 @@ $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FE
         <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #2271b1;">
             <h3 style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase;"><?php esc_html_e('Inventory Value', 'restaurant-pos'); ?></h3>
             <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: #2271b1;">
-                $<?php echo esc_html(number_format($total_valuation, 2)); ?>
+                <?php echo esc_html(RPOS_Inventory_Settings::format_currency($total_valuation)); ?>
             </p>
             <p style="font-size: 11px; color: #999; margin: 0;"><?php esc_html_e('From active batches', 'restaurant-pos'); ?></p>
         </div>
@@ -109,6 +121,14 @@ $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FE
                 <?php echo esc_html(count($low_stock_ingredients)); ?>
             </p>
             <p style="font-size: 11px; color: #999; margin: 0;"><?php esc_html_e('Below reorder level', 'restaurant-pos'); ?></p>
+        </div>
+        
+        <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid <?php echo floatval($waste_summary->total_waste_cost ?? 0) > 0 ? '#d63638' : '#00a32a'; ?>;">
+            <h3 style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase;"><?php esc_html_e('Waste Cost (30d)', 'restaurant-pos'); ?></h3>
+            <p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: <?php echo floatval($waste_summary->total_waste_cost ?? 0) > 0 ? '#d63638' : '#00a32a'; ?>;">
+                <?php echo esc_html(RPOS_Inventory_Settings::format_currency(floatval($waste_summary->total_waste_cost ?? 0))); ?>
+            </p>
+            <p style="font-size: 11px; color: #999; margin: 0;"><?php esc_html_e('Last 30 days', 'restaurant-pos'); ?></p>
         </div>
         
         <div class="rpos-card" style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #7356bf;">
@@ -207,7 +227,7 @@ $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FE
                             <td><strong><?php echo esc_html($batch->ingredient_name); ?></strong></td>
                             <td><code><?php echo esc_html($batch->batch_number); ?></code></td>
                             <td><?php echo esc_html($batch->supplier_name ?: '-'); ?></td>
-                            <td><?php echo esc_html(number_format($batch->quantity_remaining, 3)); ?> <?php echo esc_html($batch->unit); ?></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($batch->quantity_remaining, $batch->unit)); ?></td>
                             <td><?php echo esc_html(date('M d, Y', strtotime($batch->expiry_date))); ?></td>
                             <td>
                                 <?php if ($days_left < 0): ?>
@@ -252,13 +272,13 @@ $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FE
                             <td><strong><?php echo esc_html($ing->name); ?></strong></td>
                             <td>
                                 <span class="rpos-badge <?php echo $ing->current_stock_quantity == 0 ? 'rpos-badge-red' : 'rpos-badge-orange'; ?>">
-                                    <?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?> <?php echo esc_html($ing->unit); ?>
+                                    <?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->current_stock_quantity, $ing->unit)); ?>
                                 </span>
                             </td>
-                            <td><?php echo esc_html(number_format($ing->reorder_level, 3)); ?> <?php echo esc_html($ing->unit); ?></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->reorder_level, $ing->unit)); ?></td>
                             <td>
                                 <?php if ($ing->shortage_amount > 0): ?>
-                                    <strong style="color: #c62828;">⚠️ <?php echo esc_html(number_format($ing->shortage_amount, 3)); ?> <?php echo esc_html($ing->unit); ?></strong>
+                                    <strong style="color: #c62828;">⚠️ <?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->shortage_amount, $ing->unit)); ?></strong>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>
@@ -305,8 +325,8 @@ $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FE
                         ?>
                         <tr>
                             <td><strong><?php echo esc_html($ing->name); ?></strong></td>
-                            <td><?php echo esc_html(number_format($ing->avg_daily_usage, 3)); ?> <?php echo esc_html($ing->unit); ?>/day</td>
-                            <td><?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?> <?php echo esc_html($ing->unit); ?></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->avg_daily_usage, $ing->unit)); ?>/day</td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($ing->current_stock_quantity, $ing->unit)); ?></td>
                             <td>
                                 <span class="rpos-badge <?php echo esc_attr($badge_class); ?>">
                                     <?php if ($days_remaining > 365): ?>
@@ -321,6 +341,41 @@ $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FE
                 <?php else: ?>
                     <tr>
                         <td colspan="4"><?php esc_html_e('No consumption data available for the last 30 days.', 'restaurant-pos'); ?></td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Section C2: Waste Cost Analysis (Last 30 Days) -->
+    <div class="rpos-dashboard-card">
+        <h2>🗑️ <?php esc_html_e('Waste Cost Analysis', 'restaurant-pos'); ?></h2>
+        <p><?php esc_html_e('Top wasted ingredients by cost (last 30 days)', 'restaurant-pos'); ?></p>
+        
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Ingredient', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Waste Quantity', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Waste Cost', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Waste Count', 'restaurant-pos'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($top_wasted)): ?>
+                    <?php foreach ($top_wasted as $waste): ?>
+                        <tr>
+                            <td><strong><?php echo esc_html($waste->ingredient_name); ?></strong></td>
+                            <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($waste->total_waste_quantity, $waste->unit)); ?></td>
+                            <td><strong style="color: #d63638;"><?php echo esc_html(RPOS_Inventory_Settings::format_currency($waste->total_waste_cost)); ?></strong></td>
+                            <td><?php echo esc_html($waste->waste_count); ?> <?php echo $waste->waste_count == 1 ? esc_html__('time', 'restaurant-pos') : esc_html__('times', 'restaurant-pos'); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 20px; color: #00a32a;">
+                            ✓ <?php esc_html_e('No waste recorded in the last 30 days. Great job!', 'restaurant-pos'); ?>
+                        </td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -356,8 +411,8 @@ $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FE
                             <?php endif; ?>
                         </td>
                         <td><?php echo esc_html($sp->total_batches); ?></td>
-                        <td>$<?php echo esc_html(number_format($sp->avg_cost_per_unit, 2)); ?></td>
-                        <td><strong>$<?php echo esc_html(number_format($sp->current_inventory_value, 2)); ?></strong></td>
+                        <td><?php echo esc_html(RPOS_Inventory_Settings::format_currency($sp->avg_cost_per_unit)); ?></td>
+                        <td><strong><?php echo esc_html(RPOS_Inventory_Settings::format_currency($sp->current_inventory_value)); ?></strong></td>
                         <td>
                             <a href="?page=restaurant-pos-suppliers&view=performance&id=<?php echo esc_attr($sp->id); ?>" class="button button-small">
                                 <?php esc_html_e('View Details', 'restaurant-pos'); ?>
