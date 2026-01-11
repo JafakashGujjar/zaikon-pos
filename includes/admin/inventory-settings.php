@@ -24,7 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_settin
         'low_stock_warning_days' => absint($_POST['low_stock_warning_days'] ?? 3),
         'enable_batch_tracking' => isset($_POST['enable_batch_tracking']) ? '1' : '0',
         'require_batch_on_purchase' => isset($_POST['require_batch_on_purchase']) ? '1' : '0',
-        'auto_expire_batches' => isset($_POST['auto_expire_batches']) ? '1' : '0'
+        'auto_expire_batches' => isset($_POST['auto_expire_batches']) ? '1' : '0',
+        'inventory_currency_symbol' => sanitize_text_field($_POST['inventory_currency_symbol'] ?? 'Rs'),
+        'quantity_decimal_places' => absint($_POST['quantity_decimal_places'] ?? 0),
+        'price_decimal_places' => absint($_POST['price_decimal_places'] ?? 2)
     );
     
     foreach ($settings_to_save as $key => $value) {
@@ -165,6 +168,60 @@ $settings = RPOS_Inventory_Settings::get_all();
                 </table>
             </div>
             
+            <!-- Display & Formatting -->
+            <div class="rpos-settings-section" style="background: #fff; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2><?php esc_html_e('Display & Formatting', 'restaurant-pos'); ?></h2>
+                <p class="description"><?php esc_html_e('Configure how inventory values are displayed across all inventory screens.', 'restaurant-pos'); ?></p>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="inventory_currency_symbol"><?php esc_html_e('Inventory Currency Symbol', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" name="inventory_currency_symbol" id="inventory_currency_symbol" 
+                                   value="<?php echo esc_attr($settings['inventory_currency_symbol'] ?? 'Rs'); ?>" 
+                                   class="regular-text">
+                            <p class="description">
+                                <?php esc_html_e('Currency symbol used for inventory displays (Ingredients, Batches, Waste, Reports). Default: Rs', 'restaurant-pos'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="quantity_decimal_places"><?php esc_html_e('Quantity Decimal Places', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <select name="quantity_decimal_places" id="quantity_decimal_places">
+                                <option value="0" <?php selected($settings['quantity_decimal_places'] ?? '0', '0'); ?>>0 (e.g., 150 pcs)</option>
+                                <option value="1" <?php selected($settings['quantity_decimal_places'] ?? '0', '1'); ?>>1 (e.g., 150.5 kg)</option>
+                                <option value="2" <?php selected($settings['quantity_decimal_places'] ?? '0', '2'); ?>>2 (e.g., 150.50 kg)</option>
+                                <option value="3" <?php selected($settings['quantity_decimal_places'] ?? '0', '3'); ?>>3 (e.g., 150.500 kg)</option>
+                            </select>
+                            <p class="description">
+                                <?php esc_html_e('Number of decimal places to show for ingredient quantities. Use 0 for whole units like pcs, 1-3 for measured ingredients.', 'restaurant-pos'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="price_decimal_places"><?php esc_html_e('Price Decimal Places', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <select name="price_decimal_places" id="price_decimal_places">
+                                <option value="0" <?php selected($settings['price_decimal_places'] ?? '2', '0'); ?>>0 (e.g., Rs100)</option>
+                                <option value="2" <?php selected($settings['price_decimal_places'] ?? '2', '2'); ?>>2 (e.g., Rs100.00)</option>
+                            </select>
+                            <p class="description">
+                                <?php esc_html_e('Number of decimal places to show for costs and values. Default: 2', 'restaurant-pos'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
             <!-- Info Box -->
             <div style="background: #f0f6fc; padding: 15px; border-left: 4px solid #2271b1; border-radius: 4px; margin: 20px 0;">
                 <h3 style="margin-top: 0;"><?php esc_html_e('About Batch-Based Inventory', 'restaurant-pos'); ?></h3>
@@ -180,7 +237,7 @@ $settings = RPOS_Inventory_Settings::get_all();
                 </ul>
                 <p>
                     <strong><?php esc_html_e('Current Inventory Value:', 'restaurant-pos'); ?></strong> 
-                    $<?php echo esc_html(number_format(RPOS_Batches::get_inventory_valuation(), 2)); ?>
+                    <?php echo esc_html(RPOS_Inventory_Settings::format_currency(RPOS_Batches::get_inventory_valuation())); ?>
                 </p>
             </div>
             

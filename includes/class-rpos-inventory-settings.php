@@ -85,7 +85,10 @@ class RPOS_Inventory_Settings {
             'low_stock_warning_days' => '3',
             'enable_batch_tracking' => '1',
             'require_batch_on_purchase' => '1',
-            'auto_expire_batches' => '1'
+            'auto_expire_batches' => '1',
+            'inventory_currency_symbol' => 'Rs',
+            'quantity_decimal_places' => '0',
+            'price_decimal_places' => '2'
         );
     }
     
@@ -101,5 +104,25 @@ class RPOS_Inventory_Settings {
                 self::set($key, $value);
             }
         }
+    }
+    
+    /**
+     * Format currency value using inventory settings
+     */
+    public static function format_currency($value) {
+        $symbol = self::get('inventory_currency_symbol', 'Rs');
+        $decimals = intval(self::get('price_decimal_places', 2));
+        
+        return $symbol . number_format(floatval($value), $decimals);
+    }
+    
+    /**
+     * Format quantity value using inventory settings
+     */
+    public static function format_quantity($value, $unit = '') {
+        $decimals = intval(self::get('quantity_decimal_places', 0));
+        $formatted = number_format(floatval($value), $decimals);
+        
+        return $unit ? $formatted . ' ' . $unit : $formatted;
     }
 }

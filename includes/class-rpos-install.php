@@ -233,6 +233,12 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `idx_batch` (`batch_id`)");
         }
         
+        // Add cost_per_unit column to ingredient_waste table
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'cost_per_unit'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `cost_per_unit` decimal(10,2) DEFAULT 0.00 AFTER `quantity`");
+        }
+        
         // Add new fields to ingredients table for batch system
         $table_name = $wpdb->prefix . 'rpos_ingredients';
         
