@@ -245,7 +245,43 @@ class RPOS_Ingredients {
             return false;
         }
         
-        // Calculate new quantity
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        
+        // If consuming (negative change), use batch consumption logic
+        if ($change_amount < 0) {
+            $quantity_to_consume = abs($change_amount);
+            
+            // Try to consume from batches
+            $consumed = RPOS_Batches::consume_from_batches(
+                $ingredient_id,
+                $quantity_to_consume,
+                $movement_type,
+                $reference_id,
+                $notes,
+                $user_id
+            );
+            
+            // Update total ingredient stock
+            $new_quantity = floatval($ingredient->current_stock_quantity) - $quantity_to_consume;
+            if ($new_quantity < 0) {
+                $new_quantity = 0;
+            }
+            
+            $wpdb->update(
+                $wpdb->prefix . 'rpos_ingredients',
+                array('current_stock_quantity' => $new_quantity),
+                array('id' => $ingredient_id),
+                array('%f'),
+                array('%d')
+            );
+            
+            return $new_quantity;
+        }
+        
+        // For positive changes (purchases/adjustments), update stock directly
+        // Batch creation should be handled separately in purchase flow
         $new_quantity = floatval($ingredient->current_stock_quantity) + floatval($change_amount);
         
         // Don't allow negative stock
@@ -262,11 +298,7 @@ class RPOS_Ingredients {
             array('%d')
         );
         
-        // Record stock movement
-        if (!$user_id) {
-            $user_id = get_current_user_id();
-        }
-        
+        // Record stock movement (without batch_id for non-consumption movements)
         $wpdb->insert(
             $wpdb->prefix . 'rpos_ingredient_movements',
             array(
@@ -447,5 +479,99 @@ class RPOS_Ingredients {
         $where_values[] = $limit;
         
         return $wpdb->get_results($wpdb->prepare($query, $where_values));
+    }
+    
+    /**
+     * Get displayed expiry date (earliest from available batches)
+     */
+    public static function get_displayed_expiry($ingredient_id) {
+        return RPOS_Batches::get_earliest_expiry($ingredient_id);
+    }
+    
+    /**
+     * Get total stock from batches (for verification)
+     */
+    public static function get_batch_total_stock($ingredient_id) {
+        global $wpdb;
+        
+        return floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(quantity_remaining) FROM {$wpdb->prefix}rpos_ingredient_batches 
+             WHERE ingredient_id = %d AND status = 'active'",
+            $ingredient_id
+        )));
+    }
+    
+    /**
+     * Sync ingredient stock with batch totals
+     */
+    public static function sync_stock_with_batches($ingredient_id) {
+        global $wpdb;
+        
+        $batch_total = self::get_batch_total_stock($ingredient_id);
+        
+        $wpdb->update(
+            $wpdb->prefix . 'rpos_ingredients',
+            array('current_stock_quantity' => $batch_total),
+            array('id' => $ingredient_id),
+            array('%f'),
+            array('%d')
+        );
+        
+        return $batch_total;
+    }
+    
+    /**
+     * Purchase ingredient with batch creation
+     */
+    public static function purchase($ingredient_id, $data) {
+        global $wpdb;
+        
+        // Create batch record
+        $batch_data = array(
+            'ingredient_id' => $ingredient_id,
+            'supplier_id' => isset($data['supplier_id']) ? $data['supplier_id'] : null,
+            'purchase_date' => isset($data['purchase_date']) ? $data['purchase_date'] : date('Y-m-d'),
+            'manufacturing_date' => isset($data['manufacturing_date']) ? $data['manufacturing_date'] : null,
+            'expiry_date' => isset($data['expiry_date']) ? $data['expiry_date'] : null,
+            'cost_per_unit' => isset($data['cost_per_unit']) ? $data['cost_per_unit'] : 0,
+            'quantity_purchased' => isset($data['quantity']) ? $data['quantity'] : 0,
+            'quantity_remaining' => isset($data['quantity']) ? $data['quantity'] : 0,
+            'purchase_invoice_url' => isset($data['invoice_url']) ? $data['invoice_url'] : '',
+            'notes' => isset($data['notes']) ? $data['notes'] : ''
+        );
+        
+        $batch_id = RPOS_Batches::create($batch_data);
+        
+        if ($batch_id) {
+            // Update ingredient total stock
+            $ingredient = self::get($ingredient_id);
+            $new_quantity = floatval($ingredient->current_stock_quantity) + floatval($data['quantity']);
+            
+            $wpdb->update(
+                $wpdb->prefix . 'rpos_ingredients',
+                array('current_stock_quantity' => $new_quantity),
+                array('id' => $ingredient_id),
+                array('%f'),
+                array('%d')
+            );
+            
+            // Record movement with batch reference
+            $wpdb->insert(
+                $wpdb->prefix . 'rpos_ingredient_movements',
+                array(
+                    'ingredient_id' => $ingredient_id,
+                    'batch_id' => $batch_id,
+                    'change_amount' => floatval($data['quantity']),
+                    'movement_type' => 'Purchase',
+                    'notes' => 'Batch purchase: ' . (isset($data['notes']) ? $data['notes'] : ''),
+                    'user_id' => get_current_user_id()
+                ),
+                array('%d', '%d', '%f', '%s', '%s', '%d')
+            );
+            
+            return $batch_id;
+        }
+        
+        return false;
     }
 }
