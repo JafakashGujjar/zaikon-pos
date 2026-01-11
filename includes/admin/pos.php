@@ -64,6 +64,10 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                     <span><?php echo esc_html__('Subtotal:', 'restaurant-pos'); ?></span>
                     <span id="rpos-subtotal"><?php echo esc_html($currency); ?>0.00</span>
                 </div>
+                <div class="zaikon-total-row" id="rpos-delivery-charge-row" style="display: none;">
+                    <span><?php echo esc_html__('Delivery Charge:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-delivery-charge-display"><?php echo esc_html($currency); ?>0.00</span>
+                </div>
                 <div class="zaikon-total-row">
                     <span><?php echo esc_html__('Discount:', 'restaurant-pos'); ?></span>
                     <input type="number" id="rpos-discount" step="0.01" min="0" value="0.00" placeholder="0.00">
