@@ -327,6 +327,9 @@ class RPOS_Gas_Cylinders {
         $order_items_with_products = 0;
         
         if (defined('WP_DEBUG') && WP_DEBUG) {
+            // Flush cache before debug queries to ensure fresh data
+            $wpdb->flush();
+            
             // Count total orders in date range (for debugging)
             $total_orders_in_range = $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
@@ -363,6 +366,12 @@ class RPOS_Gas_Cylinders {
             error_log('RPOS Gas Cylinders: Completed orders with mapped products: ' . $order_items_with_products);
         }
         
+        
+        // CRITICAL: Clear WordPress query cache to ensure fresh data
+        // WordPress caches query results by default which causes stale data issues
+        // when new orders are created. We must flush the cache before querying.
+        $wpdb->flush();
+        error_log('RPOS Gas Cylinders: Query cache flushed to ensure fresh data');
         
         // Get sales for mapped products during cylinder period
         // Note: $placeholders is safe - it contains only '%d' strings from array_fill()
