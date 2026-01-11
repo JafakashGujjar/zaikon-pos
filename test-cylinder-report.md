@@ -2,7 +2,22 @@
 
 ## Changes Made
 
-### 1. Enhanced Logging in `get_cylinder_usage_report()`
+### 1. Cache Clearing Fix (Critical)
+
+**Problem:** WordPress's `$wpdb` caches query results internally. When the same SQL query is executed multiple times, it returns cached results instead of fresh database data. This caused the usage report to show stale data even after new orders were completed.
+
+**Solution:** Added `$wpdb->flush()` before executing queries in `get_cylinder_usage_report()`:
+- Line 331: Flush cache before debug queries (when WP_DEBUG is enabled)
+- Line 373: Flush cache before main sales aggregation query
+
+**Impact:** The report now ALWAYS shows current, real-time data from the database.
+
+**New Log Output:**
+```
+RPOS Gas Cylinders: Query cache flushed to ensure fresh data
+```
+
+### 2. Enhanced Logging in `get_cylinder_usage_report()`
 
 The method now logs comprehensive diagnostic information at each stage with **performance-based logging** to reduce noise.
 
@@ -151,23 +166,35 @@ WARNING - Report generated in 1245.50ms (slow query)
 ```
 **Solution:** Query is slow. Check database indexes or the number of orders/products.
 
+#### Scenario F: Stale/Cached Data (FIXED)
+```
+Product Results Returned: 1
+But values don't increase after new orders
+```
+**Solution:** This was caused by WordPress query caching. The fix ensures `$wpdb->flush()` is called before queries, forcing fresh database data. You should now see:
+```
+RPOS Gas Cylinders: Query cache flushed to ensure fresh data
+```
+
 ## Expected Behavior
 
 After creating new POS sales for mapped products and completing the orders:
 
-1. The report should automatically reflect the new sales on next page load
+1. The report should automatically reflect the new sales on next page load (cache is now flushed)
 2. Debug logs will show the new order counts
 3. Performance metrics will indicate query speed
 4. Individual product sales will be aggregated in logs
 
-## No Caching Issues
+## Cache Fix Implementation
 
-The implementation:
+The implementation now:
+- ✅ Calls `$wpdb->flush()` to clear WordPress query cache before each query
 - ✅ Does NOT use WordPress transients
-- ✅ Does NOT use any caching mechanism
-- ✅ Queries the database fresh on every page load
+- ✅ Does NOT use object caching
+- ✅ Queries the database fresh on every page load with cache cleared
 - ✅ Uses `created_at` field for date filtering
 - ✅ Filters by `status = 'completed'`
+- ✅ Ensures real-time data accuracy
 
 ## Performance Optimization
 
