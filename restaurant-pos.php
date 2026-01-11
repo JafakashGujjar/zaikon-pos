@@ -124,6 +124,8 @@ class Restaurant_POS {
         // Enqueue screen-specific styles
         if (strpos($hook, 'restaurant-pos-cashier') !== false) {
             wp_enqueue_style('zaikon-pos-screen', RPOS_PLUGIN_URL . 'assets/css/zaikon-pos-screen.css', array('zaikon-design-system', 'zaikon-components'), RPOS_VERSION);
+            wp_enqueue_style('rpos-delivery', RPOS_PLUGIN_URL . 'assets/css/delivery.css', array('zaikon-pos-screen'), RPOS_VERSION);
+            wp_enqueue_script('rpos-delivery', RPOS_PLUGIN_URL . 'assets/js/delivery.js', array('jquery', 'rpos-admin'), RPOS_VERSION, true);
         } elseif (strpos($hook, 'restaurant-pos-kds') !== false) {
             wp_enqueue_style('zaikon-kds-screen', RPOS_PLUGIN_URL . 'assets/css/zaikon-kds-screen.css', array('zaikon-design-system', 'zaikon-components'), RPOS_VERSION);
         } else {
@@ -141,7 +143,8 @@ class Restaurant_POS {
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('rpos-admin-nonce'),
             'restUrl' => rest_url('restaurant-pos/v1/'),
-            'restNonce' => wp_create_nonce('wp_rest')
+            'restNonce' => wp_create_nonce('wp_rest'),
+            'currencySymbol' => RPOS_Settings::get('currency_symbol', '$')
         ));
     }
     

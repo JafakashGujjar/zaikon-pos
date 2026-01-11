@@ -83,6 +83,7 @@
         cart: [],
         products: [],
         currentCategory: 0,
+        deliveryData: null,
         
         init: function() {
             if ($('.rpos-pos-screen').length || $('.zaikon-pos-screen').length) {
@@ -104,10 +105,47 @@
             
             // Order Type Pills
             $('.zaikon-order-type-pill').on('click', function() {
-                $('.zaikon-order-type-pill').removeClass('active');
-                $(this).addClass('active');
                 var orderType = $(this).data('order-type');
-                $('#rpos-order-type').val(orderType);
+                
+                // If delivery is selected, open delivery modal
+                if (orderType === 'delivery') {
+                    // Get current subtotal
+                    var subtotal = self.calculateSubtotal();
+                    
+                    // Open delivery modal
+                    if (window.RPOS_Delivery) {
+                        window.RPOS_Delivery.open(subtotal, function(deliveryData) {
+                            if (deliveryData) {
+                                // User confirmed delivery details
+                                $('.zaikon-order-type-pill').removeClass('active');
+                                $('.zaikon-order-type-pill[data-order-type="delivery"]').addClass('active');
+                                $('#rpos-order-type').val('delivery');
+                                
+                                // Store delivery data
+                                self.deliveryData = deliveryData;
+                                
+                                // Update totals with delivery charge
+                                self.updateTotals();
+                                
+                                ZAIKON_Toast.success('Delivery details added');
+                            } else {
+                                // User cancelled - revert to previous order type
+                                var currentType = $('#rpos-order-type').val() || 'dine-in';
+                                $('.zaikon-order-type-pill').removeClass('active');
+                                $('.zaikon-order-type-pill[data-order-type="' + currentType + '"]').addClass('active');
+                            }
+                        });
+                    }
+                } else {
+                    // Regular order type change
+                    $('.zaikon-order-type-pill').removeClass('active');
+                    $(this).addClass('active');
+                    $('#rpos-order-type').val(orderType);
+                    
+                    // Clear delivery data if switching away from delivery
+                    self.deliveryData = null;
+                    self.updateTotals();
+                }
             });
             
             // Clear cart
@@ -136,6 +174,7 @@
             // New order
             $('#rpos-new-order').on('click', function() {
                 self.cart = [];
+                self.deliveryData = null;
                 self.renderCart();
                 $('#rpos-receipt-modal').fadeOut();
                 $('#rpos-cash-received').val('');
@@ -279,19 +318,29 @@
         },
         
         updateTotals: function() {
-            var subtotal = 0;
-            
-            this.cart.forEach(function(item) {
-                subtotal += item.product.selling_price * item.quantity;
-            });
-            
+            var subtotal = this.calculateSubtotal();
             var discount = parseFloat($('#rpos-discount').val()) || 0;
-            var total = subtotal - discount;
+            
+            // Add delivery charge if delivery order
+            var deliveryCharge = 0;
+            if (this.deliveryData && this.deliveryData.delivery_charge) {
+                deliveryCharge = parseFloat(this.deliveryData.delivery_charge);
+            }
+            
+            var total = subtotal + deliveryCharge - discount;
             
             $('#rpos-subtotal').text(rposData.currency + subtotal.toFixed(2));
             $('#rpos-total').text(rposData.currency + total.toFixed(2));
             
             this.calculateChange();
+        },
+        
+        calculateSubtotal: function() {
+            var subtotal = 0;
+            this.cart.forEach(function(item) {
+                subtotal += item.product.selling_price * item.quantity;
+            });
+            return subtotal;
         },
         
         calculateChange: function() {
@@ -316,13 +365,22 @@
                 return;
             }
             
-            var subtotal = 0;
-            this.cart.forEach(function(item) {
-                subtotal += item.product.selling_price * item.quantity;
-            });
+            // Validate delivery details if delivery order
+            if (orderType === 'delivery' && !this.deliveryData) {
+                ZAIKON_Toast.error('Please provide delivery details');
+                return;
+            }
             
+            var subtotal = this.calculateSubtotal();
             var discount = parseFloat($('#rpos-discount, #zaikon-discount').val()) || 0;
-            var total = subtotal - discount;
+            
+            // Add delivery charge if delivery order
+            var deliveryCharge = 0;
+            if (this.deliveryData && this.deliveryData.delivery_charge) {
+                deliveryCharge = parseFloat(this.deliveryData.delivery_charge);
+            }
+            
+            var total = subtotal + deliveryCharge - discount;
             var cashReceived = parseFloat($('#rpos-cash-received, #zaikon-cash-received').val()) || 0;
             
             if (cashReceived < total) {
@@ -351,6 +409,15 @@
                     };
                 })
             };
+            
+            // Add delivery fields if delivery order
+            if (orderType === 'delivery' && this.deliveryData) {
+                orderData.is_delivery = 1;
+                orderData.delivery_charge = deliveryCharge;
+                orderData.area_id = this.deliveryData.area_id;
+                orderData.customer_name = this.deliveryData.customer_name;
+                orderData.customer_phone = this.deliveryData.customer_phone;
+            }
             
             ZAIKON_Toast.info('Processing order...');
             
