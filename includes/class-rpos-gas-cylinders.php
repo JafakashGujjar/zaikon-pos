@@ -302,7 +302,7 @@ class RPOS_Gas_Cylinders {
         error_log('RPOS Gas Cylinders: Found ' . count($product_ids) . ' mapped products: [' . implode(', ', array_map('absint', $product_ids)) . ']');
         
         if (empty($product_ids)) {
-            error_log('RPOS Gas Cylinders: No products mapped to cylinder type #' . $cylinder->cylinder_type_id);
+            error_log('RPOS Gas Cylinders: No products mapped to cylinder type #' . absint($cylinder->cylinder_type_id));
             return array(
                 'cylinder' => $cylinder,
                 'products' => array(),
@@ -387,7 +387,14 @@ class RPOS_Gas_Cylinders {
         error_log('RPOS Gas Cylinders: Found ' . count($products) . ' distinct products with total sales: ' . number_format($total_sales, 2));
         
         $execution_time = round((microtime(true) - $start_time) * 1000, 2);
-        error_log('RPOS Gas Cylinders: Report generated in ' . $execution_time . 'ms');
+        
+        // Log execution time with appropriate level based on performance
+        if ($execution_time > 1000) {
+            error_log('RPOS Gas Cylinders: WARNING - Report generated in ' . $execution_time . 'ms (slow query)');
+        } elseif ($execution_time > 100) {
+            error_log('RPOS Gas Cylinders: Report generated in ' . $execution_time . 'ms');
+        }
+        // Queries under 100ms are considered normal and not logged
         
         return array(
             'cylinder' => $cylinder,
