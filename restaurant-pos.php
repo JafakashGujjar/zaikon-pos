@@ -78,6 +78,8 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-delivery-charges.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-delivery-settings.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-delivery-logs.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-riders.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-notifications.php';
     }
     
     /**

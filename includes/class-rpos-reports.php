@@ -257,4 +257,99 @@ class RPOS_Reports {
         
         return $activity_summary;
     }
+    
+    /**
+     * Get kitchen staff report for a specific user and date range
+     */
+    public static function get_kitchen_staff_report($user_id, $date_from, $date_to) {
+        global $wpdb;
+        
+        $date_from_time = $date_from . ' 00:00:00';
+        $date_to_time = $date_to . ' 23:59:59';
+        
+        // Get all orders worked on by this kitchen user (via kitchen_activity)
+        $order_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT order_id 
+             FROM {$wpdb->prefix}rpos_kitchen_activity 
+             WHERE user_id = %d 
+             AND created_at >= %s 
+             AND created_at <= %s",
+            $user_id, $date_from_time, $date_to_time
+        ));
+        
+        $total_orders = count($order_ids);
+        
+        // Count completed orders
+        $completed_orders = 0;
+        if (!empty($order_ids)) {
+            $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
+            $completed_orders = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_orders 
+                 WHERE id IN ($placeholders) AND status = 'completed'",
+                $order_ids
+            ));
+        }
+        
+        // Get products prepared (from orders they worked on)
+        $products = array();
+        if (!empty($order_ids)) {
+            $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
+            $products = $wpdb->get_results($wpdb->prepare(
+                "SELECT 
+                    oi.product_name,
+                    SUM(oi.quantity) as total_quantity,
+                    SUM(oi.line_total) as total_sales
+                 FROM {$wpdb->prefix}rpos_order_items oi
+                 WHERE oi.order_id IN ($placeholders)
+                 GROUP BY oi.product_id, oi.product_name
+                 ORDER BY total_quantity DESC",
+                $order_ids
+            ));
+        }
+        
+        // Get ingredients consumed (based on order_id matching)
+        $ingredients = array();
+        if (!empty($order_ids)) {
+            $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
+            
+            // Get ingredient movements for these orders
+            $ingredient_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT ingredient_id 
+                 FROM {$wpdb->prefix}rpos_ingredient_movements 
+                 WHERE movement_type = 'order_deduction' 
+                 AND reference_id IN ($placeholders)",
+                $order_ids
+            ));
+            
+            if (!empty($ingredient_ids)) {
+                $ing_placeholders = implode(',', array_fill(0, count($ingredient_ids), '%d'));
+                $order_placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
+                $params = array_merge($ingredient_ids, $order_ids);
+                
+                $ingredients = $wpdb->get_results($wpdb->prepare(
+                    "SELECT 
+                        i.name,
+                        i.unit,
+                        i.current_stock_quantity as current_stock,
+                        COALESCE(SUM(ABS(im.change_amount)), 0) as consumed
+                     FROM {$wpdb->prefix}rpos_ingredients i
+                     LEFT JOIN {$wpdb->prefix}rpos_ingredient_movements im 
+                         ON i.id = im.ingredient_id 
+                         AND im.movement_type = 'order_deduction'
+                         AND im.reference_id IN ($order_placeholders)
+                     WHERE i.id IN ($ing_placeholders)
+                     GROUP BY i.id, i.name, i.unit, i.current_stock_quantity
+                     ORDER BY consumed DESC",
+                    $params
+                ));
+            }
+        }
+        
+        return array(
+            'total_orders' => $total_orders,
+            'completed_orders' => $completed_orders,
+            'products' => $products,
+            'ingredients' => $ingredients
+        );
+    }
 }

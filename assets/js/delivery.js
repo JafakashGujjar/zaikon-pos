@@ -54,6 +54,13 @@
                                     <span class="error-message" id="phone-error">Please enter a valid phone number</span>
                                 </div>
                                 
+                                <div class="rpos-delivery-form-group">
+                                    <label for="rpos-special-instructions">
+                                        Special Instructions
+                                    </label>
+                                    <textarea id="rpos-special-instructions" name="special_instructions" rows="3" placeholder="e.g., Call on arrival, Don't ring bell, Extra spicy"></textarea>
+                                </div>
+                                
                                 <div class="rpos-delivery-charge-display" id="rpos-delivery-charge-display" style="display: none;">
                                     <div class="rpos-delivery-charge-row">
                                         <span class="rpos-delivery-charge-label">Subtotal:</span>
@@ -288,6 +295,7 @@
                 area_id: $('#rpos-delivery-area').val(),
                 customer_name: $('#rpos-customer-name').val().trim(),
                 customer_phone: $('#rpos-customer-phone').val().trim(),
+                special_instructions: $('#rpos-special-instructions').val().trim(),
                 delivery_charge: this.deliveryData ? this.deliveryData.delivery_charge : 0,
                 is_delivery: 1
             };

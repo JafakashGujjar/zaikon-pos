@@ -173,6 +173,44 @@ class RPOS_REST_API {
                 'permission_callback' => array($this, 'check_manage_inventory_permission')
             )
         ));
+        
+        // Rider endpoints
+        register_rest_route($namespace, '/riders/update-status', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'update_rider_delivery_status'),
+            'permission_callback' => array($this, 'check_rider_permission')
+        ));
+        
+        register_rest_route($namespace, '/riders/update-km', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'update_rider_delivery_km'),
+            'permission_callback' => array($this, 'check_rider_permission')
+        ));
+        
+        register_rest_route($namespace, '/riders/assign', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'assign_order_to_rider'),
+            'permission_callback' => array($this, 'check_manage_inventory_permission')
+        ));
+        
+        // Notifications endpoints
+        register_rest_route($namespace, '/notifications/unread', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_unread_notifications'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        register_rest_route($namespace, '/notifications/mark-read/(?P<id>\d+)', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'mark_notification_read'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        register_rest_route($namespace, '/notifications/mark-all-read', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'mark_all_notifications_read'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
     }
     
     /**
@@ -614,5 +652,150 @@ class RPOS_REST_API {
         }
         
         return rest_ensure_response(array('success' => true));
+    }
+    
+    /**
+     * Check rider permission
+     */
+    public function check_rider_permission() {
+        $current_user = wp_get_current_user();
+        return current_user_can('rpos_view_deliveries') || 
+               in_array('delivery_rider', (array) $current_user->roles) ||
+               current_user_can('manage_options');
+    }
+    
+    /**
+     * Update rider delivery status
+     */
+    public function update_rider_delivery_status($request) {
+        $params = $request->get_json_params();
+        
+        if (!isset($params['order_id']) || !isset($params['status'])) {
+            return new WP_Error('missing_params', 'Order ID and status are required', array('status' => 400));
+        }
+        
+        $order_id = absint($params['order_id']);
+        $status = sanitize_text_field($params['status']);
+        
+        // Validate status
+        if (!in_array($status, array('out_for_delivery', 'delivered'))) {
+            return new WP_Error('invalid_status', 'Invalid status', array('status' => 400));
+        }
+        
+        $result = RPOS_Riders::update_delivery_status($order_id, $status);
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to update delivery status', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Delivery status updated successfully'
+        );
+    }
+    
+    /**
+     * Update rider delivery km
+     */
+    public function update_rider_delivery_km($request) {
+        $params = $request->get_json_params();
+        
+        if (!isset($params['order_id']) || !isset($params['km'])) {
+            return new WP_Error('missing_params', 'Order ID and km are required', array('status' => 400));
+        }
+        
+        $order_id = absint($params['order_id']);
+        $km = floatval($params['km']);
+        
+        if ($km < 0) {
+            return new WP_Error('invalid_km', 'Invalid km value', array('status' => 400));
+        }
+        
+        $result = RPOS_Riders::update_delivery_km($order_id, $km);
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to update delivery km', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Delivery km updated successfully'
+        );
+    }
+    
+    /**
+     * Assign order to rider
+     */
+    public function assign_order_to_rider($request) {
+        $params = $request->get_json_params();
+        
+        if (!isset($params['order_id']) || !isset($params['rider_id'])) {
+            return new WP_Error('missing_params', 'Order ID and rider ID are required', array('status' => 400));
+        }
+        
+        $order_id = absint($params['order_id']);
+        $rider_id = absint($params['rider_id']);
+        
+        $result = RPOS_Riders::assign_order($order_id, $rider_id);
+        
+        if ($result === false) {
+            return new WP_Error('assign_failed', 'Failed to assign order to rider', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Order assigned to rider successfully'
+        );
+    }
+    
+    /**
+     * Get unread notifications for current user
+     */
+    public function get_unread_notifications($request) {
+        $user_id = get_current_user_id();
+        
+        $notifications = RPOS_Notifications::get_unread($user_id);
+        $count = RPOS_Notifications::get_unread_count($user_id);
+        
+        return array(
+            'notifications' => $notifications,
+            'unread_count' => $count
+        );
+    }
+    
+    /**
+     * Mark notification as read
+     */
+    public function mark_notification_read($request) {
+        $notification_id = $request['id'];
+        
+        $result = RPOS_Notifications::mark_as_read($notification_id);
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to mark notification as read', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Notification marked as read'
+        );
+    }
+    
+    /**
+     * Mark all notifications as read for current user
+     */
+    public function mark_all_notifications_read($request) {
+        $user_id = get_current_user_id();
+        
+        $result = RPOS_Notifications::mark_all_as_read($user_id);
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to mark notifications as read', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'All notifications marked as read'
+        );
     }
 }

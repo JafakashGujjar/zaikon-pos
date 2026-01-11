@@ -325,6 +325,10 @@
             var deliveryCharge = 0;
             if (this.deliveryData && this.deliveryData.delivery_charge) {
                 deliveryCharge = parseFloat(this.deliveryData.delivery_charge);
+                $('#rpos-delivery-charge-row').show();
+                $('#rpos-delivery-charge-display').text(rposData.currency + deliveryCharge.toFixed(2));
+            } else {
+                $('#rpos-delivery-charge-row').hide();
             }
             
             var total = subtotal + deliveryCharge - discount;
@@ -417,6 +421,7 @@
                 orderData.area_id = this.deliveryData.area_id;
                 orderData.customer_name = this.deliveryData.customer_name;
                 orderData.customer_phone = this.deliveryData.customer_phone;
+                orderData.special_instructions = this.deliveryData.special_instructions || '';
             }
             
             ZAIKON_Toast.info('Processing order...');
@@ -462,6 +467,17 @@
             });
             
             $('#receipt-subtotal').text(rposData.currency + parseFloat(orderData.subtotal).toFixed(2));
+            
+            // Show delivery charge if present
+            var deliveryCharge = parseFloat(orderData.delivery_charge || 0);
+            if (deliveryCharge > 0) {
+                var $deliveryRow = $('<div class="rpos-receipt-totals-row">' +
+                    '<span>Delivery Charge:</span>' +
+                    '<span id="receipt-delivery-charge">' + rposData.currency + deliveryCharge.toFixed(2) + '</span>' +
+                    '</div>');
+                $('#receipt-subtotal').parent().after($deliveryRow);
+            }
+            
             $('#receipt-discount').text(rposData.currency + parseFloat(orderData.discount).toFixed(2));
             $('#receipt-total').text(rposData.currency + parseFloat(orderData.total).toFixed(2));
             $('#receipt-cash').text(rposData.currency + parseFloat(orderData.cash_received).toFixed(2));
