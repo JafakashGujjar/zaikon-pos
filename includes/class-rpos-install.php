@@ -146,6 +146,34 @@ class RPOS_Install {
         if (empty($column_exists)) {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `delay_reason` text DEFAULT NULL AFTER `new_status`");
         }
+        
+        // Check if delivery columns exist in orders table
+        $table_name = $wpdb->prefix . 'rpos_orders';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'area_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `area_id` bigint(20) unsigned DEFAULT NULL AFTER `cashier_id`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'customer_name'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `customer_name` varchar(255) DEFAULT NULL AFTER `area_id`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'customer_phone'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `customer_phone` varchar(50) DEFAULT NULL AFTER `customer_name`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_charge'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `delivery_charge` decimal(10,2) DEFAULT 0.00 AFTER `customer_phone`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'is_delivery'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `is_delivery` tinyint(1) DEFAULT 0 AFTER `delivery_charge`");
+        }
     }
     
     /**
@@ -371,6 +399,61 @@ class RPOS_Install {
             PRIMARY KEY (id),
             KEY cylinder_type_id (cylinder_type_id),
             KEY status (status)
+        ) $charset_collate;";
+        
+        // Delivery Areas table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_delivery_areas (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            distance_value decimal(10,2) NOT NULL,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY is_active (is_active)
+        ) $charset_collate;";
+        
+        // Delivery Charges table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_delivery_charges (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            distance_from decimal(10,2) NOT NULL,
+            distance_to decimal(10,2) NOT NULL,
+            charge_amount decimal(10,2) NOT NULL,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY is_active (is_active)
+        ) $charset_collate;";
+        
+        // Delivery Settings table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_delivery_settings (
+            setting_key varchar(100) NOT NULL,
+            setting_value longtext,
+            setting_type varchar(50) DEFAULT 'text',
+            PRIMARY KEY (setting_key)
+        ) $charset_collate;";
+        
+        // Delivery Logs table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_delivery_logs (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            date date NOT NULL,
+            rider_id bigint(20) unsigned DEFAULT NULL,
+            rider_name varchar(255) DEFAULT NULL,
+            bike_id varchar(100) DEFAULT NULL,
+            fuel_amount decimal(10,2) DEFAULT 0.00,
+            fuel_unit varchar(20) DEFAULT 'liters',
+            km_start decimal(10,2) DEFAULT 0.00,
+            km_end decimal(10,2) DEFAULT 0.00,
+            total_km decimal(10,2) DEFAULT 0.00,
+            deliveries_count int DEFAULT 0,
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY date (date),
+            KEY rider_id (rider_id),
+            KEY bike_id (bike_id)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
