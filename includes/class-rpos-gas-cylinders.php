@@ -346,6 +346,8 @@ class RPOS_Gas_Cylinders {
             error_log('RPOS Gas Cylinders: Completed orders in date range: ' . $completed_orders_in_range);
             
             // Count order items with mapped products (for debugging)
+            // Note: $placeholders_debug is safe - it contains only '%d' strings from array_fill()
+            // The actual product IDs are sanitized by wpdb->prepare() via $params_debug
             $placeholders_debug = implode(',', array_fill(0, count($product_ids), '%d'));
             $params_debug = array_merge($product_ids, array($date_from, $date_to));
             $order_items_with_products = $wpdb->get_var($wpdb->prepare(
@@ -363,6 +365,8 @@ class RPOS_Gas_Cylinders {
         
         
         // Get sales for mapped products during cylinder period
+        // Note: $placeholders is safe - it contains only '%d' strings from array_fill()
+        // The actual product IDs are sanitized by wpdb->prepare() via $params
         $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
         $params = array_merge($product_ids, array($date_from, $date_to));
         
