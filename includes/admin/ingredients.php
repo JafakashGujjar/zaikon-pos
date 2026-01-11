@@ -225,7 +225,7 @@ foreach ($ingredients as $ing) {
             </div>
             <div class="rpos-summary-card success">
                 <h3><?php esc_html_e('Total Inventory Value', 'restaurant-pos'); ?></h3>
-                <div class="value"><?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?><?php echo esc_html(number_format($total_value, 2)); ?></div>
+                <div class="value"><?php echo esc_html(RPOS_Settings::get('currency_symbol', 'Rs')); ?><?php echo esc_html(number_format($total_value, 2)); ?></div>
             </div>
             <div class="rpos-summary-card warning">
                 <h3><?php esc_html_e('Low Stock Items', 'restaurant-pos'); ?></h3>
@@ -307,7 +307,7 @@ foreach ($ingredients as $ing) {
                             <td><?php echo esc_html(number_format($ing->reorder_level ?? 0, 3)); ?></td>
                             <td>
                                 <span class="rpos-icon">💰</span>
-                                <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')) . esc_html(number_format($ing->cost_per_unit, 2)); ?>
+                                <?php echo esc_html(RPOS_Settings::get('currency_symbol', 'Rs')) . esc_html(number_format($ing->cost_per_unit, 2)); ?>
                             </td>
                             <td><?php echo !empty($ing->supplier_name) ? esc_html($ing->supplier_name) : '-'; ?></td>
                             <td>
@@ -753,5 +753,4 @@ foreach ($ingredients as $ing) {
     });
     </script>
     <?php endif; ?>
-<?php endif; ?>
 </div>
