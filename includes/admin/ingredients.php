@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_ingredient_nonce
             'purchasing_date' => sanitize_text_field($_POST['purchasing_date'] ?? ''),
             'expiry_date' => sanitize_text_field($_POST['expiry_date'] ?? ''),
             'supplier_name' => sanitize_text_field($_POST['supplier_name'] ?? ''),
-            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null
+            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null,
+            'supplier_phone' => sanitize_text_field($_POST['supplier_phone'] ?? ''),
+            'supplier_location' => sanitize_textarea_field($_POST['supplier_location'] ?? ''),
+            'reorder_level' => floatval($_POST['reorder_level'] ?? 0)
         );
         
         $ingredient_id = RPOS_Ingredients::create($data);
@@ -48,7 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_ingredient_nonce
             'purchasing_date' => sanitize_text_field($_POST['purchasing_date'] ?? ''),
             'expiry_date' => sanitize_text_field($_POST['expiry_date'] ?? ''),
             'supplier_name' => sanitize_text_field($_POST['supplier_name'] ?? ''),
-            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null
+            'supplier_rating' => isset($_POST['supplier_rating']) && $_POST['supplier_rating'] !== '' ? absint($_POST['supplier_rating']) : null,
+            'supplier_phone' => sanitize_text_field($_POST['supplier_phone'] ?? ''),
+            'supplier_location' => sanitize_textarea_field($_POST['supplier_location'] ?? ''),
+            'reorder_level' => floatval($_POST['reorder_level'] ?? 0)
         );
         
         $result = RPOS_Ingredients::update($ingredient_id, $data);
@@ -85,7 +91,101 @@ if ($view === 'edit' && $ingredient_id) {
 
 // Get all ingredients
 $ingredients = RPOS_Ingredients::get_all();
+
+// Calculate summary statistics
+$total_ingredients = count($ingredients);
+$low_stock_count = 0;
+$expired_count = 0;
+$expiring_soon_count = 0;
+$total_value = 0;
+
+foreach ($ingredients as $ing) {
+    $total_value += floatval($ing->current_stock_quantity) * floatval($ing->cost_per_unit);
+    
+    if (floatval($ing->current_stock_quantity) <= floatval($ing->reorder_level ?? 0) && floatval($ing->reorder_level ?? 0) > 0) {
+        $low_stock_count++;
+    }
+    
+    if (!empty($ing->expiry_date)) {
+        $days_until_expiry = (strtotime($ing->expiry_date) - time()) / (60 * 60 * 24);
+        if ($days_until_expiry < 0) {
+            $expired_count++;
+        } elseif ($days_until_expiry <= 7) {
+            $expiring_soon_count++;
+        }
+    }
+}
 ?>
+
+<style>
+.rpos-ingredient-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.rpos-status-expired {
+    background-color: #ffebee !important;
+    border-left: 4px solid #f44336 !important;
+}
+.rpos-status-low-stock {
+    background-color: #fff3e0 !important;
+    border-left: 4px solid #ff9800 !important;
+}
+.rpos-status-healthy {
+    background-color: #e8f5e9 !important;
+    border-left: 4px solid #4caf50 !important;
+}
+.rpos-icon {
+    margin-right: 5px;
+}
+.rpos-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+.rpos-summary-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    border-left: 4px solid #2271b1;
+}
+.rpos-summary-card.danger {
+    border-left-color: #f44336;
+}
+.rpos-summary-card.warning {
+    border-left-color: #ff9800;
+}
+.rpos-summary-card.success {
+    border-left-color: #4caf50;
+}
+.rpos-summary-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #666;
+    text-transform: uppercase;
+}
+.rpos-summary-card .value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #333;
+}
+.rpos-form-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.rpos-form-section h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+</style>
 
 <div class="wrap">
     <h1 class="wp-heading-inline"><?php esc_html_e('Ingredients', 'restaurant-pos'); ?></h1>
@@ -94,16 +194,42 @@ $ingredients = RPOS_Ingredients::get_all();
         <a href="?page=restaurant-pos-ingredients&view=add" class="page-title-action"><?php esc_html_e('Add New Ingredient', 'restaurant-pos'); ?></a>
         <hr class="wp-header-end">
         
+        <!-- Summary Cards -->
+        <div class="rpos-summary-cards">
+            <div class="rpos-summary-card">
+                <h3><?php esc_html_e('Total Ingredients', 'restaurant-pos'); ?></h3>
+                <div class="value"><?php echo esc_html($total_ingredients); ?></div>
+            </div>
+            <div class="rpos-summary-card success">
+                <h3><?php esc_html_e('Total Inventory Value', 'restaurant-pos'); ?></h3>
+                <div class="value"><?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?><?php echo esc_html(number_format($total_value, 2)); ?></div>
+            </div>
+            <div class="rpos-summary-card warning">
+                <h3><?php esc_html_e('Low Stock Items', 'restaurant-pos'); ?></h3>
+                <div class="value"><?php echo esc_html($low_stock_count); ?></div>
+            </div>
+            <div class="rpos-summary-card danger">
+                <h3><?php esc_html_e('Expired Items', 'restaurant-pos'); ?></h3>
+                <div class="value"><?php echo esc_html($expired_count); ?></div>
+            </div>
+            <div class="rpos-summary-card warning">
+                <h3><?php esc_html_e('Expiring Soon', 'restaurant-pos'); ?></h3>
+                <div class="value"><?php echo esc_html($expiring_soon_count); ?></div>
+            </div>
+        </div>
+        
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
                     <th><?php esc_html_e('Ingredient Name', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Unit', 'restaurant-pos'); ?></th>
-                    <th><?php esc_html_e('Current Stock Quantity', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Current Stock', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Reorder Level', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Cost per Unit', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Supplier', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Phone', 'restaurant-pos'); ?></th>
+                    <th><?php esc_html_e('Location', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Rating', 'restaurant-pos'); ?></th>
-                    <th><?php esc_html_e('Purchase Date', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Expiry Date', 'restaurant-pos'); ?></th>
                     <th><?php esc_html_e('Actions', 'restaurant-pos'); ?></th>
                 </tr>
@@ -111,15 +237,74 @@ $ingredients = RPOS_Ingredients::get_all();
             <tbody>
                 <?php if (!empty($ingredients)): ?>
                     <?php foreach ($ingredients as $ing): ?>
-                        <tr>
-                            <td><strong><?php echo esc_html($ing->name); ?></strong></td>
+                        <?php
+                        // Determine row status class
+                        $row_class = '';
+                        $status_text = '';
+                        
+                        // Check if expired
+                        if (!empty($ing->expiry_date)) {
+                            $days_until_expiry = (strtotime($ing->expiry_date) - time()) / (60 * 60 * 24);
+                            if ($days_until_expiry < 0) {
+                                $row_class = 'rpos-status-expired';
+                                $status_text = '⚠️ Expired';
+                            } elseif ($days_until_expiry <= 7) {
+                                $row_class = 'rpos-status-low-stock';
+                                $status_text = '⏰ Expiring Soon';
+                            }
+                        }
+                        
+                        // Check if low stock (overrides expiry status if no expiry)
+                        if (floatval($ing->current_stock_quantity) == 0) {
+                            $row_class = 'rpos-status-expired';
+                            $status_text = '🚫 Out of Stock';
+                        } elseif (floatval($ing->current_stock_quantity) <= floatval($ing->reorder_level ?? 0) && floatval($ing->reorder_level ?? 0) > 0) {
+                            if (empty($row_class)) {
+                                $row_class = 'rpos-status-low-stock';
+                                $status_text = '📦 Low Stock';
+                            }
+                        }
+                        
+                        if (empty($row_class)) {
+                            $row_class = 'rpos-status-healthy';
+                        }
+                        ?>
+                        <tr class="<?php echo esc_attr($row_class); ?>">
+                            <td>
+                                <strong><?php echo esc_html($ing->name); ?></strong>
+                                <?php if (!empty($status_text)): ?>
+                                    <br><small style="color: #666;"><?php echo esc_html($status_text); ?></small>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo esc_html($ing->unit); ?></td>
-                            <td><?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?></td>
-                            <td><?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')) . esc_html(number_format($ing->cost_per_unit, 2)); ?></td>
+                            <td>
+                                <span class="rpos-icon">📦</span>
+                                <?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?>
+                            </td>
+                            <td><?php echo esc_html(number_format($ing->reorder_level ?? 0, 3)); ?></td>
+                            <td>
+                                <span class="rpos-icon">💰</span>
+                                <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')) . esc_html(number_format($ing->cost_per_unit, 2)); ?>
+                            </td>
                             <td><?php echo !empty($ing->supplier_name) ? esc_html($ing->supplier_name) : '-'; ?></td>
+                            <td>
+                                <?php if (!empty($ing->supplier_phone)): ?>
+                                    <span class="rpos-icon">📞</span><?php echo esc_html($ing->supplier_phone); ?>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($ing->supplier_location)): ?>
+                                    <span class="rpos-icon">📍</span><?php echo esc_html($ing->supplier_location); ?>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <?php 
                                 if (!empty($ing->supplier_rating)) {
+                                    echo '<span class="rpos-icon">⭐</span>';
                                     for ($i = 1; $i <= 5; $i++) {
                                         echo $i <= $ing->supplier_rating ? '⭐' : '☆';
                                     }
@@ -128,8 +313,13 @@ $ingredients = RPOS_Ingredients::get_all();
                                 }
                                 ?>
                             </td>
-                            <td><?php echo !empty($ing->purchasing_date) ? esc_html($ing->purchasing_date) : '-'; ?></td>
-                            <td><?php echo !empty($ing->expiry_date) ? esc_html($ing->expiry_date) : '-'; ?></td>
+                            <td>
+                                <?php if (!empty($ing->expiry_date)): ?>
+                                    <span class="rpos-icon">📅</span><?php echo esc_html($ing->expiry_date); ?>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <a href="?page=restaurant-pos-ingredients&view=edit&id=<?php echo esc_attr($ing->id); ?>" class="button button-small"><?php esc_html_e('Edit', 'restaurant-pos'); ?></a>
                                 <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e('Are you sure you want to delete this ingredient?', 'restaurant-pos'); ?>');">
@@ -143,7 +333,7 @@ $ingredients = RPOS_Ingredients::get_all();
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="9"><?php esc_html_e('No ingredients found.', 'restaurant-pos'); ?></td>
+                        <td colspan="11"><?php esc_html_e('No ingredients found.', 'restaurant-pos'); ?></td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -152,101 +342,200 @@ $ingredients = RPOS_Ingredients::get_all();
     <?php elseif ($view === 'add' || $view === 'edit'): ?>
         <hr class="wp-header-end">
         
-        <form method="post" action="?page=restaurant-pos-ingredients">
+        <?php if ($view === 'add'): ?>
+            <!-- Existing Ingredient Selector -->
+            <div class="rpos-form-section" id="ingredient-selector" style="max-width: 600px;">
+                <h3>🔍 <?php esc_html_e('Select Existing Ingredient or Create New', 'restaurant-pos'); ?></h3>
+                <p><?php esc_html_e('To avoid duplicates, first check if the ingredient already exists:', 'restaurant-pos'); ?></p>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="existing_ingredient"><?php esc_html_e('Search Existing Ingredients', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <select id="existing_ingredient" class="regular-text" style="width: 100%;">
+                                <option value=""><?php esc_html_e('-- Type to search or create new --', 'restaurant-pos'); ?></option>
+                                <?php foreach ($ingredients as $ing): ?>
+                                    <option value="<?php echo esc_attr($ing->id); ?>" data-url="?page=restaurant-pos-ingredients&view=edit&id=<?php echo esc_attr($ing->id); ?>">
+                                        <?php echo esc_html($ing->name); ?> (<?php echo esc_html(number_format($ing->current_stock_quantity, 3)); ?> <?php echo esc_html($ing->unit); ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description"><?php esc_html_e('Select to edit existing ingredient, or leave empty to create new.', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p>
+                    <button type="button" id="show-new-form" class="button button-primary">
+                        ➕ <?php esc_html_e('Create New Ingredient', 'restaurant-pos'); ?>
+                    </button>
+                </p>
+            </div>
+            
+            <script>
+            jQuery(document).ready(function($) {
+                // Handle existing ingredient selection
+                $('#existing_ingredient').on('change', function() {
+                    var url = $(this).find(':selected').data('url');
+                    if (url) {
+                        window.location.href = url;
+                    }
+                });
+                
+                // Show new ingredient form
+                $('#show-new-form').on('click', function() {
+                    $('#ingredient-selector').hide();
+                    $('#new-ingredient-form').show();
+                });
+            });
+            </script>
+        <?php endif; ?>
+        
+        <form method="post" action="?page=restaurant-pos-ingredients" id="new-ingredient-form" <?php if ($view === 'add'): ?>style="display: none;"<?php endif; ?>>
             <?php wp_nonce_field('rpos_ingredient_action', 'rpos_ingredient_nonce'); ?>
             <input type="hidden" name="action" value="<?php echo $view === 'edit' ? 'update' : 'create'; ?>">
             <?php if ($view === 'edit'): ?>
                 <input type="hidden" name="ingredient_id" value="<?php echo esc_attr($ingredient->id); ?>">
             <?php endif; ?>
             
-            <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="name"><?php esc_html_e('Ingredient Name', 'restaurant-pos'); ?> <span class="required">*</span></label>
-                    </th>
-                    <td>
-                        <input type="text" name="name" id="name" class="regular-text" 
-                               value="<?php echo $ingredient ? esc_attr($ingredient->name) : ''; ?>" required>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="unit"><?php esc_html_e('Unit', 'restaurant-pos'); ?> <span class="required">*</span></label>
-                    </th>
-                    <td>
-                        <select name="unit" id="unit" required>
-                            <option value="pcs" <?php selected($ingredient ? $ingredient->unit : 'pcs', 'pcs'); ?>>pcs (pieces)</option>
-                            <option value="kg" <?php selected($ingredient ? $ingredient->unit : '', 'kg'); ?>>kg (kilograms)</option>
-                            <option value="g" <?php selected($ingredient ? $ingredient->unit : '', 'g'); ?>>g (grams)</option>
-                            <option value="l" <?php selected($ingredient ? $ingredient->unit : '', 'l'); ?>>l (liters)</option>
-                            <option value="ml" <?php selected($ingredient ? $ingredient->unit : '', 'ml'); ?>>ml (milliliters)</option>
-                        </select>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="current_stock_quantity"><?php esc_html_e('Current Stock Quantity', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <input type="number" name="current_stock_quantity" id="current_stock_quantity" 
-                               step="0.001" min="0" class="regular-text"
-                               value="<?php echo $ingredient ? esc_attr($ingredient->current_stock_quantity) : '0'; ?>">
-                        <p class="description"><?php esc_html_e('Initial stock quantity (can be adjusted later).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="cost_per_unit"><?php esc_html_e('Cost per Unit', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <input type="number" name="cost_per_unit" id="cost_per_unit" 
-                               step="0.01" min="0" class="regular-text"
-                               value="<?php echo $ingredient ? esc_attr($ingredient->cost_per_unit) : '0'; ?>">
-                        <p class="description"><?php esc_html_e('Average cost per unit (optional).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="purchasing_date"><?php esc_html_e('Purchasing Date', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <input type="date" name="purchasing_date" id="purchasing_date" class="regular-text"
+            <!-- Basic Information Section -->
+            <div class="rpos-form-section">
+                <h3>📝 <?php esc_html_e('Basic Information', 'restaurant-pos'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="name"><?php esc_html_e('Ingredient Name', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                        </th>
+                        <td>
+                            <input type="text" name="name" id="name" class="regular-text" 
+                                   value="<?php echo $ingredient ? esc_attr($ingredient->name) : ''; ?>" required>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="unit"><?php esc_html_e('Unit', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                        </th>
+                        <td>
+                            <select name="unit" id="unit" required>
+                                <option value="pcs" <?php selected($ingredient ? $ingredient->unit : 'pcs', 'pcs'); ?>>pcs (pieces)</option>
+                                <option value="kg" <?php selected($ingredient ? $ingredient->unit : '', 'kg'); ?>>kg (kilograms)</option>
+                                <option value="g" <?php selected($ingredient ? $ingredient->unit : '', 'g'); ?>>g (grams)</option>
+                                <option value="l" <?php selected($ingredient ? $ingredient->unit : '', 'l'); ?>>l (liters)</option>
+                                <option value="ml" <?php selected($ingredient ? $ingredient->unit : '', 'ml'); ?>>ml (milliliters)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="current_stock_quantity"><?php esc_html_e('Current Stock Quantity', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" name="current_stock_quantity" id="current_stock_quantity" 
+                                   step="0.001" min="0" class="regular-text"
+                                   value="<?php echo $ingredient ? esc_attr($ingredient->current_stock_quantity) : '0'; ?>">
+                            <p class="description"><?php esc_html_e('Initial stock quantity (can be adjusted later).', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="cost_per_unit"><?php esc_html_e('Cost per Unit', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" name="cost_per_unit" id="cost_per_unit" 
+                                   step="0.01" min="0" class="regular-text"
+                                   value="<?php echo $ingredient ? esc_attr($ingredient->cost_per_unit) : '0'; ?>">
+                            <p class="description"><?php esc_html_e('Average cost per unit (optional).', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="reorder_level"><?php esc_html_e('Reorder Level', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" name="reorder_level" id="reorder_level" 
+                                   step="0.001" min="0" class="regular-text"
+                                   value="<?php echo $ingredient ? esc_attr($ingredient->reorder_level ?? 0) : '0'; ?>">
+                            <p class="description"><?php esc_html_e('Alert when stock falls below this level.', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Dates Section -->
+            <div class="rpos-form-section">
+                <h3>📅 <?php esc_html_e('Dates', 'restaurant-pos'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="purchasing_date"><?php esc_html_e('Purchasing Date', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="date" name="purchasing_date" id="purchasing_date" class="regular-text"
                                value="<?php echo $ingredient && !empty($ingredient->purchasing_date) ? esc_attr($ingredient->purchasing_date) : ''; ?>">
-                        <p class="description"><?php esc_html_e('Date when this ingredient was purchased (optional).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="expiry_date"><?php esc_html_e('Expiry Date', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <input type="date" name="expiry_date" id="expiry_date" class="regular-text"
-                               value="<?php echo $ingredient && !empty($ingredient->expiry_date) ? esc_attr($ingredient->expiry_date) : ''; ?>">
-                        <p class="description"><?php esc_html_e('Date when this ingredient expires (optional).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="supplier_name"><?php esc_html_e('Supplier Name', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
-                        <input type="text" name="supplier_name" id="supplier_name" class="regular-text"
-                               value="<?php echo $ingredient && !empty($ingredient->supplier_name) ? esc_attr($ingredient->supplier_name) : ''; ?>">
-                        <p class="description"><?php esc_html_e('Name of the supplier for this ingredient (optional).', 'restaurant-pos'); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label for="supplier_rating"><?php esc_html_e('Supplier Rating', 'restaurant-pos'); ?></label>
-                    </th>
-                    <td>
+                            <p class="description"><?php esc_html_e('Date when this ingredient was purchased (optional).', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="expiry_date"><?php esc_html_e('Expiry Date', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="date" name="expiry_date" id="expiry_date" class="regular-text"
+                                   value="<?php echo $ingredient && !empty($ingredient->expiry_date) ? esc_attr($ingredient->expiry_date) : ''; ?>">
+                            <p class="description"><?php esc_html_e('Date when this ingredient expires (optional).', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Supplier Details Section -->
+            <div class="rpos-form-section">
+                <h3>🏪 <?php esc_html_e('Supplier Details', 'restaurant-pos'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="supplier_name"><?php esc_html_e('Supplier Name', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" name="supplier_name" id="supplier_name" class="regular-text"
+                                   value="<?php echo $ingredient && !empty($ingredient->supplier_name) ? esc_attr($ingredient->supplier_name) : ''; ?>">
+                            <p class="description"><?php esc_html_e('Name of the supplier for this ingredient (optional).', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="supplier_phone"><?php esc_html_e('Supplier Phone', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" name="supplier_phone" id="supplier_phone" class="regular-text"
+                                   value="<?php echo $ingredient && !empty($ingredient->supplier_phone) ? esc_attr($ingredient->supplier_phone) : ''; ?>">
+                            <p class="description"><?php esc_html_e('Phone number of the supplier (optional).', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="supplier_location"><?php esc_html_e('Supplier Location', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <textarea name="supplier_location" id="supplier_location" class="regular-text" rows="3"><?php echo $ingredient && !empty($ingredient->supplier_location) ? esc_textarea($ingredient->supplier_location) : ''; ?></textarea>
+                            <p class="description"><?php esc_html_e('Address or location of the supplier (optional).', 'restaurant-pos'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="supplier_rating"><?php esc_html_e('Supplier Rating', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
                         <select name="supplier_rating" id="supplier_rating">
                             <option value=""><?php esc_html_e('-- No Rating --', 'restaurant-pos'); ?></option>
                             <option value="1" <?php selected($ingredient && !empty($ingredient->supplier_rating) ? $ingredient->supplier_rating : '', '1'); ?>>⭐ (1 Star)</option>
@@ -259,13 +548,28 @@ $ingredients = RPOS_Ingredients::get_all();
                     </td>
                 </tr>
             </table>
-            
-            <p class="submit">
-                <button type="submit" class="button button-primary">
-                    <?php echo $view === 'edit' ? esc_html__('Update Ingredient', 'restaurant-pos') : esc_html__('Add Ingredient', 'restaurant-pos'); ?>
-                </button>
-                <a href="?page=restaurant-pos-ingredients" class="button"><?php esc_html_e('Cancel', 'restaurant-pos'); ?></a>
-            </p>
-        </form>
+        </div>
+        
+        <p class="submit">
+            <button type="submit" class="button button-primary">
+                <?php echo $view === 'edit' ? esc_html__('Update Ingredient', 'restaurant-pos') : esc_html__('Add Ingredient', 'restaurant-pos'); ?>
+            </button>
+            <?php if ($view === 'add'): ?>
+                <button type="button" id="back-to-selector" class="button"><?php esc_html_e('← Back to Selector', 'restaurant-pos'); ?></button>
+            <?php endif; ?>
+            <a href="?page=restaurant-pos-ingredients" class="button"><?php esc_html_e('Cancel', 'restaurant-pos'); ?></a>
+        </p>
+    </form>
+    
+    <?php if ($view === 'add'): ?>
+    <script>
+    jQuery(document).ready(function($) {
+        $('#back-to-selector').on('click', function() {
+            $('#new-ingredient-form').hide();
+            $('#ingredient-selector').show();
+        });
+    });
+    </script>
     <?php endif; ?>
+<?php endif; ?>
 </div>

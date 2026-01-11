@@ -68,7 +68,10 @@ class RPOS_Ingredients {
             'purchasing_date' => null,
             'expiry_date' => null,
             'supplier_name' => null,
-            'supplier_rating' => null
+            'supplier_rating' => null,
+            'supplier_phone' => null,
+            'supplier_location' => null,
+            'reorder_level' => 0
         );
         
         $data = wp_parse_args($data, $defaults);
@@ -81,10 +84,11 @@ class RPOS_Ingredients {
             'name' => sanitize_text_field($data['name']),
             'unit' => sanitize_text_field($data['unit']),
             'current_stock_quantity' => floatval($data['current_stock_quantity']),
-            'cost_per_unit' => floatval($data['cost_per_unit'])
+            'cost_per_unit' => floatval($data['cost_per_unit']),
+            'reorder_level' => floatval($data['reorder_level'])
         );
         
-        $format = array('%s', '%s', '%f', '%f');
+        $format = array('%s', '%s', '%f', '%f', '%f');
         
         if (!empty($data['purchasing_date'])) {
             $insert_data['purchasing_date'] = sanitize_text_field($data['purchasing_date']);
@@ -104,6 +108,16 @@ class RPOS_Ingredients {
         if (isset($data['supplier_rating']) && $data['supplier_rating'] !== null && $data['supplier_rating'] !== '') {
             $insert_data['supplier_rating'] = absint($data['supplier_rating']);
             $format[] = '%d';
+        }
+        
+        if (!empty($data['supplier_phone'])) {
+            $insert_data['supplier_phone'] = sanitize_text_field($data['supplier_phone']);
+            $format[] = '%s';
+        }
+        
+        if (!empty($data['supplier_location'])) {
+            $insert_data['supplier_location'] = sanitize_textarea_field($data['supplier_location']);
+            $format[] = '%s';
         }
         
         $result = $wpdb->insert(
@@ -166,6 +180,21 @@ class RPOS_Ingredients {
         if (isset($data['supplier_rating'])) {
             $update_data['supplier_rating'] = ($data['supplier_rating'] !== null && $data['supplier_rating'] !== '') ? absint($data['supplier_rating']) : null;
             $format[] = '%d';
+        }
+        
+        if (isset($data['supplier_phone'])) {
+            $update_data['supplier_phone'] = !empty($data['supplier_phone']) ? sanitize_text_field($data['supplier_phone']) : null;
+            $format[] = '%s';
+        }
+        
+        if (isset($data['supplier_location'])) {
+            $update_data['supplier_location'] = !empty($data['supplier_location']) ? sanitize_textarea_field($data['supplier_location']) : null;
+            $format[] = '%s';
+        }
+        
+        if (isset($data['reorder_level'])) {
+            $update_data['reorder_level'] = floatval($data['reorder_level']);
+            $format[] = '%f';
         }
         
         if (empty($update_data)) {
@@ -339,5 +368,84 @@ class RPOS_Ingredients {
         } else {
             return $wpdb->get_results($query);
         }
+    }
+    
+    /**
+     * Log waste/spoilage
+     */
+    public static function log_waste($ingredient_id, $quantity, $reason, $notes = '', $user_id = null) {
+        global $wpdb;
+        
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        
+        // Insert waste record
+        $result = $wpdb->insert(
+            $wpdb->prefix . 'rpos_ingredient_waste',
+            array(
+                'ingredient_id' => $ingredient_id,
+                'quantity' => floatval($quantity),
+                'reason' => sanitize_text_field($reason),
+                'notes' => sanitize_textarea_field($notes),
+                'user_id' => $user_id
+            ),
+            array('%d', '%f', '%s', '%s', '%d')
+        );
+        
+        if ($result) {
+            // Deduct from stock using adjust_stock with 'Waste' movement type
+            self::adjust_stock(
+                $ingredient_id,
+                -floatval($quantity),
+                'Waste',
+                $wpdb->insert_id,
+                $reason . (!empty($notes) ? ': ' . $notes : ''),
+                $user_id
+            );
+            
+            return $wpdb->insert_id;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get waste history
+     */
+    public static function get_waste_history($ingredient_id = null, $date_from = null, $date_to = null, $limit = 100) {
+        global $wpdb;
+        
+        $where = array('1=1');
+        $where_values = array();
+        
+        if ($ingredient_id) {
+            $where[] = 'w.ingredient_id = %d';
+            $where_values[] = $ingredient_id;
+        }
+        
+        if ($date_from) {
+            $where[] = 'w.created_at >= %s';
+            $where_values[] = $date_from;
+        }
+        
+        if ($date_to) {
+            $where[] = 'w.created_at <= %s';
+            $where_values[] = $date_to;
+        }
+        
+        $where_clause = implode(' AND ', $where);
+        
+        $query = "SELECT w.*, i.name as ingredient_name, i.unit, u.display_name as user_name
+                  FROM {$wpdb->prefix}rpos_ingredient_waste w
+                  LEFT JOIN {$wpdb->prefix}rpos_ingredients i ON w.ingredient_id = i.id
+                  LEFT JOIN {$wpdb->users} u ON w.user_id = u.ID
+                  WHERE {$where_clause}
+                  ORDER BY w.created_at DESC
+                  LIMIT %d";
+        
+        $where_values[] = $limit;
+        
+        return $wpdb->get_results($wpdb->prepare($query, $where_values));
     }
 }
