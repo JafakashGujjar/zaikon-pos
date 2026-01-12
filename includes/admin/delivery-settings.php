@@ -1,11 +1,31 @@
 <?php
 /**
  * Delivery Settings Page
+ * 
+ * @deprecated This page is deprecated in favor of Zaikon Delivery Management
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
+
+// Show deprecation notice
+?>
+<div class="wrap">
+    <h1><?php echo esc_html__('Delivery Settings', 'restaurant-pos'); ?></h1>
+    
+    <div class="notice notice-warning is-dismissible" style="padding: 15px; margin-top: 20px;">
+        <h2 style="margin-top: 0;">⚠️ <?php echo esc_html__('This Page is Deprecated', 'restaurant-pos'); ?></h2>
+        <p><?php echo esc_html__('This legacy delivery settings page has been replaced by the new Zaikon Delivery Management system.', 'restaurant-pos'); ?></p>
+        <p>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=restaurant-pos-zaikon-delivery')); ?>" class="button button-primary">
+                <?php echo esc_html__('Go to Zaikon Delivery Management', 'restaurant-pos'); ?>
+            </a>
+        </p>
+    </div>
+</div>
+<?php
+return; // Stop executing the rest of the page
 
 // Handle form submissions
 $message = '';

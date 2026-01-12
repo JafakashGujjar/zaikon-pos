@@ -1,12 +1,18 @@
 <?php
 /**
  * Delivery Settings Management Class
+ * 
+ * @deprecated This class is deprecated - delivery settings now managed via Zaikon tables
+ * @see Zaikon_Delivery_Charge_Slabs, Zaikon_Free_Delivery_Rules
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * @deprecated Use Zaikon delivery management classes instead
+ */
 class RPOS_Delivery_Settings {
     
     /**

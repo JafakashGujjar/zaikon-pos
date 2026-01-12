@@ -1,11 +1,34 @@
 <?php
 /**
  * Delivery Reports Page
+ * 
+ * @deprecated This page is deprecated - use Delivery Customers page instead
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
+
+// Show deprecation notice
+?>
+<div class="wrap">
+    <h1><?php echo esc_html__('Delivery Reports', 'restaurant-pos'); ?></h1>
+    
+    <div class="notice notice-warning is-dismissible" style="padding: 15px; margin-top: 20px;">
+        <h2 style="margin-top: 0;">⚠️ <?php echo esc_html__('This Page is Deprecated', 'restaurant-pos'); ?></h2>
+        <p><?php echo esc_html__('This legacy delivery reports page has been replaced by new reporting features.', 'restaurant-pos'); ?></p>
+        <p>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=restaurant-pos-delivery-customers')); ?>" class="button button-primary">
+                <?php echo esc_html__('Go to Delivery Customers Dashboard', 'restaurant-pos'); ?>
+            </a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=restaurant-pos-zaikon-delivery')); ?>" class="button">
+                <?php echo esc_html__('Go to Zaikon Delivery Management', 'restaurant-pos'); ?>
+            </a>
+        </p>
+    </div>
+</div>
+<?php
+return; // Stop executing the rest of the page
 
 // Get filter parameters
 $date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-01');

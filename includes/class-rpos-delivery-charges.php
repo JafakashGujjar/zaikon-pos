@@ -1,12 +1,18 @@
 <?php
 /**
  * Delivery Charges Management Class
+ * 
+ * @deprecated This class is deprecated in favor of Zaikon_Delivery_Calculator
+ * @see Zaikon_Delivery_Calculator
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * @deprecated Use Zaikon_Delivery_Calculator instead
+ */
 class RPOS_Delivery_Charges {
     
     /**

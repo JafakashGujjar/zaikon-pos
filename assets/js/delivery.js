@@ -302,12 +302,19 @@
                 return;
             }
             
+            // Get selected area details
+            var selectedArea = $('#rpos-delivery-area option:selected');
+            var areaId = $('#rpos-delivery-area').val();
+            var distance = selectedArea.data('distance') || 0;
+            
             var data = {
-                area_id: $('#rpos-delivery-area').val(),
+                area_id: areaId,
                 customer_name: $('#rpos-customer-name').val().trim(),
                 customer_phone: $('#rpos-customer-phone').val().trim(),
                 special_instructions: $('#rpos-special-instructions').val().trim(),
                 delivery_charge: this.deliveryData ? this.deliveryData.delivery_charge : 0,
+                is_free_delivery: this.deliveryData ? (this.deliveryData.is_free ? 1 : 0) : 0,
+                distance_km: distance,
                 is_delivery: 1
             };
             

@@ -282,6 +282,16 @@ class RPOS_Admin_Menu {
             'restaurant-pos-delivery-reports',
             array($this, 'delivery_reports_page')
         );
+        
+        // Delivery Customers (New Zaikon v2 feature)
+        add_submenu_page(
+            'restaurant-pos',
+            __('Delivery Customers', 'restaurant-pos'),
+            __('Delivery Customers', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-delivery-customers',
+            array($this, 'delivery_customers_page')
+        );
     }
     
     /**
@@ -429,6 +439,13 @@ class RPOS_Admin_Menu {
      */
     public function delivery_reports_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/delivery-reports.php';
+    }
+    
+    /**
+     * Delivery Customers page (Zaikon v2)
+     */
+    public function delivery_customers_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/delivery-customers.php';
     }
     
     /**
