@@ -243,6 +243,16 @@ class RPOS_Admin_Menu {
             array($this, 'delivery_settings_page')
         );
         
+        // Zaikon Delivery Management (New comprehensive system)
+        add_submenu_page(
+            'restaurant-pos',
+            __('Zaikon Delivery', 'restaurant-pos'),
+            __('Zaikon Delivery', 'restaurant-pos'),
+            'rpos_manage_settings',
+            'restaurant-pos-zaikon-delivery',
+            array($this, 'zaikon_delivery_management_page')
+        );
+        
         // Delivery/Riders section separator (using null parent creates a section)
         add_submenu_page(
             'restaurant-pos',
@@ -377,6 +387,13 @@ class RPOS_Admin_Menu {
      */
     public function delivery_settings_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/delivery-settings.php';
+    }
+    
+    /**
+     * Zaikon Delivery Management page
+     */
+    public function zaikon_delivery_management_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/zaikon-delivery-management.php';
     }
     
     /**
