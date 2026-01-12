@@ -738,6 +738,154 @@ class RPOS_Install {
             PRIMARY KEY (setting_key)
         ) $charset_collate;";
         
+        // ========== ZAIKON POS DELIVERY & REPORTING TABLES ==========
+        
+        // Zaikon Orders table (standardized master orders table)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_orders (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_number varchar(50) NOT NULL,
+            order_type enum('dine_in','takeaway','delivery') NOT NULL DEFAULT 'takeaway',
+            items_subtotal_rs decimal(10,2) NOT NULL DEFAULT 0.00,
+            delivery_charges_rs decimal(10,2) NOT NULL DEFAULT 0.00,
+            discounts_rs decimal(10,2) NOT NULL DEFAULT 0.00,
+            taxes_rs decimal(10,2) NOT NULL DEFAULT 0.00,
+            grand_total_rs decimal(10,2) NOT NULL DEFAULT 0.00,
+            payment_status enum('unpaid','paid','refunded','void') DEFAULT 'unpaid',
+            cashier_id bigint(20) unsigned,
+            created_at datetime NOT NULL,
+            updated_at datetime DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY order_number (order_number),
+            KEY order_type_idx (order_type),
+            KEY created_at_idx (created_at),
+            KEY cashier_id (cashier_id)
+        ) $charset_collate;";
+        
+        // Zaikon Order Items table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_order_items (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) unsigned NOT NULL,
+            product_id bigint(20) unsigned DEFAULT NULL,
+            product_name varchar(191) NOT NULL,
+            qty int(11) NOT NULL,
+            unit_price_rs decimal(10,2) NOT NULL,
+            line_total_rs decimal(10,2) NOT NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            KEY order_idx (order_id),
+            KEY product_id (product_id)
+        ) $charset_collate;";
+        
+        // Zaikon Delivery Locations (Villages/Areas)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_delivery_locations (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(191) NOT NULL,
+            distance_km decimal(6,2) NOT NULL,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY is_active (is_active)
+        ) $charset_collate;";
+        
+        // Zaikon Delivery Charge Slabs (km-based customer charges)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_delivery_charge_slabs (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            min_km decimal(6,2) NOT NULL,
+            max_km decimal(6,2) NOT NULL,
+            charge_rs decimal(10,2) NOT NULL,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY range_idx (is_active, min_km, max_km)
+        ) $charset_collate;";
+        
+        // Zaikon Free Delivery Rules
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_free_delivery_rules (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            max_km decimal(6,2) NOT NULL,
+            min_order_amount_rs decimal(10,2) NOT NULL,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY active_idx (is_active)
+        ) $charset_collate;";
+        
+        // Zaikon Riders table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_riders (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(191) NOT NULL,
+            phone varchar(50),
+            status enum('active','inactive') DEFAULT 'active',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY status_idx (status)
+        ) $charset_collate;";
+        
+        // Zaikon Deliveries table (core bridge)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_deliveries (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) unsigned NOT NULL,
+            customer_name varchar(191) NOT NULL,
+            customer_phone varchar(50) NOT NULL,
+            location_id bigint(20) unsigned DEFAULT NULL,
+            location_name varchar(191) NOT NULL,
+            distance_km decimal(6,2) NOT NULL,
+            delivery_charges_rs decimal(10,2) NOT NULL,
+            is_free_delivery tinyint(1) DEFAULT 0,
+            special_instruction varchar(255) DEFAULT NULL,
+            assigned_rider_id bigint(20) unsigned DEFAULT NULL,
+            delivery_status enum('pending','on_route','delivered','failed') DEFAULT 'pending',
+            delivered_at datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY order_idx (order_id),
+            KEY phone_idx (customer_phone),
+            KEY rider_idx (assigned_rider_id),
+            KEY location_idx (location_id)
+        ) $charset_collate;";
+        
+        // Zaikon Rider Payouts per Delivery
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_rider_payouts (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            delivery_id bigint(20) unsigned NOT NULL,
+            rider_id bigint(20) unsigned NOT NULL,
+            rider_pay_rs decimal(10,2) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY delivery_idx (delivery_id),
+            KEY rider_idx (rider_id)
+        ) $charset_collate;";
+        
+        // Zaikon Rider Fuel Logs
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_rider_fuel_logs (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            rider_id bigint(20) unsigned NOT NULL,
+            amount_rs decimal(10,2) NOT NULL,
+            liters decimal(10,2) DEFAULT NULL,
+            date date NOT NULL,
+            notes varchar(255) DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY rider_date_idx (rider_id, date)
+        ) $charset_collate;";
+        
+        // Zaikon System Events (audit log)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_system_events (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            entity_type varchar(50) NOT NULL,
+            entity_id bigint(20) unsigned NOT NULL,
+            action varchar(50) NOT NULL,
+            metadata longtext DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY entity_idx (entity_type, entity_id)
+        ) $charset_collate;";
+        
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         foreach ($tables as $table) {

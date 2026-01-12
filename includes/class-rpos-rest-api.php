@@ -211,6 +211,14 @@ class RPOS_REST_API {
             'callback' => array($this, 'mark_all_notifications_read'),
             'permission_callback' => array($this, 'check_permission')
         ));
+        
+        // Zaikon Delivery Charge Calculation endpoint
+        $zaikon_namespace = 'zaikon/v1';
+        register_rest_route($zaikon_namespace, '/calc-delivery-charges', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'zaikon_calc_delivery_charges'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
     }
     
     /**
@@ -797,5 +805,46 @@ class RPOS_REST_API {
             'success' => true,
             'message' => 'All notifications marked as read'
         );
+    }
+    
+    /**
+     * Zaikon: Calculate delivery charges
+     * Endpoint: POST /zaikon/v1/calc-delivery-charges
+     * Params: distance_km, items_subtotal_rs OR location_id, items_subtotal_rs
+     */
+    public function zaikon_calc_delivery_charges($request) {
+        $params = $request->get_params();
+        
+        $items_subtotal = floatval($params['items_subtotal_rs'] ?? 0);
+        
+        if ($items_subtotal <= 0) {
+            return new WP_Error('invalid_subtotal', 'Invalid items subtotal', array('status' => 400));
+        }
+        
+        // Calculate by location_id or distance_km
+        if (!empty($params['location_id'])) {
+            $result = Zaikon_Delivery_Calculator::calculate_by_location(
+                intval($params['location_id']),
+                $items_subtotal
+            );
+        } elseif (isset($params['distance_km'])) {
+            $distance_km = floatval($params['distance_km']);
+            if ($distance_km <= 0) {
+                return new WP_Error('invalid_distance', 'Invalid distance', array('status' => 400));
+            }
+            $result = Zaikon_Delivery_Calculator::calculate($distance_km, $items_subtotal);
+        } else {
+            return new WP_Error('missing_params', 'Either location_id or distance_km is required', array('status' => 400));
+        }
+        
+        if (isset($result['error'])) {
+            return new WP_Error('calculation_error', $result['error'], array('status' => 400));
+        }
+        
+        return rest_ensure_response(array(
+            'delivery_charges_rs' => $result['charge_rs'],
+            'is_free_delivery' => $result['is_free_delivery'],
+            'rule_type' => $result['rule_type']
+        ));
     }
 }
