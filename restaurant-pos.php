@@ -85,6 +85,21 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-suppliers.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-batches.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-inventory-settings.php';
+        
+        // Zaikon POS Delivery & Reporting system classes
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-orders.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-order-items.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-delivery-locations.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-delivery-charge-slabs.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-free-delivery-rules.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-riders.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-deliveries.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-rider-payouts.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-rider-fuel-logs.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-system-events.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-delivery-calculator.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-order-service.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-reports.php';
     }
     
     /**
