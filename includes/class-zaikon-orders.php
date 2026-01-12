@@ -49,10 +49,24 @@ class Zaikon_Orders {
     public static function get($id) {
         global $wpdb;
         
-        return $wpdb->get_row($wpdb->prepare(
+        $order = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
             $id
         ));
+        
+        if ($order) {
+            // Add items to order
+            $order->items = Zaikon_Order_Items::get_by_order($id);
+            
+            // Format items for compatibility with frontend
+            foreach ($order->items as &$item) {
+                $item->quantity = $item->qty;
+                $item->price = $item->unit_price_rs;
+                $item->line_total = $item->line_total_rs;
+            }
+        }
+        
+        return $order;
     }
     
     /**
