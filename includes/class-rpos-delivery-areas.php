@@ -1,12 +1,18 @@
 <?php
 /**
  * Delivery Areas Management Class
+ * 
+ * @deprecated This class is deprecated in favor of Zaikon_Delivery_Locations
+ * @see Zaikon_Delivery_Locations
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * @deprecated Use Zaikon_Delivery_Locations instead
+ */
 class RPOS_Delivery_Areas {
     
     /**

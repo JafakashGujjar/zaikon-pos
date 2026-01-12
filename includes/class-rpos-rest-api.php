@@ -363,6 +363,12 @@ class RPOS_REST_API {
     public function create_order($request) {
         $data = $request->get_json_params();
         
+        // For delivery orders, use the new Zaikon system
+        if (isset($data['order_type']) && $data['order_type'] === 'delivery' && isset($data['is_delivery']) && $data['is_delivery']) {
+            return $this->create_delivery_order_v2($data);
+        }
+        
+        // For non-delivery orders, use legacy system
         $order_id = RPOS_Orders::create($data);
         
         if (!$order_id) {
@@ -370,6 +376,98 @@ class RPOS_REST_API {
         }
         
         $order = RPOS_Orders::get($order_id);
+        return rest_ensure_response($order);
+    }
+    
+    /**
+     * Create delivery order using Zaikon v2 system
+     */
+    private function create_delivery_order_v2($data) {
+        // Generate order number
+        $order_number = RPOS_Orders::generate_order_number();
+        
+        // Calculate totals
+        $subtotal = floatval($data['subtotal'] ?? 0);
+        $discount = floatval($data['discount'] ?? 0);
+        $delivery_charge = floatval($data['delivery_charge'] ?? 0);
+        
+        // Prepare Zaikon order data
+        $order_data = array(
+            'order_number' => $order_number,
+            'order_type' => 'delivery',
+            'items_subtotal_rs' => $subtotal,
+            'delivery_charges_rs' => $delivery_charge,
+            'discounts_rs' => $discount,
+            'taxes_rs' => 0, // Can be extended later
+            'grand_total_rs' => $subtotal + $delivery_charge - $discount,
+            'payment_status' => 'paid',
+            'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
+        );
+        
+        // Prepare order items
+        $items = array();
+        if (!empty($data['items'])) {
+            foreach ($data['items'] as $item) {
+                $product = RPOS_Products::get($item['product_id']);
+                $items[] = array(
+                    'product_id' => $item['product_id'],
+                    'product_name' => $product ? $product->name : '',
+                    'qty' => intval($item['quantity']),
+                    'unit_price_rs' => floatval($item['unit_price']),
+                    'line_total_rs' => floatval($item['line_total'])
+                );
+            }
+        }
+        
+        // Get location details
+        $location_id = isset($data['area_id']) ? absint($data['area_id']) : null;
+        $location = null;
+        $location_name = '';
+        $distance_km = 0;
+        
+        if ($location_id) {
+            $location = Zaikon_Delivery_Locations::get($location_id);
+            if ($location) {
+                $location_name = $location->name;
+                $distance_km = floatval($location->distance_km);
+            }
+        }
+        
+        // Prepare delivery data
+        $delivery_data = array(
+            'customer_name' => sanitize_text_field($data['customer_name'] ?? ''),
+            'customer_phone' => sanitize_text_field($data['customer_phone'] ?? ''),
+            'location_id' => $location_id,
+            'location_name' => $location_name,
+            'distance_km' => $distance_km,
+            'delivery_charges_rs' => $delivery_charge,
+            'is_free_delivery' => ($delivery_charge == 0) ? 1 : 0,
+            'special_instruction' => sanitize_textarea_field($data['special_instructions'] ?? ''),
+            'delivery_status' => 'pending'
+        );
+        
+        // Create order atomically using Zaikon_Order_Service
+        $result = Zaikon_Order_Service::create_order($order_data, $items, $delivery_data);
+        
+        if (!$result['success']) {
+            $error_msg = !empty($result['errors']) ? implode(', ', $result['errors']) : 'Failed to create order';
+            return new WP_Error('creation_failed', $error_msg, array('status' => 500));
+        }
+        
+        // Deduct stock for completed orders
+        if (!empty($data['items'])) {
+            RPOS_Orders::deduct_stock_for_order($result['order_id'], $data['items']);
+        }
+        
+        // Get the created order
+        $order = Zaikon_Orders::get($result['order_id']);
+        
+        // Add delivery info to response
+        if ($result['delivery_id']) {
+            $delivery = Zaikon_Deliveries::get($result['delivery_id']);
+            $order->delivery = $delivery;
+        }
+        
         return rest_ensure_response($order);
     }
     

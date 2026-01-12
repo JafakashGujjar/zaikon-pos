@@ -1,12 +1,18 @@
 <?php
 /**
  * Delivery Logs Management Class
+ * 
+ * @deprecated This class is deprecated in favor of Zaikon_Deliveries
+ * @see Zaikon_Deliveries
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * @deprecated Use Zaikon_Deliveries instead
+ */
 class RPOS_Delivery_Logs {
     
     /**
