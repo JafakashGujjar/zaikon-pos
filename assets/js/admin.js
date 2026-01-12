@@ -428,7 +428,17 @@
                 orderData.area_id = this.deliveryData.area_id;
                 orderData.customer_name = this.deliveryData.customer_name;
                 orderData.customer_phone = this.deliveryData.customer_phone;
+                orderData.distance_km = this.deliveryData.distance_km || 0;
+                orderData.is_free_delivery = this.deliveryData.is_free_delivery || 0;
                 orderData.special_instructions = this.deliveryData.special_instructions || '';
+                
+                // Get location name from selected option
+                var selectedArea = $('#rpos-delivery-area option:selected');
+                if (selectedArea.length > 0) {
+                    var areaText = selectedArea.text();
+                    // Extract location name (remove distance in parentheses)
+                    orderData.location_name = areaText.replace(/\s*\([^)]*\)\s*$/, '').trim();
+                }
             }
             
             ZAIKON_Toast.info('Processing order...');
@@ -679,6 +689,22 @@
             
             $('#receipt-date-time').text(new Date().toLocaleString());
             
+            // Add delivery details if delivery order
+            if (orderData.order_type === 'delivery' && orderData.customer_name) {
+                var deliveryInfo = '<div style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px;">';
+                deliveryInfo += '<strong>Delivery To:</strong><br>';
+                deliveryInfo += orderData.customer_name + '<br>';
+                deliveryInfo += orderData.customer_phone + '<br>';
+                if (orderData.location_name) {
+                    deliveryInfo += 'Location: ' + orderData.location_name;
+                    if (orderData.distance_km) {
+                        deliveryInfo += ' (' + orderData.distance_km + ' km)';
+                    }
+                }
+                deliveryInfo += '</div>';
+                $('#receipt-order-type').after(deliveryInfo);
+            }
+            
             // Add special instructions if any
             if (orderData.special_instructions && orderData.special_instructions.trim() !== '') {
                 $('#receipt-special-instructions').text('Instructions: ' + orderData.special_instructions).show();
@@ -720,8 +746,12 @@
             // Show delivery charge if present
             var deliveryCharge = parseFloat(orderData.delivery_charge || 0);
             if (deliveryCharge > 0) {
+                var deliveryLabel = 'Delivery Charge:';
+                if (orderData.is_free_delivery) {
+                    deliveryLabel += ' <span style="color: green;">(FREE)</span>';
+                }
                 var $deliveryRow = $('<div class="rpos-receipt-totals-row">' +
-                    '<span>Delivery Charge:</span>' +
+                    '<span>' + deliveryLabel + '</span>' +
                     '<span id="receipt-delivery-charge">' + rposData.currency + deliveryCharge.toFixed(2) + '</span>' +
                     '</div>');
                 $('#receipt-subtotal').parent().after($deliveryRow);
