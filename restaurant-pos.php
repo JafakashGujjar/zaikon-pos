@@ -98,6 +98,8 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-rider-fuel-logs.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-system-events.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-delivery-calculator.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-order-service.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-reports.php';
     }
     
     /**
