@@ -502,6 +502,22 @@ class RPOS_REST_API {
         $params = $request->get_params();
         $active_only = isset($params['active_only']) ? (bool)$params['active_only'] : false;
         
+        // Try to get Zaikon locations first (new system)
+        $zaikon_locations = Zaikon_Delivery_Locations::get_all($active_only);
+        
+        if (!empty($zaikon_locations)) {
+            // Return Zaikon locations with normalized field names for compatibility
+            $areas = array();
+            foreach ($zaikon_locations as $location) {
+                $area = (array) $location;
+                // Add distance_value for backward compatibility with old code
+                $area['distance_value'] = $location->distance_km;
+                $areas[] = (object) $area;
+            }
+            return rest_ensure_response($areas);
+        }
+        
+        // Fallback to old RPOS system if no Zaikon locations exist
         $areas = RPOS_Delivery_Areas::get_all($active_only);
         return rest_ensure_response($areas);
     }

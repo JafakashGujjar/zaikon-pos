@@ -168,10 +168,12 @@
                     
                     if (areas && areas.length > 0) {
                         areas.forEach(function(area) {
+                            // Support both old (distance_value) and new (distance_km) field names
+                            var distance = area.distance_km || area.distance_value || 0;
                             select.append($('<option>', {
                                 value: area.id,
-                                text: area.name + ' (' + area.distance_value + ' km)',
-                                'data-distance': area.distance_value
+                                text: area.name + ' (' + distance + ' km)',
+                                'data-distance': distance
                             }));
                         });
                     }
@@ -198,19 +200,26 @@
                 return;
             }
             
+            // Use new Zaikon API endpoint
             $.ajax({
-                url: rposAdmin.restUrl + 'delivery-charge/' + areaId + '?subtotal=' + subtotal,
-                method: 'GET',
+                url: rposAdmin.restUrl.replace('restaurant-pos/v1/', 'zaikon/v1/') + 'calc-delivery-charges',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    location_id: parseInt(areaId),
+                    items_subtotal_rs: subtotal
+                }),
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', rposAdmin.restNonce);
                 },
                 success: function(response) {
-                    var deliveryCharge = parseFloat(response.delivery_charge) || 0;
+                    var deliveryCharge = parseFloat(response.delivery_charges_rs) || 0;
+                    var isFree = response.is_free_delivery == 1;
                     var total = subtotal + deliveryCharge;
                     
                     $('#rpos-delivery-charge-value').html(
                         self.formatCurrency(deliveryCharge) + 
-                        (response.is_free ? '<span class="rpos-delivery-free-badge">FREE</span>' : '')
+                        (isFree ? '<span class="rpos-delivery-free-badge">FREE</span>' : '')
                     );
                     $('#rpos-delivery-total').text(self.formatCurrency(total));
                     $('#rpos-delivery-charge-display').show();
@@ -218,10 +227,12 @@
                     // Store for later use
                     self.deliveryData = {
                         delivery_charge: deliveryCharge,
-                        is_free: response.is_free
+                        is_free: isFree,
+                        rule_type: response.rule_type
                     };
                 },
-                error: function() {
+                error: function(xhr) {
+                    console.error('Delivery charge calculation failed:', xhr);
                     if (window.ZaikonToast) {
                         window.ZaikonToast.error('Failed to calculate delivery charge');
                     }
