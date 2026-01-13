@@ -339,7 +339,7 @@ class RPOS_REST_API {
             if (empty($str)) return '';
             $len = strlen($str);
             if ($len <= 2) return '***'; // Fully mask very short strings
-            return substr($str, 0, min(2, $len - 1)) . '***';
+            return substr($str, 0, 2) . '***'; // Show max 2 chars for longer strings
         };
         
         error_log('ZAIKON: Creating delivery order v2 with data: ' . print_r(array(
