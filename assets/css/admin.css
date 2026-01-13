@@ -975,7 +975,8 @@
     background: #f8f9fa;
     border: 2px solid #e0e5eb;
     border-radius: 8px;
-    margin: 15px;
+    margin: 15px auto;
+    max-width: 950px;
     overflow: hidden;
     animation: slideDown 0.3s ease-out;
 }
@@ -1009,9 +1010,21 @@
     padding: 16px;
 }
 
+/* Two-column grid layout for desktop */
+.zaikon-delivery-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+}
+
 .zaikon-delivery-field {
-    margin-bottom: 14px;
+    margin-bottom: 0;
     position: relative;
+}
+
+/* Full-width fields */
+.zaikon-delivery-field.full-width {
+    grid-column: 1 / -1;
 }
 
 .zaikon-delivery-field label {
@@ -1114,4 +1127,21 @@
 .zaikon-btn-secondary:hover {
     background: #f8f9fa;
     border-color: #94a3b8;
+}
+
+/* Responsive: Tablets and Mobile - Single Column Layout */
+@media (max-width: 768px) {
+    .zaikon-delivery-fields-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    
+    .zaikon-delivery-panel {
+        margin: 10px;
+        max-width: 100%;
+    }
+    
+    .zaikon-delivery-field.full-width {
+        grid-column: 1;
+    }
 }

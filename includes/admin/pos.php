@@ -57,39 +57,49 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                     <h4><?php echo esc_html__('Delivery Details', 'restaurant-pos'); ?></h4>
                 </div>
                 <div class="zaikon-delivery-panel-body">
-                    <div class="zaikon-delivery-field">
-                        <label><?php echo esc_html__('Customer Phone', 'restaurant-pos'); ?> <span class="required">*</span></label>
-                        <input type="tel" id="zaikon-delivery-phone" placeholder="<?php echo esc_attr__('Enter phone number', 'restaurant-pos'); ?>" required>
+                    <div class="zaikon-delivery-fields-grid">
+                        <!-- Row 1: Customer Phone | Customer Name -->
+                        <div class="zaikon-delivery-field">
+                            <label><?php echo esc_html__('Customer Phone', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                            <input type="tel" id="zaikon-delivery-phone" placeholder="<?php echo esc_attr__('Enter phone number', 'restaurant-pos'); ?>" required>
+                        </div>
+                        <div class="zaikon-delivery-field">
+                            <label><?php echo esc_html__('Customer Name', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                            <input type="text" id="zaikon-delivery-name" placeholder="<?php echo esc_attr__('Enter customer name', 'restaurant-pos'); ?>" required>
+                        </div>
+                        
+                        <!-- Row 2: Delivery Area | Distance (KM) -->
+                        <div class="zaikon-delivery-field">
+                            <label><?php echo esc_html__('Delivery Area', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                            <select id="zaikon-delivery-area">
+                                <option value=""><?php echo esc_html__('-- Select Area --', 'restaurant-pos'); ?></option>
+                            </select>
+                        </div>
+                        <div class="zaikon-delivery-field">
+                            <label><?php echo esc_html__('Distance (KM)', 'restaurant-pos'); ?></label>
+                            <input type="text" id="zaikon-delivery-distance" readonly>
+                        </div>
+                        
+                        <!-- Row 3: Delivery Charge (Rs) | Assign Rider -->
+                        <div class="zaikon-delivery-field">
+                            <label><?php echo esc_html__('Delivery Charge (Rs)', 'restaurant-pos'); ?></label>
+                            <input type="text" id="zaikon-delivery-charge" readonly>
+                            <span id="zaikon-free-delivery-badge" class="zaikon-free-badge" style="display:none;"><?php echo esc_html__('FREE', 'restaurant-pos'); ?></span>
+                        </div>
+                        <div class="zaikon-delivery-field">
+                            <label><?php echo esc_html__('Assign Rider', 'restaurant-pos'); ?></label>
+                            <select id="zaikon-delivery-rider">
+                                <option value=""><?php echo esc_html__('-- Select Rider --', 'restaurant-pos'); ?></option>
+                            </select>
+                        </div>
+                        
+                        <!-- Row 4: Delivery Instructions (full width) -->
+                        <div class="zaikon-delivery-field full-width">
+                            <label><?php echo esc_html__('Delivery Instructions', 'restaurant-pos'); ?></label>
+                            <textarea id="zaikon-delivery-instructions" rows="2" placeholder="<?php echo esc_attr__('e.g., Near mosque, Call on arrival', 'restaurant-pos'); ?>"></textarea>
+                        </div>
                     </div>
-                    <div class="zaikon-delivery-field">
-                        <label><?php echo esc_html__('Customer Name', 'restaurant-pos'); ?> <span class="required">*</span></label>
-                        <input type="text" id="zaikon-delivery-name" placeholder="<?php echo esc_attr__('Enter customer name', 'restaurant-pos'); ?>" required>
-                    </div>
-                    <div class="zaikon-delivery-field">
-                        <label><?php echo esc_html__('Delivery Area', 'restaurant-pos'); ?> <span class="required">*</span></label>
-                        <select id="zaikon-delivery-area">
-                            <option value=""><?php echo esc_html__('-- Select Area --', 'restaurant-pos'); ?></option>
-                        </select>
-                    </div>
-                    <div class="zaikon-delivery-field">
-                        <label><?php echo esc_html__('Distance (KM)', 'restaurant-pos'); ?></label>
-                        <input type="text" id="zaikon-delivery-distance" readonly>
-                    </div>
-                    <div class="zaikon-delivery-field">
-                        <label><?php echo esc_html__('Delivery Charge (Rs)', 'restaurant-pos'); ?></label>
-                        <input type="text" id="zaikon-delivery-charge" readonly>
-                        <span id="zaikon-free-delivery-badge" class="zaikon-free-badge" style="display:none;"><?php echo esc_html__('FREE', 'restaurant-pos'); ?></span>
-                    </div>
-                    <div class="zaikon-delivery-field">
-                        <label><?php echo esc_html__('Special Instructions', 'restaurant-pos'); ?></label>
-                        <textarea id="zaikon-delivery-instructions" rows="2" placeholder="<?php echo esc_attr__('e.g., Call on arrival', 'restaurant-pos'); ?>"></textarea>
-                    </div>
-                    <div class="zaikon-delivery-field">
-                        <label><?php echo esc_html__('Assign Rider', 'restaurant-pos'); ?></label>
-                        <select id="zaikon-delivery-rider">
-                            <option value=""><?php echo esc_html__('-- Select Rider --', 'restaurant-pos'); ?></option>
-                        </select>
-                    </div>
+                    
                     <div class="zaikon-delivery-actions">
                         <button type="button" class="zaikon-btn zaikon-btn-primary" id="zaikon-save-delivery"><?php echo esc_html__('Save Delivery Details', 'restaurant-pos'); ?></button>
                         <button type="button" class="zaikon-btn zaikon-btn-secondary" id="zaikon-cancel-delivery"><?php echo esc_html__('Cancel Delivery', 'restaurant-pos'); ?></button>
