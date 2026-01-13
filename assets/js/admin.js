@@ -479,6 +479,20 @@
                         message: 'Order #' + response.order_number + ' created successfully'
                     }, 4000);
                     self.showReceipt(response, orderData);
+                    
+                    // After showing receipt, offer rider assignment for delivery orders
+                    if (orderData.order_type === 'delivery' && window.RiderAssignment) {
+                        var deliveryInfo = {
+                            customerName: orderData.customer_name || '',
+                            customerPhone: orderData.customer_phone || '',
+                            locationName: orderData.location_name || '',
+                            distanceKm: orderData.distance_km || 0
+                        };
+                        // Small delay to let receipt modal show first
+                        setTimeout(function() {
+                            RiderAssignment.showPopup(response.id, response.order_number, deliveryInfo);
+                        }, 1000);
+                    }
                 },
                 error: function() {
                     ZAIKON_Toast.error('Failed to create order');

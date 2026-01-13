@@ -333,6 +333,17 @@ class RPOS_REST_API {
      * Create delivery order using Zaikon v2 system
      */
     private function create_delivery_order_v2($data) {
+        // Add debug logging
+        error_log('ZAIKON: Creating delivery order v2 with data: ' . print_r(array(
+            'customer_name' => $data['customer_name'] ?? '',
+            'customer_phone' => $data['customer_phone'] ?? '',
+            'location_name' => $data['location_name'] ?? '',
+            'area_id' => $data['area_id'] ?? '',
+            'distance_km' => $data['distance_km'] ?? 0,
+            'delivery_charge' => $data['delivery_charge'] ?? 0,
+            'items_count' => count($data['items'] ?? [])
+        ), true));
+        
         // Generate order number
         $order_number = RPOS_Orders::generate_order_number();
         
@@ -406,8 +417,12 @@ class RPOS_REST_API {
         
         if (!$result['success']) {
             $error_msg = !empty($result['errors']) ? implode(', ', $result['errors']) : 'Failed to create order';
+            error_log('ZAIKON: Delivery order creation failed: ' . $error_msg);
             return new WP_Error('creation_failed', $error_msg, array('status' => 500));
         }
+        
+        // Log successful creation
+        error_log('ZAIKON: Delivery order created successfully - Order ID: ' . $result['order_id'] . ', Delivery ID: ' . ($result['delivery_id'] ?? 'N/A'));
         
         // Deduct stock for completed orders
         if (!empty($data['items'])) {
