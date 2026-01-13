@@ -462,15 +462,21 @@ class RPOS_REST_API {
         
         if (!$legacy_order_id) {
             error_log('ZAIKON: Warning - Failed to create legacy order in rpos_orders for KDS. Order ID: ' . $result['order_id']);
+            // Deduct stock directly for the Zaikon order even though legacy order creation failed
+            // This ensures inventory is properly tracked even if KDS integration has issues
+            if (!empty($data['items'])) {
+                error_log('ZAIKON: Deducting stock directly for order ID: ' . $result['order_id']);
+                RPOS_Inventory::deduct_for_order($result['order_id'], $data['items']);
+                RPOS_Recipes::deduct_ingredients_for_order($result['order_id'], $data['items']);
+            }
         } else {
             error_log('ZAIKON: Legacy order created in rpos_orders for KDS. Legacy Order ID: ' . $legacy_order_id);
-        }
-        
-        // Deduct stock for completed orders using legacy order ID
-        // The legacy_order_id is used because has_ingredients_deducted and mark_ingredients_deducted
-        // check/update the rpos_orders table
-        if (!empty($data['items']) && $legacy_order_id) {
-            RPOS_Orders::deduct_stock_for_order($legacy_order_id, $data['items']);
+            // Deduct stock for completed orders using legacy order ID
+            // The legacy_order_id is used because has_ingredients_deducted and mark_ingredients_deducted
+            // check/update the rpos_orders table
+            if (!empty($data['items'])) {
+                RPOS_Orders::deduct_stock_for_order($legacy_order_id, $data['items']);
+            }
         }
         
         // Get the created order
