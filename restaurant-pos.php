@@ -90,6 +90,7 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-free-delivery-rules.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-riders.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-deliveries.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-rider-orders.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-rider-payouts.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-rider-fuel-logs.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-system-events.php';

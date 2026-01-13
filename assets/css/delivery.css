@@ -273,3 +273,268 @@
         width: 100%;
     }
 }
+
+/* ============================================
+   RIDER ASSIGNMENT POPUP STYLES
+   ============================================ */
+
+/* Overlay */
+.rpos-rider-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Popup Container */
+.rpos-rider-popup {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 700px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Popup Header */
+.rpos-rider-popup-header {
+    background: #2271b1;
+    color: white;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rpos-rider-popup-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.rpos-rider-close {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 32px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.rpos-rider-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Popup Body */
+.rpos-rider-popup-body {
+    padding: 25px;
+    max-height: calc(90vh - 150px);
+    overflow-y: auto;
+}
+
+/* Delivery Info Section */
+.rpos-delivery-info {
+    background: #f0f6fc;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #2271b1;
+}
+
+.rpos-delivery-info p {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.rpos-delivery-info strong {
+    color: #1d2327;
+    min-width: 100px;
+    display: inline-block;
+}
+
+/* Rider Selection Section */
+.rpos-rider-selection h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #1d2327;
+}
+
+.rpos-rider-list {
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.rpos-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Rider Item */
+.rpos-rider-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.rpos-rider-item:hover {
+    border-color: #2271b1;
+    background: #f8f9fa;
+}
+
+.rpos-rider-item.selected {
+    border-color: #00a32a;
+    background: #f0f9f4;
+}
+
+.rpos-rider-info {
+    flex: 1;
+}
+
+.rpos-rider-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    color: #1d2327;
+}
+
+.rpos-rider-phone {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.rpos-rider-workload {
+    margin: 5px 0;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.rpos-workload-low {
+    background: #d4edda;
+    color: #155724;
+}
+
+.rpos-workload-medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.rpos-workload-high {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.rpos-rider-payout {
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    color: #00a32a;
+}
+
+.rpos-rider-select {
+    margin-left: 15px;
+}
+
+.rpos-select-rider {
+    min-width: 100px;
+}
+
+.rpos-rider-item.selected .rpos-select-rider {
+    background: #00a32a;
+    border-color: #00a32a;
+}
+
+/* Assignment Actions */
+.rpos-assignment-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.rpos-assignment-actions .button {
+    flex: 1;
+    justify-content: center;
+    height: 48px;
+    font-size: 16px;
+}
+
+.rpos-confirm-assignment:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Success Message */
+.rpos-success-message {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.rpos-success-message .dashicons {
+    font-size: 80px;
+    width: 80px;
+    height: 80px;
+    color: #00a32a;
+    margin-bottom: 20px;
+}
+
+.rpos-success-message h3 {
+    margin: 0 0 10px 0;
+    color: #00a32a;
+    font-size: 24px;
+}
+
+.rpos-success-message p {
+    margin: 0;
+    color: #666;
+}
+
+/* Error State */
+.rpos-rider-list .error {
+    text-align: center;
+    padding: 40px 20px;
+    color: #d63638;
+}

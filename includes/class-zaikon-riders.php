@@ -44,16 +44,38 @@ class Zaikon_Riders {
     public static function create($data) {
         global $wpdb;
         
+        $insert_data = array(
+            'name' => sanitize_text_field($data['name']),
+            'phone' => sanitize_text_field($data['phone'] ?? ''),
+            'status' => sanitize_text_field($data['status'] ?? 'active'),
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql')
+        );
+        
+        $formats = array('%s', '%s', '%s', '%s', '%s');
+        
+        // Add payout fields if provided
+        if (isset($data['payout_type'])) {
+            $insert_data['payout_type'] = sanitize_text_field($data['payout_type']);
+            $formats[] = '%s';
+        }
+        if (isset($data['per_delivery_rate'])) {
+            $insert_data['per_delivery_rate'] = floatval($data['per_delivery_rate']);
+            $formats[] = '%f';
+        }
+        if (isset($data['per_km_rate'])) {
+            $insert_data['per_km_rate'] = floatval($data['per_km_rate']);
+            $formats[] = '%f';
+        }
+        if (isset($data['base_rate'])) {
+            $insert_data['base_rate'] = floatval($data['base_rate']);
+            $formats[] = '%f';
+        }
+        
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_riders',
-            array(
-                'name' => sanitize_text_field($data['name']),
-                'phone' => sanitize_text_field($data['phone'] ?? ''),
-                'status' => sanitize_text_field($data['status'] ?? 'active'),
-                'created_at' => current_time('mysql'),
-                'updated_at' => current_time('mysql')
-            ),
-            array('%s', '%s', '%s', '%s', '%s')
+            $insert_data,
+            $formats
         );
         
         if (!$result) {
@@ -87,6 +109,24 @@ class Zaikon_Riders {
             $formats[] = '%s';
         }
         
+        // Add payout fields if provided
+        if (isset($data['payout_type'])) {
+            $update_data['payout_type'] = sanitize_text_field($data['payout_type']);
+            $formats[] = '%s';
+        }
+        if (isset($data['per_delivery_rate'])) {
+            $update_data['per_delivery_rate'] = floatval($data['per_delivery_rate']);
+            $formats[] = '%f';
+        }
+        if (isset($data['per_km_rate'])) {
+            $update_data['per_km_rate'] = floatval($data['per_km_rate']);
+            $formats[] = '%f';
+        }
+        if (isset($data['base_rate'])) {
+            $update_data['base_rate'] = floatval($data['base_rate']);
+            $formats[] = '%f';
+        }
+        
         if (empty($update_data)) {
             return false;
         }
@@ -117,14 +157,30 @@ class Zaikon_Riders {
     }
     
     /**
-     * Calculate rider pay based on distance
-     * This is a simple implementation - can be enhanced with more complex rules
+     * Calculate rider pay based on rider's payout model and distance
+     * @param int $rider_id Rider ID
+     * @param float $distance_km Distance in kilometers
+     * @return float Calculated pay amount
      */
-    public static function calculate_rider_pay($distance_km) {
-        // Simple rule: Rs 20 base + Rs 10 per km
-        $base_pay = 20;
-        $per_km = 10;
+    public static function calculate_rider_pay($rider_id, $distance_km) {
+        $rider = self::get($rider_id);
+        if (!$rider) return 0;
         
-        return $base_pay + ($distance_km * $per_km);
+        // Default values if fields don't exist (backward compatibility)
+        $payout_type = isset($rider->payout_type) ? $rider->payout_type : 'per_km';
+        $per_delivery_rate = isset($rider->per_delivery_rate) ? floatval($rider->per_delivery_rate) : 0;
+        $per_km_rate = isset($rider->per_km_rate) ? floatval($rider->per_km_rate) : 10;
+        $base_rate = isset($rider->base_rate) ? floatval($rider->base_rate) : 20;
+        
+        switch ($payout_type) {
+            case 'per_delivery':
+                return $per_delivery_rate;
+            case 'per_km':
+                return $base_rate + ($distance_km * $per_km_rate);
+            case 'hybrid':
+                return $per_delivery_rate + ($distance_km * $per_km_rate);
+            default:
+                return $base_rate + ($distance_km * $per_km_rate);
+        }
     }
 }

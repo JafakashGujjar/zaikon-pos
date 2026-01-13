@@ -146,4 +146,147 @@ class Zaikon_Reports {
             'rider_performance' => $rider_performance
         );
     }
+    
+    /**
+     * Get rider delivery summary for the period
+     */
+    public static function get_rider_delivery_summary($date_from, $date_to) {
+        global $wpdb;
+        
+        $query = "SELECT 
+                    r.id as rider_id,
+                    r.name as rider_name,
+                    COUNT(ro.id) as total_deliveries,
+                    SUM(CASE WHEN ro.status = 'delivered' THEN 1 ELSE 0 END) as completed_deliveries,
+                    SUM(CASE WHEN ro.status = 'failed' THEN 1 ELSE 0 END) as failed_deliveries,
+                    SUM(d.distance_km) as total_distance_km,
+                    AVG(d.distance_km) as avg_distance_km
+                  FROM {$wpdb->prefix}zaikon_riders r
+                  LEFT JOIN {$wpdb->prefix}zaikon_rider_orders ro ON r.id = ro.rider_id
+                  LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON ro.delivery_id = d.id
+                  WHERE r.status = 'active'
+                  AND ro.created_at >= %s AND ro.created_at <= %s
+                  GROUP BY r.id, r.name
+                  ORDER BY completed_deliveries DESC";
+        
+        return $wpdb->get_results($wpdb->prepare($query, $date_from, $date_to));
+    }
+    
+    /**
+     * Get rider efficiency report
+     */
+    public static function get_rider_efficiency_report($rider_id, $date_from, $date_to) {
+        global $wpdb;
+        
+        // Get all deliveries for the rider in the period
+        $deliveries = $wpdb->get_results($wpdb->prepare(
+            "SELECT ro.*, 
+                    TIMESTAMPDIFF(MINUTE, ro.assigned_at, ro.delivered_at) as delivery_time_minutes
+             FROM {$wpdb->prefix}zaikon_rider_orders ro
+             WHERE ro.rider_id = %d
+             AND ro.status = 'delivered'
+             AND ro.created_at >= %s AND ro.created_at <= %s
+             ORDER BY ro.created_at ASC",
+            $rider_id, $date_from, $date_to
+        ));
+        
+        if (empty($deliveries)) {
+            return null;
+        }
+        
+        $total_deliveries = count($deliveries);
+        $total_time = 0;
+        $delivery_times = array();
+        
+        foreach ($deliveries as $delivery) {
+            if ($delivery->delivery_time_minutes !== null) {
+                $total_time += $delivery->delivery_time_minutes;
+                $delivery_times[] = $delivery->delivery_time_minutes;
+            }
+        }
+        
+        $avg_time_per_delivery = $total_deliveries > 0 ? $total_time / $total_deliveries : 0;
+        
+        // Calculate deliveries per hour (based on working hours in the period)
+        $period_hours = (strtotime($date_to) - strtotime($date_from)) / 3600;
+        $deliveries_per_hour = $period_hours > 0 ? $total_deliveries / $period_hours : 0;
+        
+        return array(
+            'rider_id' => $rider_id,
+            'total_deliveries' => $total_deliveries,
+            'avg_time_per_delivery_minutes' => round($avg_time_per_delivery, 2),
+            'deliveries_per_hour' => round($deliveries_per_hour, 2),
+            'period_hours' => round($period_hours, 2),
+            'date_from' => $date_from,
+            'date_to' => $date_to
+        );
+    }
+    
+    /**
+     * Get payout summary by payout type
+     */
+    public static function get_payout_summary($date_from, $date_to) {
+        global $wpdb;
+        
+        $query = "SELECT 
+                    r.payout_type,
+                    COUNT(DISTINCT r.id) as rider_count,
+                    SUM(rp.rider_pay_rs) as total_payout,
+                    AVG(rp.rider_pay_rs) as avg_payout_per_delivery
+                  FROM {$wpdb->prefix}zaikon_riders r
+                  LEFT JOIN {$wpdb->prefix}zaikon_rider_payouts rp ON r.id = rp.rider_id
+                  WHERE rp.created_at >= %s AND rp.created_at <= %s
+                  GROUP BY r.payout_type";
+        
+        return $wpdb->get_results($wpdb->prepare($query, $date_from, $date_to));
+    }
+    
+    /**
+     * Get delivery profitability analysis
+     */
+    public static function get_delivery_profitability($date_from, $date_to) {
+        global $wpdb;
+        
+        // Get delivery charges revenue
+        $revenue_query = "SELECT 
+                            SUM(delivery_charges_rs) as total_delivery_revenue,
+                            COUNT(*) as total_deliveries
+                          FROM {$wpdb->prefix}zaikon_deliveries
+                          WHERE created_at >= %s AND created_at <= %s";
+        
+        $revenue = $wpdb->get_row($wpdb->prepare($revenue_query, $date_from, $date_to));
+        
+        // Get rider costs (payouts)
+        $payout_query = "SELECT 
+                           SUM(rider_pay_rs) as total_rider_costs
+                         FROM {$wpdb->prefix}zaikon_rider_payouts
+                         WHERE created_at >= %s AND created_at <= %s";
+        
+        $payouts = $wpdb->get_row($wpdb->prepare($payout_query, $date_from, $date_to));
+        
+        // Get fuel costs
+        $fuel_query = "SELECT 
+                         SUM(amount_rs) as total_fuel_costs
+                       FROM {$wpdb->prefix}zaikon_rider_fuel_logs
+                       WHERE date >= %s AND date <= %s";
+        
+        $fuel = $wpdb->get_row($wpdb->prepare($fuel_query, date('Y-m-d', strtotime($date_from)), date('Y-m-d', strtotime($date_to))));
+        
+        $total_revenue = floatval($revenue->total_delivery_revenue ?? 0);
+        $total_rider_costs = floatval($payouts->total_rider_costs ?? 0);
+        $total_fuel_costs = floatval($fuel->total_fuel_costs ?? 0);
+        $total_costs = $total_rider_costs + $total_fuel_costs;
+        $net_profit = $total_revenue - $total_costs;
+        $profit_margin = $total_revenue > 0 ? ($net_profit / $total_revenue) * 100 : 0;
+        
+        return array(
+            'total_deliveries' => intval($revenue->total_deliveries ?? 0),
+            'total_delivery_revenue' => $total_revenue,
+            'total_rider_costs' => $total_rider_costs,
+            'total_fuel_costs' => $total_fuel_costs,
+            'total_costs' => $total_costs,
+            'net_profit' => $net_profit,
+            'profit_margin_percent' => round($profit_margin, 2)
+        );
+    }
 }

@@ -259,6 +259,13 @@ class RPOS_Install {
             self::migrate_to_batch_system();
             update_option('rpos_batch_migration_done', true);
         }
+        
+        // Run rider system migration if not already done
+        $rider_migration_done = get_option('rpos_rider_system_migration_done', false);
+        if (!$rider_migration_done) {
+            self::migrate_rider_system();
+            update_option('rpos_rider_system_migration_done', true);
+        }
     }
     
     /**
@@ -819,6 +826,10 @@ class RPOS_Install {
             name varchar(191) NOT NULL,
             phone varchar(50),
             status enum('active','inactive') DEFAULT 'active',
+            payout_type enum('per_delivery','per_km','hybrid') DEFAULT 'per_km',
+            per_delivery_rate decimal(10,2) DEFAULT 0.00,
+            per_km_rate decimal(10,2) DEFAULT 10.00,
+            base_rate decimal(10,2) DEFAULT 20.00,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -838,7 +849,7 @@ class RPOS_Install {
             is_free_delivery tinyint(1) DEFAULT 0,
             special_instruction varchar(255) DEFAULT NULL,
             assigned_rider_id bigint(20) unsigned DEFAULT NULL,
-            delivery_status enum('pending','on_route','delivered','failed') DEFAULT 'pending',
+            delivery_status enum('pending','assigned','picked','on_route','delivered','failed') DEFAULT 'pending',
             delivered_at datetime DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -847,6 +858,28 @@ class RPOS_Install {
             KEY phone_idx (customer_phone),
             KEY rider_idx (assigned_rider_id),
             KEY location_idx (location_id)
+        ) $charset_collate;";
+        
+        // Zaikon Rider Orders table (rider-order lifecycle tracking)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_rider_orders (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) unsigned NOT NULL,
+            rider_id bigint(20) unsigned NOT NULL,
+            delivery_id bigint(20) unsigned DEFAULT NULL,
+            status enum('pending','assigned','picked','delivered','failed') DEFAULT 'pending',
+            assigned_at datetime DEFAULT NULL,
+            picked_at datetime DEFAULT NULL,
+            delivered_at datetime DEFAULT NULL,
+            failed_at datetime DEFAULT NULL,
+            failure_reason varchar(255) DEFAULT NULL,
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY order_idx (order_id),
+            KEY rider_idx (rider_id),
+            KEY delivery_idx (delivery_id),
+            KEY status_idx (status)
         ) $charset_collate;";
         
         // Zaikon Rider Payouts per Delivery
@@ -925,6 +958,114 @@ class RPOS_Install {
                         'setting_value' => $value
                     ),
                     array('%s', '%s')
+                );
+            }
+        }
+    }
+    
+    /**
+     * Migrate rider system to new flexible payout model
+     */
+    private static function migrate_rider_system() {
+        global $wpdb;
+        
+        // Check if payout columns exist in zaikon_riders table
+        $table_name = $wpdb->prefix . 'zaikon_riders';
+        
+        // Verify table exists before altering
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            return; // Table doesn't exist, skip migration
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'payout_type'
+        ));
+        
+        if (empty($column_exists)) {
+            // Add payout model fields - using esc_sql for table name safety
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `payout_type` enum('per_delivery','per_km','hybrid') DEFAULT 'per_km' AFTER `status`");
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `per_delivery_rate` decimal(10,2) DEFAULT 0.00 AFTER `payout_type`");
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `per_km_rate` decimal(10,2) DEFAULT 10.00 AFTER `per_delivery_rate`");
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `base_rate` decimal(10,2) DEFAULT 20.00 AFTER `per_km_rate`");
+        }
+        
+        // Check if new delivery statuses exist in zaikon_deliveries
+        $table_name = $wpdb->prefix . 'zaikon_deliveries';
+        
+        // Verify table exists
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            return; // Table doesn't exist, skip migration
+        }
+        
+        $column_info = $wpdb->get_row($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'delivery_status'
+        ));
+        
+        if ($column_info && strpos($column_info->Type, 'assigned') === false) {
+            // Update enum to include new statuses
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` MODIFY `delivery_status` enum('pending','assigned','picked','on_route','delivered','failed') DEFAULT 'pending'");
+        }
+        
+        // Create rider_orders records for existing deliveries with assigned riders
+        $existing_deliveries = $wpdb->get_results(
+            "SELECT d.*, o.order_number 
+             FROM {$wpdb->prefix}zaikon_deliveries d
+             LEFT JOIN {$wpdb->prefix}zaikon_orders o ON d.order_id = o.id
+             WHERE d.assigned_rider_id IS NOT NULL"
+        );
+        
+        foreach ($existing_deliveries as $delivery) {
+            // Check if rider_order already exists
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}zaikon_rider_orders 
+                 WHERE order_id = %d AND rider_id = %d",
+                $delivery->order_id,
+                $delivery->assigned_rider_id
+            ));
+            
+            if (!$exists) {
+                // Determine status based on delivery status
+                $status = 'assigned';
+                $assigned_at = $delivery->created_at;
+                $delivered_at = null;
+                
+                if ($delivery->delivery_status === 'delivered') {
+                    $status = 'delivered';
+                    $delivered_at = $delivery->delivered_at;
+                } elseif ($delivery->delivery_status === 'on_route') {
+                    $status = 'picked';
+                } elseif ($delivery->delivery_status === 'failed') {
+                    $status = 'failed';
+                }
+                
+                // Create rider_order record
+                $wpdb->insert(
+                    $wpdb->prefix . 'zaikon_rider_orders',
+                    array(
+                        'order_id' => $delivery->order_id,
+                        'rider_id' => $delivery->assigned_rider_id,
+                        'delivery_id' => $delivery->id,
+                        'status' => $status,
+                        'assigned_at' => $assigned_at,
+                        'delivered_at' => $delivered_at,
+                        'notes' => 'Migrated from existing delivery record',
+                        'created_at' => $delivery->created_at
+                    ),
+                    array('%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s')
                 );
             }
         }

@@ -252,6 +252,16 @@ class RPOS_Admin_Menu {
             'restaurant-pos-delivery-customers',
             array($this, 'delivery_customers_page')
         );
+        
+        // Rider Payroll
+        add_submenu_page(
+            'restaurant-pos',
+            __('Rider Payroll', 'restaurant-pos'),
+            __('Rider Payroll', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-rider-payroll',
+            array($this, 'rider_payroll_page')
+        );
     }
     
     /**
@@ -399,5 +409,12 @@ class RPOS_Admin_Menu {
      */
     public function rider_deliveries_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/rider-deliveries.php';
+    }
+    
+    /**
+     * Rider Payroll page
+     */
+    public function rider_payroll_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/rider-payroll.php';
     }
 }

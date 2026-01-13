@@ -113,6 +113,12 @@ class RPOS_REST_API {
         ));
         
         // Rider endpoints
+        register_rest_route($namespace, '/riders/active', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_active_riders'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
         register_rest_route($namespace, '/riders/update-status', array(
             'methods' => 'POST',
             'callback' => array($this, 'update_rider_delivery_status'),
@@ -129,6 +135,12 @@ class RPOS_REST_API {
             'methods' => 'POST',
             'callback' => array($this, 'assign_order_to_rider'),
             'permission_callback' => array($this, 'check_manage_inventory_permission')
+        ));
+        
+        register_rest_route($namespace, '/assign-rider', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'assign_rider_to_order'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
         ));
         
         // Notifications endpoints
@@ -743,3 +755,42 @@ class RPOS_REST_API {
         ));
     }
 }
+}
+    
+    /**
+     * Get active riders with workload info
+     */
+    public function get_active_riders($request) {
+        $riders = Zaikon_Riders::get_all(true); // Active riders only
+        
+        // Add workload info for each rider
+        foreach ($riders as &$rider) {
+            $pending_deliveries = Zaikon_Rider_Orders::get_pending_for_rider($rider->id);
+            $rider->pending_deliveries = count($pending_deliveries);
+        }
+        
+        return rest_ensure_response($riders);
+    }
+    
+    /**
+     * Assign rider to order (new unified endpoint)
+     */
+    public function assign_rider_to_order($request) {
+        $params = json_decode($request->get_body(), true);
+        
+        $order_id = isset($params['order_id']) ? absint($params['order_id']) : 0;
+        $rider_id = isset($params['rider_id']) ? absint($params['rider_id']) : 0;
+        $notes = isset($params['notes']) ? sanitize_textarea_field($params['notes']) : null;
+        
+        if (!$order_id || !$rider_id) {
+            return new WP_Error('invalid_params', 'Order ID and Rider ID are required', array('status' => 400));
+        }
+        
+        $result = Zaikon_Order_Service::assign_rider_to_order($order_id, $rider_id, $notes);
+        
+        if ($result['success']) {
+            return rest_ensure_response($result);
+        } else {
+            return new WP_Error('assignment_failed', $result['message'], array('status' => 500));
+        }
+    }
