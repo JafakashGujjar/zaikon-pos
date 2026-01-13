@@ -106,9 +106,14 @@ $restaurant_address = RPOS_Settings::get('restaurant_address', '');
             </div>
         </div>
         
-        <?php if ($delivery->special_instruction): ?>
+        <?php if ($delivery->delivery_instructions): ?>
             <div class="slip-section special-instructions">
-                <h3>⚠ SPECIAL INSTRUCTIONS:</h3>
+                <h3>⚠ DELIVERY INSTRUCTIONS:</h3>
+                <p><?php echo esc_html($delivery->delivery_instructions); ?></p>
+            </div>
+        <?php elseif ($delivery->special_instruction): ?>
+            <div class="slip-section special-instructions">
+                <h3>⚠ DELIVERY INSTRUCTIONS:</h3>
                 <p><?php echo esc_html($delivery->special_instruction); ?></p>
             </div>
         <?php endif; ?>
