@@ -116,6 +116,16 @@ class RPOS_Orders {
         
         if ($order) {
             $order->items = self::get_order_items($id);
+            
+            // Add compatibility fields for frontend
+            foreach ($order->items as &$item) {
+                if (!isset($item->price)) {
+                    $item->price = $item->unit_price;
+                }
+                if (!isset($item->line_total) && isset($item->line_total)) {
+                    // Already has line_total, no change needed
+                }
+            }
         }
         
         return $order;
