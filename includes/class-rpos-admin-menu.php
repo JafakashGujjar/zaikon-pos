@@ -233,16 +233,6 @@ class RPOS_Admin_Menu {
             array($this, 'settings_page')
         );
         
-        // Delivery Settings
-        add_submenu_page(
-            'restaurant-pos',
-            __('Delivery Settings', 'restaurant-pos'),
-            __('Delivery Settings', 'restaurant-pos'),
-            'rpos_manage_settings',
-            'restaurant-pos-delivery-settings',
-            array($this, 'delivery_settings_page')
-        );
-        
         // Zaikon Delivery Management (New comprehensive system)
         add_submenu_page(
             'restaurant-pos',

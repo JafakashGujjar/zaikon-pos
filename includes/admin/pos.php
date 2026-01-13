@@ -181,8 +181,75 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             <button class="zaikon-btn zaikon-btn-primary zaikon-btn-lg" onclick="window.print();">
                 <?php echo esc_html__('Print Receipt', 'restaurant-pos'); ?>
             </button>
+            <button class="zaikon-btn zaikon-btn-secondary zaikon-btn-lg" id="rpos-print-rider-slip" style="display: none;">
+                <?php echo esc_html__('Print Rider Slip', 'restaurant-pos'); ?>
+            </button>
             <button class="zaikon-btn zaikon-btn-yellow zaikon-btn-lg" id="rpos-new-order">
                 <?php echo esc_html__('New Order', 'restaurant-pos'); ?>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Rider Slip Modal -->
+<div id="rpos-rider-slip-modal" class="zaikon-receipt-modal" style="display: none;">
+    <div class="zaikon-receipt zaikon-animate-scaleIn">
+        <div class="zaikon-receipt-header" style="background: var(--zaikon-orange); color: white; padding: var(--space-4); margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) var(--space-4); border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+            <h2 style="color: white; margin-bottom: var(--space-2);">🏍️ RIDER DELIVERY SLIP</h2>
+            <p id="rider-slip-order-number" style="font-size: var(--text-xl); font-weight: var(--font-bold); color: white;"></p>
+            <p id="rider-slip-date-time" style="color: white; opacity: 0.9;"></p>
+        </div>
+        
+        <div class="zaikon-receipt-body">
+            <div style="margin-bottom: var(--space-4); padding: var(--space-4); background: var(--zaikon-blue-light); border-radius: var(--radius-md); border-left: 4px solid var(--zaikon-blue);">
+                <h3 style="color: var(--zaikon-blue); margin-bottom: var(--space-2); font-size: var(--text-lg);">📍 Delivery Location</h3>
+                <p id="rider-slip-location" style="font-size: var(--text-base); font-weight: var(--font-semibold); margin-bottom: var(--space-1);"></p>
+                <p id="rider-slip-distance" style="color: var(--zaikon-dark-secondary);"></p>
+            </div>
+            
+            <div style="margin-bottom: var(--space-4); padding: var(--space-4); background: var(--zaikon-green-light); border-radius: var(--radius-md); border-left: 4px solid var(--zaikon-green);">
+                <h3 style="color: var(--zaikon-green); margin-bottom: var(--space-2); font-size: var(--text-lg);">👤 Customer Details</h3>
+                <p id="rider-slip-customer-name" style="font-size: var(--text-base); font-weight: var(--font-semibold); margin-bottom: var(--space-1);"></p>
+                <p id="rider-slip-customer-phone" style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--zaikon-green);"></p>
+            </div>
+            
+            <div id="rider-slip-instructions-container" style="margin-bottom: var(--space-4); padding: var(--space-4); background: var(--zaikon-yellow-light); border-radius: var(--radius-md); border-left: 4px solid var(--zaikon-yellow); display: none;">
+                <h3 style="color: var(--zaikon-yellow); margin-bottom: var(--space-2); font-size: var(--text-lg);">📝 Special Instructions</h3>
+                <p id="rider-slip-instructions" style="font-size: var(--text-base); font-style: italic;"></p>
+            </div>
+            
+            <div style="padding: var(--space-4); border: 2px solid var(--zaikon-gray-medium); border-radius: var(--radius-md); background: white;">
+                <h3 style="margin-bottom: var(--space-3); font-size: var(--text-lg);">💰 Order Summary</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--text-base);">
+                    <span>Items Subtotal:</span>
+                    <span id="rider-slip-subtotal" style="font-weight: var(--font-semibold);"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--text-base);">
+                    <span>Delivery Charge:</span>
+                    <span id="rider-slip-delivery-charge" style="font-weight: var(--font-semibold);"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: var(--space-2); border-top: 2px solid var(--zaikon-gray-medium); font-size: var(--text-xl);">
+                    <strong>Total to Collect:</strong>
+                    <strong id="rider-slip-total" style="color: var(--zaikon-orange);"></strong>
+                </div>
+            </div>
+            
+            <div style="margin-top: var(--space-4); padding: var(--space-3); background: var(--zaikon-gray-light); border-radius: var(--radius-md); text-align: center;">
+                <p style="font-size: var(--text-sm); color: var(--zaikon-dark-secondary); margin-bottom: var(--space-1);">
+                    <strong><?php echo esc_html($restaurant_name); ?></strong>
+                </p>
+                <p style="font-size: var(--text-sm); color: var(--zaikon-dark-secondary);">
+                    <?php echo esc_html(RPOS_Settings::get('restaurant_phone', '')); ?>
+                </p>
+            </div>
+        </div>
+        
+        <div class="zaikon-receipt-footer">
+            <button class="zaikon-btn zaikon-btn-primary zaikon-btn-lg" onclick="window.print();">
+                <?php echo esc_html__('Print Slip', 'restaurant-pos'); ?>
+            </button>
+            <button class="zaikon-btn zaikon-btn-secondary zaikon-btn-lg" id="rpos-close-rider-slip">
+                <?php echo esc_html__('Close', 'restaurant-pos'); ?>
             </button>
         </div>
     </div>

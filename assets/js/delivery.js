@@ -306,9 +306,13 @@
             var selectedArea = $('#rpos-delivery-area option:selected');
             var areaId = $('#rpos-delivery-area').val();
             var distance = selectedArea.data('distance') || 0;
+            var areaText = selectedArea.text();
+            // Extract location name (remove distance in parentheses)
+            var locationName = areaText.replace(/\s*\([^)]*\)\s*$/, '').trim();
             
             var data = {
                 area_id: areaId,
+                location_name: locationName,
                 customer_name: $('#rpos-customer-name').val().trim(),
                 customer_phone: $('#rpos-customer-phone').val().trim(),
                 special_instructions: $('#rpos-special-instructions').val().trim(),

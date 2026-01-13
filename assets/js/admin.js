@@ -178,12 +178,27 @@
                 self.completeOrder();
             });
             
+            // Print rider slip
+            $('#rpos-print-rider-slip').on('click', function() {
+                self.showRiderSlip();
+            });
+            
+            // Close rider slip
+            $('#rpos-close-rider-slip').on('click', function() {
+                $('#rpos-rider-slip-modal').fadeOut(300, function() {
+                    $('#rpos-receipt-modal').fadeIn(300);
+                });
+            });
+            
             // New order
             $('#rpos-new-order').on('click', function() {
                 self.cart = [];
                 self.deliveryData = null;
+                self.currentOrderData = null;
+                self.currentOrderResponse = null;
                 self.renderCart();
                 $('#rpos-receipt-modal').fadeOut();
+                $('#rpos-rider-slip-modal').fadeOut();
                 $('#rpos-cash-received').val('');
                 $('#rpos-discount').val('0.00');
                 $('#rpos-order-type').val('dine-in');
@@ -426,19 +441,12 @@
                 orderData.is_delivery = 1;
                 orderData.delivery_charge = deliveryCharge;
                 orderData.area_id = this.deliveryData.area_id;
+                orderData.location_name = this.deliveryData.location_name || '';
                 orderData.customer_name = this.deliveryData.customer_name;
                 orderData.customer_phone = this.deliveryData.customer_phone;
                 orderData.distance_km = this.deliveryData.distance_km || 0;
                 orderData.is_free_delivery = this.deliveryData.is_free_delivery || 0;
                 orderData.special_instructions = this.deliveryData.special_instructions || '';
-                
-                // Get location name from selected option
-                var selectedArea = $('#rpos-delivery-area option:selected');
-                if (selectedArea.length > 0) {
-                    var areaText = selectedArea.text();
-                    // Extract location name (remove distance in parentheses)
-                    orderData.location_name = areaText.replace(/\s*\([^)]*\)\s*$/, '').trim();
-                }
             }
             
             ZAIKON_Toast.info('Processing order...');
@@ -743,14 +751,17 @@
             
             $('#receipt-subtotal').text(rposData.currency + parseFloat(orderData.subtotal).toFixed(2));
             
+            // Remove any existing delivery charge row first
+            $('.rpos-receipt-delivery-charge-row').remove();
+            
             // Show delivery charge if present
             var deliveryCharge = parseFloat(orderData.delivery_charge || 0);
-            if (deliveryCharge > 0) {
+            if (deliveryCharge > 0 || orderData.order_type === 'delivery') {
                 var deliveryLabel = 'Delivery Charge:';
                 if (orderData.is_free_delivery) {
                     deliveryLabel += ' <span style="color: green;">(FREE)</span>';
                 }
-                var $deliveryRow = $('<div class="rpos-receipt-totals-row">' +
+                var $deliveryRow = $('<div class="rpos-receipt-totals-row rpos-receipt-delivery-charge-row">' +
                     '<span>' + deliveryLabel + '</span>' +
                     '<span id="receipt-delivery-charge">' + rposData.currency + deliveryCharge.toFixed(2) + '</span>' +
                     '</div>');
@@ -764,7 +775,63 @@
             $('#receipt-footer-message').text(rposData.receiptFooterMessage || 'Thank you for your order!');
             $('#receipt-cashier').text('Cashier: ' + rposData.currentUser);
             
+            // Show rider slip button if delivery order
+            if (orderData.order_type === 'delivery') {
+                $('#rpos-print-rider-slip').show();
+                // Store order data for rider slip
+                this.currentOrderData = orderData;
+                this.currentOrderResponse = order;
+            } else {
+                $('#rpos-print-rider-slip').hide();
+            }
+            
             $('#rpos-receipt-modal').fadeIn();
+        },
+        
+        showRiderSlip: function() {
+            var orderData = this.currentOrderData;
+            var order = this.currentOrderResponse;
+            
+            if (!orderData || orderData.order_type !== 'delivery') {
+                ZAIKON_Toast.error('This is not a delivery order');
+                return;
+            }
+            
+            $('#rider-slip-order-number').text('Order #' + order.order_number);
+            $('#rider-slip-date-time').text(new Date().toLocaleString());
+            
+            // Location details
+            var locationText = orderData.location_name || 'N/A';
+            $('#rider-slip-location').text(locationText);
+            
+            var distanceText = orderData.distance_km ? orderData.distance_km + ' km from restaurant' : 'Distance not specified';
+            $('#rider-slip-distance').text(distanceText);
+            
+            // Customer details
+            $('#rider-slip-customer-name').text(orderData.customer_name || 'N/A');
+            $('#rider-slip-customer-phone').text(orderData.customer_phone || 'N/A');
+            
+            // Special instructions
+            if (orderData.special_instructions && orderData.special_instructions.trim() !== '') {
+                $('#rider-slip-instructions').text(orderData.special_instructions);
+                $('#rider-slip-instructions-container').show();
+            } else {
+                $('#rider-slip-instructions-container').hide();
+            }
+            
+            // Order totals
+            var subtotal = parseFloat(orderData.subtotal) || 0;
+            var deliveryCharge = parseFloat(orderData.delivery_charge) || 0;
+            var total = parseFloat(orderData.total) || 0;
+            
+            $('#rider-slip-subtotal').text(rposData.currency + subtotal.toFixed(2));
+            $('#rider-slip-delivery-charge').text(rposData.currency + deliveryCharge.toFixed(2));
+            $('#rider-slip-total').text(rposData.currency + total.toFixed(2));
+            
+            // Hide receipt modal and show rider slip
+            $('#rpos-receipt-modal').fadeOut(300, function() {
+                $('#rpos-rider-slip-modal').fadeIn(300);
+            });
         }
     };
     
