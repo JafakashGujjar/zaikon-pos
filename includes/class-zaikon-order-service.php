@@ -88,7 +88,7 @@ class Zaikon_Order_Service {
                 
                 // 4. If rider is assigned, create payout record
                 if (!empty($delivery_data['assigned_rider_id'])) {
-                    $rider_pay = Zaikon_Riders::calculate_rider_pay($delivery_data['distance_km']);
+                    $rider_pay = Zaikon_Riders::calculate_rider_pay($delivery_data['assigned_rider_id'], $delivery_data['distance_km']);
                     
                     $payout_id = Zaikon_Rider_Payouts::create(array(
                         'delivery_id' => $delivery_id,
@@ -184,7 +184,7 @@ class Zaikon_Order_Service {
         $existing_payout = Zaikon_Rider_Payouts::get_by_delivery($delivery_id);
         
         if (!$existing_payout) {
-            $rider_pay = Zaikon_Riders::calculate_rider_pay($delivery->distance_km);
+            $rider_pay = Zaikon_Riders::calculate_rider_pay($rider_id, $delivery->distance_km);
             
             Zaikon_Rider_Payouts::create(array(
                 'delivery_id' => $delivery_id,
@@ -200,5 +200,58 @@ class Zaikon_Order_Service {
         ));
         
         return true;
+    }
+    
+    /**
+     * Assign rider to order (creates both delivery assignment and rider_orders record)
+     */
+    public static function assign_rider_to_order($order_id, $rider_id, $notes = null) {
+        global $wpdb;
+        
+        // Get order details
+        $order = Zaikon_Orders::get($order_id);
+        if (!$order || $order->order_type !== 'delivery') {
+            return array('success' => false, 'message' => 'Invalid delivery order');
+        }
+        
+        // Get delivery record
+        $delivery = Zaikon_Deliveries::get_by_order($order_id);
+        if (!$delivery) {
+            return array('success' => false, 'message' => 'Delivery record not found');
+        }
+        
+        // Assign rider to delivery
+        $result = self::assign_rider($delivery->id, $rider_id);
+        if (!$result) {
+            return array('success' => false, 'message' => 'Failed to assign rider to delivery');
+        }
+        
+        // Create or update rider_order record
+        $existing_rider_order = Zaikon_Rider_Orders::get_by_order($order_id);
+        
+        if ($existing_rider_order) {
+            // Update existing record
+            Zaikon_Rider_Orders::update_status($existing_rider_order->id, 'assigned', $notes);
+        } else {
+            // Create new rider_order record
+            Zaikon_Rider_Orders::create(array(
+                'order_id' => $order_id,
+                'rider_id' => $rider_id,
+                'delivery_id' => $delivery->id,
+                'status' => 'assigned',
+                'assigned_at' => current_time('mysql'),
+                'notes' => $notes
+            ));
+        }
+        
+        // Calculate estimated payout
+        $estimated_payout = Zaikon_Riders::calculate_rider_pay($rider_id, $delivery->distance_km);
+        
+        return array(
+            'success' => true,
+            'message' => 'Rider assigned successfully',
+            'delivery_id' => $delivery->id,
+            'estimated_payout' => $estimated_payout
+        );
     }
 }
