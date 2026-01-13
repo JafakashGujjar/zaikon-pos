@@ -754,8 +754,6 @@ class RPOS_REST_API {
             'rule_type' => $result['rule_type']
         ));
     }
-}
-}
     
     /**
      * Get active riders with workload info
@@ -794,3 +792,4 @@ class RPOS_REST_API {
             return new WP_Error('assignment_failed', $result['message'], array('status' => 500));
         }
     }
+}
