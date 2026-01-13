@@ -1,0 +1,300 @@
+/**
+ * Rider Slip Print Styles
+ * Optimized for 58mm and 80mm thermal printers
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+    padding: 0;
+    margin: 0;
+}
+
+/* Main Slip Container */
+.rider-slip {
+    max-width: 80mm;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+/* Header */
+.slip-header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.slip-header h1 {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.restaurant-phone,
+.restaurant-address {
+    font-size: 11px;
+    margin: 2px 0;
+}
+
+/* Divider */
+.slip-divider {
+    border-top: 1px dashed #000;
+    margin: 10px 0;
+}
+
+/* Sections */
+.slip-section {
+    margin-bottom: 10px;
+}
+
+.slip-section h2 {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #000;
+    padding-bottom: 3px;
+}
+
+.slip-section h3 {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Info Rows */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.info-row .label {
+    font-weight: bold;
+    flex-shrink: 0;
+    margin-right: 10px;
+}
+
+.info-row .value {
+    text-align: right;
+    flex-grow: 1;
+}
+
+.info-row.payout {
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1px dotted #000;
+}
+
+.info-row.payout .value {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Special Instructions */
+.special-instructions {
+    background: #f0f0f0;
+    padding: 10px;
+    border: 2px solid #000;
+    margin: 10px 0;
+}
+
+.special-instructions h3 {
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.special-instructions p {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Items Table */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+.items-table th,
+.items-table td {
+    padding: 5px 2px;
+    text-align: left;
+    font-size: 11px;
+}
+
+.items-table th {
+    border-bottom: 1px solid #000;
+    font-weight: bold;
+}
+
+.items-table td {
+    border-bottom: 1px dotted #ccc;
+}
+
+.items-table .qty {
+    text-align: center;
+    width: 40px;
+}
+
+.items-table .price {
+    text-align: right;
+    width: 70px;
+}
+
+/* Payment Rows */
+.payment-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.payment-row .label {
+    font-weight: normal;
+}
+
+.payment-row .value {
+    font-weight: normal;
+    text-align: right;
+}
+
+.payment-row.free-delivery {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.payment-row.total {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 2px solid #000;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.payment-row.total .label,
+.payment-row.total .value {
+    font-weight: bold;
+}
+
+/* Signature Section */
+.signature {
+    margin-top: 20px;
+}
+
+.signature h3 {
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.signature-line {
+    border-top: 1px solid #000;
+    margin: 30px 0 5px 0;
+}
+
+.signature-label {
+    font-size: 10px;
+    text-align: center;
+    color: #666;
+}
+
+/* No Rider */
+.no-rider {
+    font-style: italic;
+    color: #666;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* Footer */
+.slip-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px dashed #000;
+    font-size: 10px;
+}
+
+.slip-footer p {
+    margin: 3px 0;
+}
+
+/* Print-specific styles */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .rider-slip {
+        max-width: 100%;
+        padding: 5px;
+    }
+    
+    /* Hide elements that shouldn't print */
+    @page {
+        margin: 0;
+        size: 80mm auto;
+    }
+    
+    /* Ensure proper page breaks */
+    .slip-section {
+        page-break-inside: avoid;
+    }
+    
+    /* Make sure colors print */
+    .special-instructions {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* 58mm printer adjustments */
+@media print and (max-width: 58mm) {
+    body {
+        font-size: 10px;
+    }
+    
+    .slip-header h1 {
+        font-size: 16px;
+    }
+    
+    .slip-section h2 {
+        font-size: 12px;
+    }
+    
+    .items-table th,
+    .items-table td {
+        font-size: 10px;
+        padding: 3px 1px;
+    }
+    
+    .payment-row.total {
+        font-size: 14px;
+    }
+    
+    @page {
+        size: 58mm auto;
+    }
+}
+
+/* Screen preview adjustments */
+@media screen {
+    .rider-slip {
+        border: 1px solid #ddd;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 20px auto;
+        padding: 20px;
+        background: #fff;
+    }
+}
