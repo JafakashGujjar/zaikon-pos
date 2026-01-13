@@ -153,6 +153,10 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                     <span><?php echo esc_html__('Subtotal:', 'restaurant-pos'); ?></span>
                     <span id="receipt-subtotal" style="font-weight: var(--font-semibold);"></span>
                 </div>
+                <div id="receipt-delivery-charge-row" style="display: none; justify-content: space-between; margin-bottom: var(--space-2);">
+                    <span id="receipt-delivery-charge-label"><?php echo esc_html__('Delivery Charge:', 'restaurant-pos'); ?></span>
+                    <span id="receipt-delivery-charge" style="font-weight: var(--font-semibold);"></span>
+                </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2);">
                     <span><?php echo esc_html__('Discount:', 'restaurant-pos'); ?></span>
                     <span id="receipt-discount" style="font-weight: var(--font-semibold);"></span>
