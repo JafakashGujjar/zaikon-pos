@@ -333,10 +333,18 @@ class RPOS_REST_API {
      * Create delivery order using Zaikon v2 system
      */
     private function create_delivery_order_v2($data) {
-        // Add debug logging (mask sensitive data)
+        // Add debug logging (mask sensitive data for security)
+        // For privacy, only show first 1-2 chars of name/phone with ***
+        $mask_string = function($str) {
+            if (empty($str)) return '';
+            $len = strlen($str);
+            if ($len <= 2) return '***'; // Fully mask very short strings
+            return substr($str, 0, min(2, $len - 1)) . '***';
+        };
+        
         error_log('ZAIKON: Creating delivery order v2 with data: ' . print_r(array(
-            'customer_name' => isset($data['customer_name']) ? substr($data['customer_name'], 0, 3) . '***' : '',
-            'customer_phone' => isset($data['customer_phone']) ? substr($data['customer_phone'], 0, 3) . '***' : '',
+            'customer_name' => isset($data['customer_name']) ? $mask_string($data['customer_name']) : '',
+            'customer_phone' => isset($data['customer_phone']) ? $mask_string($data['customer_phone']) : '',
             'location_name' => $data['location_name'] ?? '',
             'area_id' => $data['area_id'] ?? '',
             'distance_km' => $data['distance_km'] ?? 0,

@@ -112,8 +112,14 @@
         notificationInterval: null,
         lastNotificationCheck: null,
         
-        // Configuration constants
-        RIDER_ASSIGNMENT_DELAY_MS: 1000, // Delay before showing rider assignment popup after receipt
+        /**
+         * Configuration constants
+         * RIDER_ASSIGNMENT_DELAY_MS: Delay in milliseconds before showing rider assignment popup
+         *                           after receipt modal. This gives time for the receipt to render
+         *                           and be visible to the user before the rider assignment overlay
+         *                           appears, improving UX by avoiding UI clash.
+         */
+        RIDER_ASSIGNMENT_DELAY_MS: 1000,
         
         init: function() {
             if ($('.rpos-pos-screen').length || $('.zaikon-pos-screen').length) {
