@@ -86,8 +86,13 @@
      * Prevents NaN, null, undefined formatting issues
      */
     function formatPrice(value, currency) {
+        // Check for null/undefined before parsing
+        if (value === null || value === undefined || value === '') {
+            value = 0;
+        }
+        
         var num = parseFloat(value);
-        if (isNaN(num) || num === null || num === undefined) {
+        if (isNaN(num)) {
             num = 0;
         }
         
@@ -377,7 +382,9 @@
         },
         
         calculateChange: function() {
-            var total = parseFloat($('#rpos-total').text().replace(/[^\d.-]/g, '')) || 0;
+            // More strict regex that only allows digits and single decimal point
+            var totalText = $('#rpos-total').text().replace(/[^\d.]/g, '');
+            var total = parseFloat(totalText) || 0;
             var cashReceived = parseFloat($('#rpos-cash-received').val()) || 0;
             var change = cashReceived - total;
             

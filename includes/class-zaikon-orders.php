@@ -49,8 +49,14 @@ class Zaikon_Orders {
     public static function get($id) {
         global $wpdb;
         
+        // Use LEFT JOIN to fetch delivery details in a single query
         $order = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            "SELECT o.*, d.id as delivery_id, d.customer_name, d.customer_phone, 
+                    d.location_id, d.location_name, d.distance_km, d.delivery_charges_rs as delivery_charge,
+                    d.is_free_delivery, d.special_instruction, d.delivery_status, d.assigned_rider_id
+             FROM {$wpdb->prefix}zaikon_orders o
+             LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             WHERE o.id = %d",
             $id
         ));
         
@@ -65,15 +71,27 @@ class Zaikon_Orders {
                 $item->line_total = $item->line_total_rs;
             }
             
-            // Add delivery details if it's a delivery order
-            if ($order->order_type === 'delivery') {
-                $delivery = $wpdb->get_row($wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}zaikon_deliveries WHERE order_id = %d",
-                    $id
-                ));
-                if ($delivery) {
-                    $order->delivery = $delivery;
-                }
+            // If delivery data exists, create a delivery object
+            if ($order->delivery_id) {
+                $order->delivery = (object) array(
+                    'id' => $order->delivery_id,
+                    'customer_name' => $order->customer_name,
+                    'customer_phone' => $order->customer_phone,
+                    'location_id' => $order->location_id,
+                    'location_name' => $order->location_name,
+                    'distance_km' => $order->distance_km,
+                    'delivery_charges_rs' => $order->delivery_charge,
+                    'is_free_delivery' => $order->is_free_delivery,
+                    'special_instruction' => $order->special_instruction,
+                    'delivery_status' => $order->delivery_status,
+                    'assigned_rider_id' => $order->assigned_rider_id
+                );
+                
+                // Clean up order object to avoid duplication
+                unset($order->delivery_id, $order->customer_name, $order->customer_phone, 
+                      $order->location_id, $order->location_name, $order->distance_km, 
+                      $order->delivery_charge, $order->is_free_delivery, $order->special_instruction,
+                      $order->delivery_status, $order->assigned_rider_id);
             }
         }
         

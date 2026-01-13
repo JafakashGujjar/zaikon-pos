@@ -10,11 +10,16 @@ if (!defined('ABSPATH')) {
 
 global $wpdb;
 
-// Get filters from request
+// Get filters from request with validation
 $date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-01');
 $date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
 $min_deliveries = isset($_GET['min_deliveries']) ? absint($_GET['min_deliveries']) : 0;
-$sort_by = isset($_GET['sort_by']) ? sanitize_text_field($_GET['sort_by']) : 'deliveries';
+
+// Validate sort_by against whitelist
+$allowed_sort_options = array('deliveries', 'amount', 'date');
+$sort_by = isset($_GET['sort_by']) && in_array($_GET['sort_by'], $allowed_sort_options) 
+    ? sanitize_text_field($_GET['sort_by']) 
+    : 'deliveries';
 
 // Build query
 $where_conditions = array("d.created_at >= %s", "d.created_at <= %s");
