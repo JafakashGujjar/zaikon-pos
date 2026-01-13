@@ -261,6 +261,9 @@ class Zaikon_Order_Service {
             return array('success' => false, 'message' => 'Failed to assign rider to delivery');
         }
         
+        // Get updated delivery record with payout information
+        $updated_delivery = Zaikon_Deliveries::get($delivery->id);
+        
         // Create or update rider_order record
         $existing_rider_order = Zaikon_Rider_Orders::get_by_order($order_id);
         
@@ -279,14 +282,11 @@ class Zaikon_Order_Service {
             ));
         }
         
-        // Calculate estimated payout
-        $estimated_payout = Zaikon_Riders::calculate_rider_pay($rider_id, $delivery->distance_km);
-        
         return array(
             'success' => true,
             'message' => 'Rider assigned successfully',
             'delivery_id' => $delivery->id,
-            'estimated_payout' => $estimated_payout
+            'estimated_payout' => $updated_delivery->rider_payout_amount ?? 0
         );
     }
     
