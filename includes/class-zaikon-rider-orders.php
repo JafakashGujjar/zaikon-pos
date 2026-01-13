@@ -23,23 +23,29 @@ class Zaikon_Rider_Orders {
             'created_at' => current_time('mysql')
         );
         
+        $formats = array('%d', '%d', '%s', '%s');
+        
         // Optional fields
         if (isset($data['delivery_id'])) {
             $insert_data['delivery_id'] = absint($data['delivery_id']);
+            $formats[] = '%d';
         }
         if (isset($data['assigned_at'])) {
             $insert_data['assigned_at'] = sanitize_text_field($data['assigned_at']);
+            $formats[] = '%s';
         } else {
             $insert_data['assigned_at'] = current_time('mysql');
+            $formats[] = '%s';
         }
         if (isset($data['notes'])) {
             $insert_data['notes'] = sanitize_textarea_field($data['notes']);
+            $formats[] = '%s';
         }
         
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_rider_orders',
             $insert_data,
-            array_fill(0, count($insert_data), '%s')
+            $formats
         );
         
         if (!$result) {

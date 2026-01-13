@@ -972,22 +972,52 @@ class RPOS_Install {
         // Check if payout columns exist in zaikon_riders table
         $table_name = $wpdb->prefix . 'zaikon_riders';
         
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'payout_type'");
+        // Verify table exists before altering
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            return; // Table doesn't exist, skip migration
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'payout_type'
+        ));
+        
         if (empty($column_exists)) {
-            // Add payout model fields
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payout_type` enum('per_delivery','per_km','hybrid') DEFAULT 'per_km' AFTER `status`");
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `per_delivery_rate` decimal(10,2) DEFAULT 0.00 AFTER `payout_type`");
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `per_km_rate` decimal(10,2) DEFAULT 10.00 AFTER `per_delivery_rate`");
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `base_rate` decimal(10,2) DEFAULT 20.00 AFTER `per_km_rate`");
+            // Add payout model fields - using esc_sql for table name safety
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `payout_type` enum('per_delivery','per_km','hybrid') DEFAULT 'per_km' AFTER `status`");
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `per_delivery_rate` decimal(10,2) DEFAULT 0.00 AFTER `payout_type`");
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `per_km_rate` decimal(10,2) DEFAULT 10.00 AFTER `per_delivery_rate`");
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `base_rate` decimal(10,2) DEFAULT 20.00 AFTER `per_km_rate`");
         }
         
         // Check if new delivery statuses exist in zaikon_deliveries
         $table_name = $wpdb->prefix . 'zaikon_deliveries';
-        $column_info = $wpdb->get_row("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_status'");
+        
+        // Verify table exists
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            return; // Table doesn't exist, skip migration
+        }
+        
+        $column_info = $wpdb->get_row($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'delivery_status'
+        ));
         
         if ($column_info && strpos($column_info->Type, 'assigned') === false) {
             // Update enum to include new statuses
-            $wpdb->query("ALTER TABLE `{$table_name}` MODIFY `delivery_status` enum('pending','assigned','picked','on_route','delivered','failed') DEFAULT 'pending'");
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` MODIFY `delivery_status` enum('pending','assigned','picked','on_route','delivered','failed') DEFAULT 'pending'");
         }
         
         // Create rider_orders records for existing deliveries with assigned riders

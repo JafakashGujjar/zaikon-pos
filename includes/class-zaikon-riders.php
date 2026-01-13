@@ -52,21 +52,25 @@ class Zaikon_Riders {
             'updated_at' => current_time('mysql')
         );
         
+        $formats = array('%s', '%s', '%s', '%s', '%s');
+        
         // Add payout fields if provided
         if (isset($data['payout_type'])) {
             $insert_data['payout_type'] = sanitize_text_field($data['payout_type']);
+            $formats[] = '%s';
         }
         if (isset($data['per_delivery_rate'])) {
             $insert_data['per_delivery_rate'] = floatval($data['per_delivery_rate']);
+            $formats[] = '%f';
         }
         if (isset($data['per_km_rate'])) {
             $insert_data['per_km_rate'] = floatval($data['per_km_rate']);
+            $formats[] = '%f';
         }
         if (isset($data['base_rate'])) {
             $insert_data['base_rate'] = floatval($data['base_rate']);
+            $formats[] = '%f';
         }
-        
-        $formats = array_fill(0, count($insert_data), '%s');
         
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_riders',
