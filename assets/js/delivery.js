@@ -305,10 +305,12 @@
             // Get selected area details
             var selectedArea = $('#rpos-delivery-area option:selected');
             var areaId = $('#rpos-delivery-area').val();
+            var areaName = selectedArea.text().replace(/\s*\(.*?\)\s*$/, '').trim(); // Remove distance from name
             var distance = selectedArea.data('distance') || 0;
             
             var data = {
                 area_id: areaId,
+                location_name: areaName,
                 customer_name: $('#rpos-customer-name').val().trim(),
                 customer_phone: $('#rpos-customer-phone').val().trim(),
                 special_instructions: $('#rpos-special-instructions').val().trim(),
@@ -330,7 +332,14 @@
             var currency = (typeof rposAdmin !== 'undefined' && rposAdmin.currencySymbol) 
                 ? rposAdmin.currencySymbol 
                 : '$';
-            return currency + parseFloat(amount).toFixed(2);
+            
+            // Handle null, undefined, NaN
+            var num = parseFloat(amount);
+            if (isNaN(num)) {
+                num = 0;
+            }
+            
+            return currency + num.toFixed(2);
         }
     };
     

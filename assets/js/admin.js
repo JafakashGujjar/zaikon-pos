@@ -81,6 +81,28 @@
     // Make toast available globally
     window.ZaikonToast = ZAIKON_Toast;
     
+    /**
+     * Safe price formatting helper
+     * Prevents NaN, null, undefined formatting issues
+     */
+    function formatPrice(value, currency) {
+        // Check for null/undefined before parsing
+        if (value === null || value === undefined || value === '') {
+            value = 0;
+        }
+        
+        var num = parseFloat(value);
+        if (isNaN(num)) {
+            num = 0;
+        }
+        
+        var currencySymbol = currency || (typeof rposData !== 'undefined' ? rposData.currency : 'Rs');
+        return currencySymbol + num.toFixed(2);
+    }
+    
+    // Make formatPrice available globally
+    window.formatPrice = formatPrice;
+    
     // POS Screen Functionality
     var RPOS_POS = {
         cart: [],
@@ -190,6 +212,11 @@
                 $('.zaikon-order-type-pill').removeClass('active');
                 $('.zaikon-order-type-pill[data-order-type="dine-in"]').addClass('active');
                 $('#rpos-special-instructions').val('');
+            });
+            
+            // Print rider slip
+            $('#rpos-print-rider-slip').on('click', function() {
+                self.printRiderSlip();
             });
         },
         
@@ -331,17 +358,17 @@
             // Add delivery charge if delivery order
             var deliveryCharge = 0;
             if (this.deliveryData && this.deliveryData.delivery_charge) {
-                deliveryCharge = parseFloat(this.deliveryData.delivery_charge);
+                deliveryCharge = parseFloat(this.deliveryData.delivery_charge) || 0;
                 $('#rpos-delivery-charge-row').show();
-                $('#rpos-delivery-charge-display').text(rposData.currency + deliveryCharge.toFixed(2));
+                $('#rpos-delivery-charge-display').text(formatPrice(deliveryCharge, rposData.currency));
             } else {
                 $('#rpos-delivery-charge-row').hide();
             }
             
             var total = subtotal + deliveryCharge - discount;
             
-            $('#rpos-subtotal').text(rposData.currency + subtotal.toFixed(2));
-            $('#rpos-total').text(rposData.currency + total.toFixed(2));
+            $('#rpos-subtotal').text(formatPrice(subtotal, rposData.currency));
+            $('#rpos-total').text(formatPrice(total, rposData.currency));
             
             this.calculateChange();
         },
@@ -355,11 +382,13 @@
         },
         
         calculateChange: function() {
-            var total = parseFloat($('#rpos-total').text().replace(rposData.currency, '')) || 0;
+            // More strict regex that only allows digits and single decimal point
+            var totalText = $('#rpos-total').text().replace(/[^\d.]/g, '');
+            var total = parseFloat(totalText) || 0;
             var cashReceived = parseFloat($('#rpos-cash-received').val()) || 0;
             var change = cashReceived - total;
             
-            $('#rpos-change-due').text(rposData.currency + (change >= 0 ? change.toFixed(2) : '0.00'));
+            $('#rpos-change-due').text(formatPrice(change >= 0 ? change : 0, rposData.currency));
         },
         
         completeOrder: function() {
@@ -430,15 +459,8 @@
                 orderData.customer_phone = this.deliveryData.customer_phone;
                 orderData.distance_km = this.deliveryData.distance_km || 0;
                 orderData.is_free_delivery = this.deliveryData.is_free_delivery || 0;
+                orderData.location_name = this.deliveryData.location_name || '';
                 orderData.special_instructions = this.deliveryData.special_instructions || '';
-                
-                // Get location name from selected option
-                var selectedArea = $('#rpos-delivery-area option:selected');
-                if (selectedArea.length > 0) {
-                    var areaText = selectedArea.text();
-                    // Extract location name (remove distance in parentheses)
-                    orderData.location_name = areaText.replace(/\s*\([^)]*\)\s*$/, '').trim();
-                }
             }
             
             ZAIKON_Toast.info('Processing order...');
@@ -674,6 +696,10 @@
         },
         
         showReceipt: function(order, orderData) {
+            // Store order data for rider slip
+            this.lastOrderData = orderData;
+            this.lastOrder = order;
+            
             $('#receipt-restaurant-name').text(rposData.restaurantName);
             $('#receipt-restaurant-phone').text(rposData.restaurantPhone || '');
             $('#receipt-restaurant-address').text(rposData.restaurantAddress || '');
@@ -688,6 +714,13 @@
             }
             
             $('#receipt-date-time').text(new Date().toLocaleString());
+            
+            // Show/hide rider slip button based on order type
+            if (orderData.order_type === 'delivery') {
+                $('#rpos-print-rider-slip').show();
+            } else {
+                $('#rpos-print-rider-slip').hide();
+            }
             
             // Add delivery details if delivery order
             if (orderData.order_type === 'delivery' && orderData.customer_name) {
@@ -732,8 +765,8 @@
                 $row.append(
                     $('<td>').text(item.product_name),
                     $('<td>').attr('style', 'text-align: center;').text(item.quantity),
-                    $('<td>').attr('style', 'text-align: right;').text(rposData.currency + parseFloat(item.price).toFixed(2)),
-                    $('<td>').attr('style', 'text-align: right;').text(rposData.currency + parseFloat(item.line_total).toFixed(2))
+                    $('<td>').attr('style', 'text-align: right;').text(formatPrice(item.price, rposData.currency)),
+                    $('<td>').attr('style', 'text-align: right;').text(formatPrice(item.line_total, rposData.currency))
                 );
                 $tbody.append($row);
             });
@@ -741,30 +774,116 @@
             $itemTable.append($thead, $tbody);
             $items.append($itemTable);
             
-            $('#receipt-subtotal').text(rposData.currency + parseFloat(orderData.subtotal).toFixed(2));
+            $('#receipt-subtotal').text(formatPrice(orderData.subtotal, rposData.currency));
             
             // Show delivery charge if present
             var deliveryCharge = parseFloat(orderData.delivery_charge || 0);
-            if (deliveryCharge > 0) {
+            if (deliveryCharge > 0 || orderData.order_type === 'delivery') {
                 var deliveryLabel = 'Delivery Charge:';
                 if (orderData.is_free_delivery) {
                     deliveryLabel += ' <span style="color: green;">(FREE)</span>';
                 }
                 var $deliveryRow = $('<div class="rpos-receipt-totals-row">' +
                     '<span>' + deliveryLabel + '</span>' +
-                    '<span id="receipt-delivery-charge">' + rposData.currency + deliveryCharge.toFixed(2) + '</span>' +
+                    '<span id="receipt-delivery-charge">' + formatPrice(deliveryCharge, rposData.currency) + '</span>' +
                     '</div>');
                 $('#receipt-subtotal').parent().after($deliveryRow);
             }
             
-            $('#receipt-discount').text(rposData.currency + parseFloat(orderData.discount).toFixed(2));
-            $('#receipt-total').text(rposData.currency + parseFloat(orderData.total).toFixed(2));
-            $('#receipt-cash').text(rposData.currency + parseFloat(orderData.cash_received).toFixed(2));
-            $('#receipt-change').text(rposData.currency + parseFloat(orderData.change_due).toFixed(2));
+            $('#receipt-discount').text(formatPrice(orderData.discount, rposData.currency));
+            $('#receipt-total').text(formatPrice(orderData.total, rposData.currency));
+            $('#receipt-cash').text(formatPrice(orderData.cash_received, rposData.currency));
+            $('#receipt-change').text(formatPrice(orderData.change_due, rposData.currency));
             $('#receipt-footer-message').text(rposData.receiptFooterMessage || 'Thank you for your order!');
             $('#receipt-cashier').text('Cashier: ' + rposData.currentUser);
             
             $('#rpos-receipt-modal').fadeIn();
+        },
+        
+        printRiderSlip: function() {
+            if (!this.lastOrder || !this.lastOrderData || this.lastOrderData.order_type !== 'delivery') {
+                ZAIKON_Toast.error('No delivery order available to print rider slip');
+                return;
+            }
+            
+            var order = this.lastOrder;
+            var orderData = this.lastOrderData;
+            
+            // Create a new window for printing
+            var printWindow = window.open('', '_blank', 'width=300,height=600');
+            
+            var slipContent = '<!DOCTYPE html><html><head>';
+            slipContent += '<title>Rider Slip - Order #' + order.order_number + '</title>';
+            slipContent += '<style>';
+            slipContent += 'body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }';
+            slipContent += 'h2, h3 { margin: 10px 0; text-align: center; }';
+            slipContent += 'h2 { font-size: 18px; border-bottom: 2px solid #000; padding-bottom: 5px; }';
+            slipContent += 'h3 { font-size: 16px; }';
+            slipContent += '.section { margin: 15px 0; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }';
+            slipContent += '.label { font-weight: bold; }';
+            slipContent += '.row { margin: 5px 0; }';
+            slipContent += 'table { width: 100%; border-collapse: collapse; margin: 10px 0; }';
+            slipContent += 'table td { padding: 5px; border-bottom: 1px dashed #ccc; }';
+            slipContent += '.total-row { font-weight: bold; font-size: 14px; border-top: 2px solid #000; padding-top: 5px; }';
+            slipContent += '@media print { button { display: none; } }';
+            slipContent += '</style>';
+            slipContent += '</head><body>';
+            
+            slipContent += '<h2>🛵 RIDER DELIVERY SLIP</h2>';
+            slipContent += '<h3>Order #' + order.order_number + '</h3>';
+            slipContent += '<div style="text-align: center; margin-bottom: 15px;">' + new Date().toLocaleString() + '</div>';
+            
+            slipContent += '<div class="section">';
+            slipContent += '<div class="row"><span class="label">Customer:</span> ' + (orderData.customer_name || 'N/A') + '</div>';
+            slipContent += '<div class="row"><span class="label">Phone:</span> ' + (orderData.customer_phone || 'N/A') + '</div>';
+            slipContent += '<div class="row"><span class="label">Location:</span> ' + (orderData.location_name || 'N/A');
+            if (orderData.distance_km) {
+                slipContent += ' (' + orderData.distance_km + ' km)';
+            }
+            slipContent += '</div>';
+            if (orderData.special_instructions && orderData.special_instructions.trim()) {
+                slipContent += '<div class="row"><span class="label">Instructions:</span> ' + orderData.special_instructions + '</div>';
+            }
+            slipContent += '</div>';
+            
+            slipContent += '<h3>Order Items</h3>';
+            slipContent += '<table>';
+            order.items.forEach(function(item) {
+                slipContent += '<tr>';
+                slipContent += '<td>' + item.product_name + '</td>';
+                slipContent += '<td style="text-align: center;">x' + item.quantity + '</td>';
+                slipContent += '<td style="text-align: right;">' + formatPrice(item.line_total, rposData.currency) + '</td>';
+                slipContent += '</tr>';
+            });
+            slipContent += '</table>';
+            
+            slipContent += '<div style="margin-top: 20px;">';
+            slipContent += '<div class="row">Subtotal: <span style="float: right;">' + formatPrice(orderData.subtotal, rposData.currency) + '</span></div>';
+            
+            var deliveryCharge = parseFloat(orderData.delivery_charge || 0);
+            slipContent += '<div class="row">Delivery Charge: <span style="float: right;">' + formatPrice(deliveryCharge, rposData.currency);
+            if (orderData.is_free_delivery) {
+                slipContent += ' <strong>(FREE)</strong>';
+            }
+            slipContent += '</span></div>';
+            
+            slipContent += '<div class="row total-row">Total to Collect: <span style="float: right;">' + formatPrice(orderData.total, rposData.currency) + '</span></div>';
+            slipContent += '</div>';
+            
+            slipContent += '<div style="margin-top: 30px; padding-top: 20px; border-top: 2px dashed #000; text-align: center;">';
+            slipContent += '<p><strong>Rider Signature:</strong></p>';
+            slipContent += '<p>_________________________</p>';
+            slipContent += '<p style="margin-top: 20px; font-size: 10px;">' + rposData.restaurantName + '</p>';
+            slipContent += '</div>';
+            
+            slipContent += '<div style="text-align: center; margin-top: 20px;">';
+            slipContent += '<button onclick="window.print();" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">Print Slip</button>';
+            slipContent += '</div>';
+            
+            slipContent += '</body></html>';
+            
+            printWindow.document.write(slipContent);
+            printWindow.document.close();
         }
     };
     
