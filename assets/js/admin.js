@@ -779,15 +779,15 @@
             // Show delivery charge if present
             var deliveryCharge = parseFloat(orderData.delivery_charge || 0);
             if (deliveryCharge > 0 || orderData.order_type === 'delivery') {
-                var deliveryLabel = 'Delivery Charge:';
+                var deliveryLabelText = 'Delivery Charge:';
                 if (orderData.is_free_delivery) {
-                    deliveryLabel += ' <span style="color: green;">(FREE)</span>';
+                    deliveryLabelText += ' <span style="color: green;">(FREE)</span>';
                 }
-                var $deliveryRow = $('<div class="rpos-receipt-totals-row">' +
-                    '<span>' + deliveryLabel + '</span>' +
-                    '<span id="receipt-delivery-charge">' + formatPrice(deliveryCharge, rposData.currency) + '</span>' +
-                    '</div>');
-                $('#receipt-subtotal').parent().after($deliveryRow);
+                $('#receipt-delivery-charge-label').html(deliveryLabelText);
+                $('#receipt-delivery-charge').text(formatPrice(deliveryCharge, rposData.currency));
+                $('#receipt-delivery-charge-row').css('display', 'flex');
+            } else {
+                $('#receipt-delivery-charge-row').hide();
             }
             
             $('#receipt-discount').text(formatPrice(orderData.discount, rposData.currency));
