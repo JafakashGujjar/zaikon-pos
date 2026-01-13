@@ -122,9 +122,7 @@ class RPOS_Orders {
                 if (!isset($item->price)) {
                     $item->price = $item->unit_price;
                 }
-                if (!isset($item->line_total) && isset($item->line_total)) {
-                    // Already has line_total, no change needed
-                }
+                // line_total already exists in database, no mapping needed
             }
         }
         
