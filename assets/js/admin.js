@@ -145,35 +145,10 @@
             $('.zaikon-order-type-pill').on('click', function() {
                 var orderType = $(this).data('order-type');
                 
-                // If delivery is selected, open delivery modal
+                // If delivery is selected, show inline delivery panel
                 if (orderType === 'delivery') {
-                    // Get current subtotal
-                    var subtotal = self.calculateSubtotal();
-                    
-                    // Open delivery modal
-                    if (window.RPOS_Delivery) {
-                        window.RPOS_Delivery.open(subtotal, function(deliveryData) {
-                            if (deliveryData) {
-                                // User confirmed delivery details
-                                $('.zaikon-order-type-pill').removeClass('active');
-                                $('.zaikon-order-type-pill[data-order-type="delivery"]').addClass('active');
-                                $('#rpos-order-type').val('delivery');
-                                
-                                // Store delivery data
-                                self.deliveryData = deliveryData;
-                                
-                                // Update totals with delivery charge
-                                self.updateTotals();
-                                
-                                ZAIKON_Toast.success('Delivery details added');
-                            } else {
-                                // User cancelled - revert to previous order type
-                                var currentType = $('#rpos-order-type').val() || 'dine-in';
-                                $('.zaikon-order-type-pill').removeClass('active');
-                                $('.zaikon-order-type-pill[data-order-type="' + currentType + '"]').addClass('active');
-                            }
-                        });
-                    }
+                    // Show the inline delivery panel
+                    self.openDeliveryPanel();
                 } else {
                     // Regular order type change
                     $('.zaikon-order-type-pill').removeClass('active');
@@ -182,8 +157,24 @@
                     
                     // Clear delivery data if switching away from delivery
                     self.deliveryData = null;
+                    $('#zaikon-delivery-panel').slideUp();
                     self.updateTotals();
                 }
+            });
+            
+            // Save Delivery Details handler
+            $('#zaikon-save-delivery').on('click', function() {
+                self.saveDeliveryDetails();
+            });
+            
+            // Cancel Delivery handler
+            $('#zaikon-cancel-delivery').on('click', function() {
+                self.cancelDelivery();
+            });
+            
+            // Delivery Area change handler
+            $('#zaikon-delivery-area').on('change', function() {
+                self.onDeliveryAreaChange();
             });
             
             // Clear cart
@@ -213,6 +204,7 @@
             $('#rpos-new-order').on('click', function() {
                 self.cart = [];
                 self.deliveryData = null;
+                self.deliveryCalculation = null;
                 self.renderCart();
                 $('#rpos-receipt-modal').fadeOut();
                 $('#rpos-cash-received').val('');
@@ -221,6 +213,17 @@
                 $('.zaikon-order-type-pill').removeClass('active');
                 $('.zaikon-order-type-pill[data-order-type="dine-in"]').addClass('active');
                 $('#rpos-special-instructions').val('');
+                
+                // Clear and hide delivery panel
+                $('#zaikon-delivery-panel').hide();
+                $('#zaikon-delivery-phone').val('');
+                $('#zaikon-delivery-name').val('');
+                $('#zaikon-delivery-area').val('');
+                $('#zaikon-delivery-distance').val('');
+                $('#zaikon-delivery-charge').val('');
+                $('#zaikon-delivery-instructions').val('');
+                $('#zaikon-delivery-rider').val('');
+                $('#zaikon-free-delivery-badge').hide();
             });
             
             // Print rider slip
@@ -470,6 +473,7 @@
                 orderData.is_free_delivery = this.deliveryData.is_free_delivery || 0;
                 orderData.location_name = this.deliveryData.location_name || '';
                 orderData.special_instructions = this.deliveryData.special_instructions || '';
+                orderData.rider_id = this.deliveryData.rider_id !== undefined && this.deliveryData.rider_id !== null ? this.deliveryData.rider_id : null;
             }
             
             ZAIKON_Toast.info('Processing order...');
@@ -489,8 +493,8 @@
                     }, 4000);
                     self.showReceipt(response, orderData);
                     
-                    // After showing receipt, offer rider assignment for delivery orders
-                    if (orderData.order_type === 'delivery' && window.RiderAssignment) {
+                    // After showing receipt, offer rider assignment for delivery orders ONLY if no rider was assigned
+                    if (orderData.order_type === 'delivery' && !orderData.rider_id && window.RiderAssignment) {
                         var deliveryInfo = {
                             customerName: orderData.customer_name || '',
                             customerPhone: orderData.customer_phone || '',
@@ -757,6 +761,9 @@
                         deliveryInfo += ' (' + orderData.distance_km + ' km)';
                     }
                 }
+                if (this.deliveryData && this.deliveryData.rider_name) {
+                    deliveryInfo += '<br><strong>Rider:</strong> ' + this.deliveryData.rider_name;
+                }
                 deliveryInfo += '</div>';
                 $('#receipt-order-type').after(deliveryInfo);
             }
@@ -907,6 +914,213 @@
             
             printWindow.document.write(slipContent);
             printWindow.document.close();
+        },
+        
+        /**
+         * Open inline delivery panel
+         */
+        openDeliveryPanel: function() {
+            var self = this;
+            
+            // Show delivery panel with animation
+            $('#zaikon-delivery-panel').slideDown();
+            
+            // Load delivery areas
+            $.ajax({
+                url: rposData.zaikonRestUrl + 'delivery-areas?active_only=true',
+                method: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(areas) {
+                    var $areaSelect = $('#zaikon-delivery-area');
+                    $areaSelect.find('option:not(:first)').remove();
+                    
+                    areas.forEach(function(area) {
+                        $areaSelect.append('<option value="' + area.id + '" data-distance="' + area.distance_km + '">' + area.name + '</option>');
+                    });
+                },
+                error: function() {
+                    ZAIKON_Toast.error('Failed to load delivery areas');
+                }
+            });
+            
+            // Load active riders
+            $.ajax({
+                url: rposData.restUrl + 'riders/active',
+                method: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(riders) {
+                    var $riderSelect = $('#zaikon-delivery-rider');
+                    $riderSelect.find('option:not(:first)').remove();
+                    
+                    riders.forEach(function(rider) {
+                        $riderSelect.append('<option value="' + rider.id + '">' + rider.name + '</option>');
+                    });
+                },
+                error: function() {
+                    ZAIKON_Toast.error('Failed to load riders');
+                }
+            });
+        },
+        
+        /**
+         * Handle delivery area change - calculate delivery charges
+         */
+        onDeliveryAreaChange: function() {
+            var self = this;
+            var $areaSelect = $('#zaikon-delivery-area');
+            var selectedAreaId = $areaSelect.val();
+            
+            if (!selectedAreaId) {
+                // Clear fields if no area selected
+                $('#zaikon-delivery-distance').val('');
+                $('#zaikon-delivery-charge').val('');
+                $('#zaikon-free-delivery-badge').hide();
+                return;
+            }
+            
+            var selectedOption = $areaSelect.find('option:selected');
+            var distanceKm = selectedOption.data('distance');
+            var subtotal = this.calculateSubtotal();
+            
+            // Call REST API to calculate delivery charges
+            $.ajax({
+                url: rposData.zaikonRestUrl + 'calc-delivery-charges',
+                method: 'POST',
+                contentType: 'application/json',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                data: JSON.stringify({
+                    location_id: parseInt(selectedAreaId),
+                    items_subtotal_rs: subtotal
+                }),
+                success: function(response) {
+                    // Populate distance and charge fields
+                    $('#zaikon-delivery-distance').val(response.distance_km + ' km');
+                    $('#zaikon-delivery-charge').val(rposData.currency + response.delivery_charges_rs.toFixed(2));
+                    
+                    // Show/hide free delivery badge
+                    if (response.is_free_delivery) {
+                        $('#zaikon-free-delivery-badge').show();
+                    } else {
+                        $('#zaikon-free-delivery-badge').hide();
+                    }
+                    
+                    // Store calculation result for later use
+                    self.deliveryCalculation = response;
+                },
+                error: function() {
+                    ZAIKON_Toast.error('Failed to calculate delivery charge');
+                }
+            });
+        },
+        
+        /**
+         * Save delivery details
+         */
+        saveDeliveryDetails: function() {
+            var self = this;
+            
+            // Validate required fields
+            var phone = $('#zaikon-delivery-phone').val().trim();
+            var name = $('#zaikon-delivery-name').val().trim();
+            var areaId = $('#zaikon-delivery-area').val();
+            
+            if (!phone) {
+                ZAIKON_Toast.error('Please enter customer phone number');
+                $('#zaikon-delivery-phone').focus();
+                return;
+            }
+            
+            if (!name) {
+                ZAIKON_Toast.error('Please enter customer name');
+                $('#zaikon-delivery-name').focus();
+                return;
+            }
+            
+            if (!areaId) {
+                ZAIKON_Toast.error('Please select delivery area');
+                $('#zaikon-delivery-area').focus();
+                return;
+            }
+            
+            if (!this.deliveryCalculation) {
+                ZAIKON_Toast.error('Please wait for delivery charge calculation');
+                return;
+            }
+            
+            // Get selected area name and rider
+            var areaName = $('#zaikon-delivery-area option:selected').text();
+            var riderId = $('#zaikon-delivery-rider').val();
+            var riderName = riderId ? $('#zaikon-delivery-rider option:selected').text() : null;
+            var instructions = $('#zaikon-delivery-instructions').val().trim();
+            
+            // Build delivery data object
+            this.deliveryData = {
+                is_delivery: 1,
+                area_id: parseInt(areaId),
+                location_name: areaName,
+                distance_km: this.deliveryCalculation.distance_km,
+                delivery_charge: this.deliveryCalculation.delivery_charges_rs,
+                is_free_delivery: this.deliveryCalculation.is_free_delivery ? 1 : 0,
+                customer_name: name,
+                customer_phone: phone,
+                special_instructions: instructions,
+                rider_id: (riderId && riderId !== '') ? parseInt(riderId) : null,
+                rider_name: riderName
+            };
+            
+            // Update order type
+            $('.zaikon-order-type-pill').removeClass('active');
+            $('.zaikon-order-type-pill[data-order-type="delivery"]').addClass('active');
+            $('#rpos-order-type').val('delivery');
+            
+            // Hide delivery panel
+            $('#zaikon-delivery-panel').slideUp();
+            
+            // Update totals to show delivery charge
+            this.updateTotals();
+            
+            ZAIKON_Toast.success('Delivery details saved');
+        },
+        
+        /**
+         * Cancel delivery
+         */
+        cancelDelivery: function() {
+            // Clear delivery data
+            this.deliveryData = null;
+            this.deliveryCalculation = null;
+            
+            // Hide delivery panel
+            $('#zaikon-delivery-panel').slideUp();
+            
+            // Clear all fields
+            $('#zaikon-delivery-phone').val('');
+            $('#zaikon-delivery-name').val('');
+            $('#zaikon-delivery-area').val('');
+            $('#zaikon-delivery-distance').val('');
+            $('#zaikon-delivery-charge').val('');
+            $('#zaikon-delivery-instructions').val('');
+            $('#zaikon-delivery-rider').val('');
+            $('#zaikon-free-delivery-badge').hide();
+            
+            // Reset order type to previous or dine-in
+            var currentType = $('#rpos-order-type').val();
+            if (currentType === 'delivery') {
+                $('#rpos-order-type').val('dine-in');
+                $('.zaikon-order-type-pill').removeClass('active');
+                $('.zaikon-order-type-pill[data-order-type="dine-in"]').addClass('active');
+            }
+            
+            // Update totals
+            this.updateTotals();
+            
+            ZAIKON_Toast.info('Delivery cancelled');
         }
     };
     

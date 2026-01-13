@@ -169,6 +169,13 @@ class RPOS_REST_API {
             'callback' => array($this, 'zaikon_calc_delivery_charges'),
             'permission_callback' => array($this, 'check_permission')
         ));
+        
+        // Zaikon Delivery Areas endpoint
+        register_rest_route($zaikon_namespace, '/delivery-areas', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_delivery_areas'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
     }
     
     /**
@@ -417,7 +424,8 @@ class RPOS_REST_API {
             'delivery_charges_rs' => $delivery_charge,
             'is_free_delivery' => ($delivery_charge == 0) ? 1 : 0,
             'special_instruction' => sanitize_textarea_field($data['special_instructions'] ?? ''),
-            'delivery_status' => 'pending'
+            'delivery_status' => 'pending',
+            'assigned_rider_id' => (isset($data['rider_id']) && $data['rider_id'] > 0) ? absint($data['rider_id']) : null
         );
         
         // Create order atomically using Zaikon_Order_Service

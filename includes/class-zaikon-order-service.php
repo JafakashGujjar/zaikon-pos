@@ -86,7 +86,7 @@ class Zaikon_Order_Service {
                     'is_free_delivery' => $delivery_data['is_free_delivery']
                 ));
                 
-                // 4. If rider is assigned, create payout record
+                // 4. If rider is assigned, create payout and rider_orders records
                 if (!empty($delivery_data['assigned_rider_id'])) {
                     $rider_pay = Zaikon_Riders::calculate_rider_pay($delivery_data['assigned_rider_id'], $delivery_data['distance_km']);
                     
@@ -98,6 +98,19 @@ class Zaikon_Order_Service {
                     
                     if (!$payout_id) {
                         throw new Exception('Failed to create rider payout');
+                    }
+                    
+                    // Create rider_orders record
+                    $rider_order_id = Zaikon_Rider_Orders::create(array(
+                        'order_id' => $order_id,
+                        'rider_id' => $delivery_data['assigned_rider_id'],
+                        'delivery_id' => $delivery_id,
+                        'status' => 'assigned',
+                        'assigned_at' => current_time('mysql')
+                    ));
+                    
+                    if (!$rider_order_id) {
+                        throw new Exception('Failed to create rider order record');
                     }
                     
                     // Log rider assignment
