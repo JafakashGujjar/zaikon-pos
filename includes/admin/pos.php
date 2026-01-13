@@ -264,6 +264,7 @@ var rposData = {
     restaurantAddress: '<?php echo esc_js(RPOS_Settings::get('restaurant_address', '')); ?>',
     receiptFooterMessage: '<?php echo esc_js(RPOS_Settings::get('receipt_footer_message', 'Thank you for your order!')); ?>',
     restUrl: '<?php echo esc_js(rest_url('restaurant-pos/v1/')); ?>',
+    zaikonRestUrl: '<?php echo esc_js(rest_url('zaikon/v1/')); ?>',
     nonce: '<?php echo wp_create_nonce('wp_rest'); ?>',
     currentUser: '<?php echo esc_js(wp_get_current_user()->display_name); ?>'
 };

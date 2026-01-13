@@ -169,6 +169,13 @@ class RPOS_REST_API {
             'callback' => array($this, 'zaikon_calc_delivery_charges'),
             'permission_callback' => array($this, 'check_permission')
         ));
+        
+        // Zaikon Delivery Areas endpoint
+        register_rest_route($zaikon_namespace, '/delivery-areas', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_delivery_areas'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
     }
     
     /**

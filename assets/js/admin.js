@@ -927,7 +927,7 @@
             
             // Load delivery areas
             $.ajax({
-                url: rposData.restUrl + 'delivery-areas?active_only=true',
+                url: rposData.zaikonRestUrl + 'delivery-areas?active_only=true',
                 method: 'GET',
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
@@ -988,7 +988,7 @@
             
             // Call REST API to calculate delivery charges
             $.ajax({
-                url: '/wp-json/zaikon/v1/calc-delivery-charges',
+                url: rposData.zaikonRestUrl + 'calc-delivery-charges',
                 method: 'POST',
                 contentType: 'application/json',
                 beforeSend: function(xhr) {
