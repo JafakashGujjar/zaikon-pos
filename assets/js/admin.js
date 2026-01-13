@@ -482,6 +482,17 @@
                 orderData.rider_id = this.deliveryData.rider_id !== undefined && this.deliveryData.rider_id !== null ? this.deliveryData.rider_id : null;
             }
             
+            // Debug logging for delivery orders
+            if (orderType === 'delivery') {
+                console.log('Creating delivery order with:', {
+                    order_type: orderData.order_type,
+                    is_delivery: orderData.is_delivery,
+                    has_delivery_data: !!this.deliveryData,
+                    customer_name: orderData.customer_name ? '***' : 'missing',
+                    area_id: orderData.area_id
+                });
+            }
+            
             ZAIKON_Toast.info('Processing order...');
             
             $.ajax({
@@ -513,8 +524,17 @@
                         }, self.RIDER_ASSIGNMENT_DELAY_MS);
                     }
                 },
-                error: function() {
-                    ZAIKON_Toast.error('Failed to create order');
+                error: function(xhr, status, error) {
+                    console.error('Order creation failed:', {
+                        status: status,
+                        error: error,
+                        response: xhr.responseText
+                    });
+                    var errorMsg = 'Failed to create order';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg += ': ' + xhr.responseJSON.message;
+                    }
+                    ZAIKON_Toast.error(errorMsg);
                 }
             });
         },
