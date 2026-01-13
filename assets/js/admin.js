@@ -112,6 +112,9 @@
         notificationInterval: null,
         lastNotificationCheck: null,
         
+        // Configuration constants
+        RIDER_ASSIGNMENT_DELAY_MS: 1000, // Delay before showing rider assignment popup after receipt
+        
         init: function() {
             if ($('.rpos-pos-screen').length || $('.zaikon-pos-screen').length) {
                 this.loadProducts();
@@ -491,7 +494,7 @@
                         // Small delay to let receipt modal show first
                         setTimeout(function() {
                             RiderAssignment.showPopup(response.id, response.order_number, deliveryInfo);
-                        }, 1000);
+                        }, self.RIDER_ASSIGNMENT_DELAY_MS);
                     }
                 },
                 error: function() {

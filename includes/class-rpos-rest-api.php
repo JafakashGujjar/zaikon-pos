@@ -333,10 +333,10 @@ class RPOS_REST_API {
      * Create delivery order using Zaikon v2 system
      */
     private function create_delivery_order_v2($data) {
-        // Add debug logging
+        // Add debug logging (mask sensitive data)
         error_log('ZAIKON: Creating delivery order v2 with data: ' . print_r(array(
-            'customer_name' => $data['customer_name'] ?? '',
-            'customer_phone' => $data['customer_phone'] ?? '',
+            'customer_name' => isset($data['customer_name']) ? substr($data['customer_name'], 0, 3) . '***' : '',
+            'customer_phone' => isset($data['customer_phone']) ? substr($data['customer_phone'], 0, 3) . '***' : '',
             'location_name' => $data['location_name'] ?? '',
             'area_id' => $data['area_id'] ?? '',
             'distance_km' => $data['distance_km'] ?? 0,
