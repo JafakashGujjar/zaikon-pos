@@ -67,6 +67,27 @@ class Zaikon_Order_Service {
                 // Ensure delivery_charges_rs matches what's in the order
                 $delivery_data['delivery_charges_rs'] = $order_data['delivery_charges_rs'];
                 
+                // Calculate and add rider payout data if rider is assigned
+                if (!empty($delivery_data['assigned_rider_id'])) {
+                    $rider = Zaikon_Riders::get($delivery_data['assigned_rider_id']);
+                    if ($rider) {
+                        $rider_pay = Zaikon_Riders::calculate_rider_pay($delivery_data['assigned_rider_id'], $delivery_data['distance_km']);
+                        $delivery_data['rider_payout_amount'] = $rider_pay;
+                        $delivery_data['payout_type'] = $rider->payout_type ?? 'per_km';
+                        $delivery_data['payout_per_km_rate'] = $rider->per_km_rate ?? null;
+                        
+                        // Determine slab based on distance
+                        $distance = floatval($delivery_data['distance_km']);
+                        if ($distance <= 5) {
+                            $delivery_data['rider_payout_slab'] = '0-5km';
+                        } elseif ($distance <= 10) {
+                            $delivery_data['rider_payout_slab'] = '5-10km';
+                        } else {
+                            $delivery_data['rider_payout_slab'] = '10+km';
+                        }
+                    }
+                }
+                
                 $delivery_id = Zaikon_Deliveries::create($delivery_data);
                 
                 if (!$delivery_id) {
@@ -83,12 +104,13 @@ class Zaikon_Order_Service {
                     'location_name' => $delivery_data['location_name'],
                     'distance_km' => $delivery_data['distance_km'],
                     'delivery_charges_rs' => $delivery_data['delivery_charges_rs'],
-                    'is_free_delivery' => $delivery_data['is_free_delivery']
+                    'is_free_delivery' => $delivery_data['is_free_delivery'],
+                    'rider_payout_amount' => $delivery_data['rider_payout_amount'] ?? null
                 ));
                 
                 // 4. If rider is assigned, create payout and rider_orders records
                 if (!empty($delivery_data['assigned_rider_id'])) {
-                    $rider_pay = Zaikon_Riders::calculate_rider_pay($delivery_data['assigned_rider_id'], $delivery_data['distance_km']);
+                    $rider_pay = $delivery_data['rider_payout_amount'] ?? Zaikon_Riders::calculate_rider_pay($delivery_data['assigned_rider_id'], $delivery_data['distance_km']);
                     
                     $payout_id = Zaikon_Rider_Payouts::create(array(
                         'delivery_id' => $delivery_id,
@@ -184,10 +206,30 @@ class Zaikon_Order_Service {
             return false;
         }
         
-        // Update delivery with rider
-        $result = Zaikon_Deliveries::update($delivery_id, array(
-            'assigned_rider_id' => $rider_id
-        ));
+        // Get rider details and calculate payout
+        $rider = Zaikon_Riders::get($rider_id);
+        $rider_pay = Zaikon_Riders::calculate_rider_pay($rider_id, $delivery->distance_km);
+        
+        // Determine slab based on distance
+        $distance = floatval($delivery->distance_km);
+        if ($distance <= 5) {
+            $payout_slab = '0-5km';
+        } elseif ($distance <= 10) {
+            $payout_slab = '5-10km';
+        } else {
+            $payout_slab = '10+km';
+        }
+        
+        // Update delivery with rider and payout information
+        $update_data = array(
+            'assigned_rider_id' => $rider_id,
+            'rider_payout_amount' => $rider_pay,
+            'rider_payout_slab' => $payout_slab,
+            'payout_type' => $rider->payout_type ?? 'per_km',
+            'payout_per_km_rate' => $rider->per_km_rate ?? null
+        );
+        
+        $result = Zaikon_Deliveries::update($delivery_id, $update_data);
         
         if (!$result) {
             return false;
@@ -197,8 +239,6 @@ class Zaikon_Order_Service {
         $existing_payout = Zaikon_Rider_Payouts::get_by_delivery($delivery_id);
         
         if (!$existing_payout) {
-            $rider_pay = Zaikon_Riders::calculate_rider_pay($rider_id, $delivery->distance_km);
-            
             Zaikon_Rider_Payouts::create(array(
                 'delivery_id' => $delivery_id,
                 'rider_id' => $rider_id,
@@ -209,7 +249,8 @@ class Zaikon_Order_Service {
         // Log assignment
         Zaikon_System_Events::log('delivery', $delivery_id, 'assign_rider', array(
             'rider_id' => $rider_id,
-            'previous_rider_id' => $delivery->assigned_rider_id
+            'previous_rider_id' => $delivery->assigned_rider_id,
+            'rider_payout_amount' => $rider_pay
         ));
         
         return true;
