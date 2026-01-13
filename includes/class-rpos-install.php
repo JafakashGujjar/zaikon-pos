@@ -848,6 +848,7 @@ class RPOS_Install {
             delivery_charges_rs decimal(10,2) NOT NULL,
             is_free_delivery tinyint(1) DEFAULT 0,
             special_instruction varchar(255) DEFAULT NULL,
+            delivery_instructions varchar(255) DEFAULT NULL,
             assigned_rider_id bigint(20) unsigned DEFAULT NULL,
             delivery_status enum('pending','assigned','picked','on_route','delivered','failed') DEFAULT 'pending',
             delivered_at datetime DEFAULT NULL,
