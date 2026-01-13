@@ -425,11 +425,24 @@ class RPOS_REST_API {
         $location_name = '';
         $distance_km = 0;
         
-        if ($location_id) {
+        // Prefer location details from frontend if provided
+        if (isset($data['location_name']) && !empty($data['location_name'])) {
+            $location_name = sanitize_text_field($data['location_name']);
+        }
+        if (isset($data['distance_km'])) {
+            $distance_km = floatval($data['distance_km']);
+        }
+        
+        // Fallback to database lookup if not provided
+        if (($location_name === '' || $distance_km === 0) && $location_id) {
             $location = Zaikon_Delivery_Locations::get($location_id);
             if ($location) {
-                $location_name = $location->name;
-                $distance_km = floatval($location->distance_km);
+                if ($location_name === '') {
+                    $location_name = $location->name;
+                }
+                if ($distance_km === 0) {
+                    $distance_km = floatval($location->distance_km);
+                }
             }
         }
         
@@ -441,7 +454,7 @@ class RPOS_REST_API {
             'location_name' => $location_name,
             'distance_km' => $distance_km,
             'delivery_charges_rs' => $delivery_charge,
-            'is_free_delivery' => ($delivery_charge == 0) ? 1 : 0,
+            'is_free_delivery' => isset($data['is_free_delivery']) ? intval($data['is_free_delivery']) : (($delivery_charge == 0) ? 1 : 0),
             'special_instruction' => sanitize_textarea_field($data['special_instructions'] ?? ''),
             'delivery_status' => 'pending'
         );
