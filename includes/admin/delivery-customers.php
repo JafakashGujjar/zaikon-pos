@@ -28,6 +28,8 @@ if ($min_deliveries > 0) {
 $order_clause = "ORDER BY deliveries_count DESC, total_amount_spent DESC";
 if ($sort_by === 'amount') {
     $order_clause = "ORDER BY total_amount_spent DESC, deliveries_count DESC";
+} elseif ($sort_by === 'date') {
+    $order_clause = "ORDER BY last_delivery_date DESC";
 }
 
 // Execute query

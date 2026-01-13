@@ -64,6 +64,17 @@ class Zaikon_Orders {
                 $item->price = $item->unit_price_rs;
                 $item->line_total = $item->line_total_rs;
             }
+            
+            // Add delivery details if it's a delivery order
+            if ($order->order_type === 'delivery') {
+                $delivery = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}zaikon_deliveries WHERE order_id = %d",
+                    $id
+                ));
+                if ($delivery) {
+                    $order->delivery = $delivery;
+                }
+            }
         }
         
         return $order;

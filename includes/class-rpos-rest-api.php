@@ -360,14 +360,19 @@ class RPOS_REST_API {
         // Get location details
         $location_id = isset($data['area_id']) ? absint($data['area_id']) : null;
         $location = null;
-        $location_name = '';
-        $distance_km = 0;
+        $location_name = isset($data['location_name']) ? sanitize_text_field($data['location_name']) : '';
+        $distance_km = isset($data['distance_km']) ? floatval($data['distance_km']) : 0;
         
-        if ($location_id) {
+        // If location_name or distance not provided, fetch from database
+        if ((!$location_name || !$distance_km) && $location_id) {
             $location = Zaikon_Delivery_Locations::get($location_id);
             if ($location) {
-                $location_name = $location->name;
-                $distance_km = floatval($location->distance_km);
+                if (!$location_name) {
+                    $location_name = $location->name;
+                }
+                if (!$distance_km) {
+                    $distance_km = floatval($location->distance_km);
+                }
             }
         }
         
