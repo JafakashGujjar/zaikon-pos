@@ -451,7 +451,7 @@ class RPOS_REST_API {
             'order_type' => 'delivery',
             'special_instructions' => $special_instructions,
             'items' => $data['items'],
-            'cashier_id' => get_current_user_id(),
+            'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id()),
             'is_delivery' => true,
             'delivery_charge' => $delivery_charge,
             'area_id' => $location_id,
