@@ -466,9 +466,11 @@ class RPOS_REST_API {
             error_log('ZAIKON: Legacy order created in rpos_orders for KDS. Legacy Order ID: ' . $legacy_order_id);
         }
         
-        // Deduct stock for completed orders
-        if (!empty($data['items'])) {
-            RPOS_Orders::deduct_stock_for_order($result['order_id'], $data['items']);
+        // Deduct stock for completed orders using legacy order ID
+        // The legacy_order_id is used because has_ingredients_deducted and mark_ingredients_deducted
+        // check/update the rpos_orders table
+        if (!empty($data['items']) && $legacy_order_id) {
+            RPOS_Orders::deduct_stock_for_order($legacy_order_id, $data['items']);
         }
         
         // Get the created order
