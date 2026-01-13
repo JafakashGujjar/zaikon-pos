@@ -473,7 +473,7 @@
                 orderData.is_free_delivery = this.deliveryData.is_free_delivery || 0;
                 orderData.location_name = this.deliveryData.location_name || '';
                 orderData.special_instructions = this.deliveryData.special_instructions || '';
-                orderData.rider_id = this.deliveryData.rider_id || null;
+                orderData.rider_id = this.deliveryData.rider_id !== undefined && this.deliveryData.rider_id !== null ? this.deliveryData.rider_id : null;
             }
             
             ZAIKON_Toast.info('Processing order...');
@@ -1070,7 +1070,7 @@
                 customer_name: name,
                 customer_phone: phone,
                 special_instructions: instructions,
-                rider_id: riderId ? parseInt(riderId) : null,
+                rider_id: (riderId && riderId !== '') ? parseInt(riderId) : null,
                 rider_name: riderName
             };
             
