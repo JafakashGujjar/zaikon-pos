@@ -181,6 +181,9 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             <button class="zaikon-btn zaikon-btn-primary zaikon-btn-lg" onclick="window.print();">
                 <?php echo esc_html__('Print Receipt', 'restaurant-pos'); ?>
             </button>
+            <button class="zaikon-btn zaikon-btn-secondary zaikon-btn-lg" id="rpos-print-rider-slip" style="display: none;">
+                <?php echo esc_html__('Print Rider Slip', 'restaurant-pos'); ?>
+            </button>
             <button class="zaikon-btn zaikon-btn-yellow zaikon-btn-lg" id="rpos-new-order">
                 <?php echo esc_html__('New Order', 'restaurant-pos'); ?>
             </button>
