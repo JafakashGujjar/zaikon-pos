@@ -975,7 +975,7 @@
     background: #f8f9fa;
     border: 2px solid #e0e5eb;
     border-radius: 8px;
-    margin: 15px auto;
+    margin: 0 auto 15px auto;
     max-width: 950px;
     overflow: hidden;
     animation: slideDown 0.3s ease-out;

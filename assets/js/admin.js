@@ -147,6 +147,11 @@
                 
                 // If delivery is selected, show inline delivery panel
                 if (orderType === 'delivery') {
+                    // Set order type immediately when delivery is clicked
+                    $('.zaikon-order-type-pill').removeClass('active');
+                    $(this).addClass('active');
+                    $('#rpos-order-type').val('delivery');
+                    
                     // Show the inline delivery panel
                     self.openDeliveryPanel();
                 } else {
