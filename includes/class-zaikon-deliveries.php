@@ -28,6 +28,11 @@ class Zaikon_Deliveries {
             'delivery_instructions' => sanitize_text_field($data['delivery_instructions'] ?? ''),
             'assigned_rider_id' => isset($data['assigned_rider_id']) ? absint($data['assigned_rider_id']) : null,
             'delivery_status' => sanitize_text_field($data['delivery_status'] ?? 'pending'),
+            'rider_payout_amount' => isset($data['rider_payout_amount']) ? floatval($data['rider_payout_amount']) : null,
+            'rider_payout_slab' => isset($data['rider_payout_slab']) ? sanitize_text_field($data['rider_payout_slab']) : null,
+            'payout_type' => isset($data['payout_type']) ? sanitize_text_field($data['payout_type']) : null,
+            'fuel_multiplier' => isset($data['fuel_multiplier']) ? floatval($data['fuel_multiplier']) : 1.00,
+            'payout_per_km_rate' => isset($data['payout_per_km_rate']) ? floatval($data['payout_per_km_rate']) : null,
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql')
         );
@@ -35,7 +40,7 @@ class Zaikon_Deliveries {
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_deliveries',
             $delivery_data,
-            array('%d', '%s', '%s', '%d', '%s', '%f', '%f', '%d', '%s', '%s', '%d', '%s', '%s', '%s')
+            array('%d', '%s', '%s', '%d', '%s', '%f', '%f', '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%f', '%f', '%s', '%s')
         );
         
         if (!$result) {
@@ -91,6 +96,31 @@ class Zaikon_Deliveries {
         if (isset($data['delivered_at'])) {
             $update_data['delivered_at'] = sanitize_text_field($data['delivered_at']);
             $formats[] = '%s';
+        }
+        
+        if (isset($data['rider_payout_amount'])) {
+            $update_data['rider_payout_amount'] = floatval($data['rider_payout_amount']);
+            $formats[] = '%f';
+        }
+        
+        if (isset($data['rider_payout_slab'])) {
+            $update_data['rider_payout_slab'] = sanitize_text_field($data['rider_payout_slab']);
+            $formats[] = '%s';
+        }
+        
+        if (isset($data['payout_type'])) {
+            $update_data['payout_type'] = sanitize_text_field($data['payout_type']);
+            $formats[] = '%s';
+        }
+        
+        if (isset($data['fuel_multiplier'])) {
+            $update_data['fuel_multiplier'] = floatval($data['fuel_multiplier']);
+            $formats[] = '%f';
+        }
+        
+        if (isset($data['payout_per_km_rate'])) {
+            $update_data['payout_per_km_rate'] = floatval($data['payout_per_km_rate']);
+            $formats[] = '%f';
         }
         
         if (empty($update_data)) {

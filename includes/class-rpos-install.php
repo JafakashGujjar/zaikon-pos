@@ -851,6 +851,11 @@ class RPOS_Install {
             delivery_instructions varchar(255) DEFAULT NULL,
             assigned_rider_id bigint(20) unsigned DEFAULT NULL,
             delivery_status enum('pending','assigned','picked','on_route','delivered','failed') DEFAULT 'pending',
+            rider_payout_amount decimal(10,2) DEFAULT NULL,
+            rider_payout_slab varchar(50) DEFAULT NULL,
+            payout_type enum('per_delivery','per_km','hybrid') DEFAULT NULL,
+            fuel_multiplier decimal(5,2) DEFAULT 1.00,
+            payout_per_km_rate decimal(10,2) DEFAULT NULL,
             delivered_at datetime DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1030,6 +1035,57 @@ class RPOS_Install {
         if (empty($column_exists)) {
             $safe_table = esc_sql($table_name);
             $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `delivery_instructions` varchar(255) DEFAULT NULL AFTER `special_instruction`");
+        }
+        
+        // Add rider payout fields to zaikon_deliveries table
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'rider_payout_amount'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `rider_payout_amount` decimal(10,2) DEFAULT NULL AFTER `delivery_status`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'rider_payout_slab'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `rider_payout_slab` varchar(50) DEFAULT NULL AFTER `rider_payout_amount`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'payout_type'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `payout_type` enum('per_delivery','per_km','hybrid') DEFAULT NULL AFTER `rider_payout_slab`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'fuel_multiplier'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `fuel_multiplier` decimal(5,2) DEFAULT 1.00 AFTER `payout_type`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'payout_per_km_rate'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `payout_per_km_rate` decimal(10,2) DEFAULT NULL AFTER `fuel_multiplier`");
         }
         
         // Create rider_orders records for existing deliveries with assigned riders

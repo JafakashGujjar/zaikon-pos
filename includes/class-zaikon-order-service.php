@@ -67,6 +67,18 @@ class Zaikon_Order_Service {
                 // Ensure delivery_charges_rs matches what's in the order
                 $delivery_data['delivery_charges_rs'] = $order_data['delivery_charges_rs'];
                 
+                // Calculate and add rider payout data if rider is assigned
+                if (!empty($delivery_data['assigned_rider_id'])) {
+                    $payout_data = self::calculate_rider_payout_data(
+                        $delivery_data['assigned_rider_id'], 
+                        $delivery_data['distance_km']
+                    );
+                    
+                    if ($payout_data) {
+                        $delivery_data = array_merge($delivery_data, $payout_data);
+                    }
+                }
+                
                 $delivery_id = Zaikon_Deliveries::create($delivery_data);
                 
                 if (!$delivery_id) {
@@ -83,12 +95,13 @@ class Zaikon_Order_Service {
                     'location_name' => $delivery_data['location_name'],
                     'distance_km' => $delivery_data['distance_km'],
                     'delivery_charges_rs' => $delivery_data['delivery_charges_rs'],
-                    'is_free_delivery' => $delivery_data['is_free_delivery']
+                    'is_free_delivery' => $delivery_data['is_free_delivery'],
+                    'rider_payout_amount' => $delivery_data['rider_payout_amount'] ?? null
                 ));
                 
                 // 4. If rider is assigned, create payout and rider_orders records
                 if (!empty($delivery_data['assigned_rider_id'])) {
-                    $rider_pay = Zaikon_Riders::calculate_rider_pay($delivery_data['assigned_rider_id'], $delivery_data['distance_km']);
+                    $rider_pay = $delivery_data['rider_payout_amount'] ?? Zaikon_Riders::calculate_rider_pay($delivery_data['assigned_rider_id'], $delivery_data['distance_km']);
                     
                     $payout_id = Zaikon_Rider_Payouts::create(array(
                         'delivery_id' => $delivery_id,
@@ -184,10 +197,20 @@ class Zaikon_Order_Service {
             return false;
         }
         
-        // Update delivery with rider
-        $result = Zaikon_Deliveries::update($delivery_id, array(
-            'assigned_rider_id' => $rider_id
-        ));
+        // Calculate rider payout data
+        $payout_data = self::calculate_rider_payout_data($rider_id, $delivery->distance_km);
+        
+        if (!$payout_data) {
+            return false;
+        }
+        
+        // Update delivery with rider and payout information
+        $update_data = array_merge(
+            array('assigned_rider_id' => $rider_id),
+            $payout_data
+        );
+        
+        $result = Zaikon_Deliveries::update($delivery_id, $update_data);
         
         if (!$result) {
             return false;
@@ -197,19 +220,18 @@ class Zaikon_Order_Service {
         $existing_payout = Zaikon_Rider_Payouts::get_by_delivery($delivery_id);
         
         if (!$existing_payout) {
-            $rider_pay = Zaikon_Riders::calculate_rider_pay($rider_id, $delivery->distance_km);
-            
             Zaikon_Rider_Payouts::create(array(
                 'delivery_id' => $delivery_id,
                 'rider_id' => $rider_id,
-                'rider_pay_rs' => $rider_pay
+                'rider_pay_rs' => $payout_data['rider_payout_amount']
             ));
         }
         
         // Log assignment
         Zaikon_System_Events::log('delivery', $delivery_id, 'assign_rider', array(
             'rider_id' => $rider_id,
-            'previous_rider_id' => $delivery->assigned_rider_id
+            'previous_rider_id' => $delivery->assigned_rider_id,
+            'rider_payout_amount' => $payout_data['rider_payout_amount']
         ));
         
         return true;
@@ -239,6 +261,9 @@ class Zaikon_Order_Service {
             return array('success' => false, 'message' => 'Failed to assign rider to delivery');
         }
         
+        // Get updated delivery record with payout information
+        $updated_delivery = Zaikon_Deliveries::get($delivery->id);
+        
         // Create or update rider_order record
         $existing_rider_order = Zaikon_Rider_Orders::get_by_order($order_id);
         
@@ -257,14 +282,52 @@ class Zaikon_Order_Service {
             ));
         }
         
-        // Calculate estimated payout
-        $estimated_payout = Zaikon_Riders::calculate_rider_pay($rider_id, $delivery->distance_km);
-        
         return array(
             'success' => true,
             'message' => 'Rider assigned successfully',
             'delivery_id' => $delivery->id,
-            'estimated_payout' => $estimated_payout
+            'estimated_payout' => $updated_delivery->rider_payout_amount ?? 0
         );
+    }
+    
+    /**
+     * Calculate rider payout data for a delivery
+     * 
+     * @param int $rider_id Rider ID
+     * @param float $distance_km Distance in kilometers
+     * @return array Payout data including amount, slab, type, and rate
+     */
+    private static function calculate_rider_payout_data($rider_id, $distance_km) {
+        $rider = Zaikon_Riders::get($rider_id);
+        if (!$rider) {
+            return null;
+        }
+        
+        $rider_pay = Zaikon_Riders::calculate_rider_pay($rider_id, $distance_km);
+        
+        return array(
+            'rider_payout_amount' => $rider_pay,
+            'rider_payout_slab' => self::determine_payout_slab($distance_km),
+            'payout_type' => $rider->payout_type ?? 'per_km',
+            'payout_per_km_rate' => $rider->per_km_rate ?? null
+        );
+    }
+    
+    /**
+     * Determine distance-based payout slab
+     * 
+     * @param float $distance_km Distance in kilometers
+     * @return string Slab identifier
+     */
+    private static function determine_payout_slab($distance_km) {
+        $distance = floatval($distance_km);
+        
+        if ($distance <= 5) {
+            return '0-5km';
+        } elseif ($distance <= 10) {
+            return '5-10km';
+        } else {
+            return '10+km';
+        }
     }
 }
