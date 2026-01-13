@@ -415,6 +415,7 @@ class RPOS_REST_API {
         }
         
         // Prepare delivery data
+        $special_instructions = sanitize_textarea_field($data['special_instructions'] ?? '');
         $delivery_data = array(
             'customer_name' => sanitize_text_field($data['customer_name'] ?? ''),
             'customer_phone' => sanitize_text_field($data['customer_phone'] ?? ''),
@@ -423,7 +424,7 @@ class RPOS_REST_API {
             'distance_km' => $distance_km,
             'delivery_charges_rs' => $delivery_charge,
             'is_free_delivery' => ($delivery_charge == 0) ? 1 : 0,
-            'special_instruction' => sanitize_textarea_field($data['special_instructions'] ?? ''),
+            'special_instruction' => $special_instructions,
             'delivery_status' => 'pending',
             'assigned_rider_id' => (isset($data['rider_id']) && $data['rider_id'] > 0) ? absint($data['rider_id']) : null
         );
@@ -439,6 +440,20 @@ class RPOS_REST_API {
         
         // Log successful creation
         error_log('ZAIKON: Delivery order created successfully - Order ID: ' . $result['order_id'] . ', Delivery ID: ' . ($result['delivery_id'] ?? 'N/A'));
+        
+        // Also create in legacy rpos_orders for KDS compatibility
+        $legacy_order_data = array(
+            'order_number' => $order_number,
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'total' => $subtotal + $delivery_charge - $discount,
+            'status' => 'new',
+            'order_type' => 'delivery',
+            'special_instructions' => $special_instructions,
+            'items' => $data['items'],
+            'cashier_id' => get_current_user_id()
+        );
+        RPOS_Orders::create($legacy_order_data);
         
         // Deduct stock for completed orders
         if (!empty($data['items'])) {
@@ -779,10 +794,22 @@ class RPOS_REST_API {
             return new WP_Error('calculation_error', $result['error'], array('status' => 400));
         }
         
+        // Get distance_km for the response
+        $distance_km = 0;
+        if (!empty($params['location_id'])) {
+            $location = Zaikon_Delivery_Locations::get(intval($params['location_id']));
+            if ($location) {
+                $distance_km = floatval($location->distance_km);
+            }
+        } elseif (isset($params['distance_km'])) {
+            $distance_km = floatval($params['distance_km']);
+        }
+        
         return rest_ensure_response(array(
             'delivery_charges_rs' => $result['charge_rs'],
             'is_free_delivery' => $result['is_free_delivery'],
-            'rule_type' => $result['rule_type']
+            'rule_type' => $result['rule_type'],
+            'distance_km' => $distance_km
         ));
     }
     

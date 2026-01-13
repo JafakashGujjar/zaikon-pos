@@ -975,7 +975,7 @@
     background: #f8f9fa;
     border: 2px solid #e0e5eb;
     border-radius: 8px;
-    margin: 15px 0;
+    margin: 15px;
     overflow: hidden;
     animation: slideDown 0.3s ease-out;
 }

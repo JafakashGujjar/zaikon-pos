@@ -50,41 +50,6 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                     <p><?php echo esc_html__('Loading products...', 'restaurant-pos'); ?></p>
                 </div>
             </div>
-        </div>
-        
-        <!-- Right Side: Cart & Checkout -->
-        <div class="zaikon-pos-right">
-            <div class="zaikon-cart-header">
-                <h3><?php echo esc_html__('Current Order', 'restaurant-pos'); ?></h3>
-                <button class="zaikon-clear-cart-btn" id="rpos-clear-cart">
-                    <?php echo esc_html__('Clear', 'restaurant-pos'); ?>
-                </button>
-            </div>
-            
-            <div class="zaikon-cart-items" id="rpos-cart-items">
-                <div class="zaikon-cart-empty">
-                    <?php echo esc_html__('Cart is empty. Add products to start an order.', 'restaurant-pos'); ?>
-                </div>
-            </div>
-            
-            <div class="zaikon-cart-totals">
-                <div class="zaikon-total-row">
-                    <span><?php echo esc_html__('Subtotal:', 'restaurant-pos'); ?></span>
-                    <span id="rpos-subtotal"><?php echo esc_html($currency); ?>0.00</span>
-                </div>
-                <div class="zaikon-total-row" id="rpos-delivery-charge-row" style="display: none;">
-                    <span><?php echo esc_html__('Delivery Charge:', 'restaurant-pos'); ?></span>
-                    <span id="rpos-delivery-charge-display"><?php echo esc_html($currency); ?>0.00</span>
-                </div>
-                <div class="zaikon-total-row">
-                    <span><?php echo esc_html__('Discount:', 'restaurant-pos'); ?></span>
-                    <input type="number" id="rpos-discount" step="0.01" min="0" value="0.00" placeholder="0.00">
-                </div>
-                <div class="zaikon-total-row zaikon-grand-total">
-                    <span><?php echo esc_html__('Total:', 'restaurant-pos'); ?></span>
-                    <span id="rpos-total"><?php echo esc_html($currency); ?>0.00</span>
-                </div>
-            </div>
             
             <!-- Inline Delivery Panel -->
             <div id="zaikon-delivery-panel" class="zaikon-delivery-panel" style="display:none;">
@@ -129,6 +94,41 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                         <button type="button" class="zaikon-btn zaikon-btn-primary" id="zaikon-save-delivery"><?php echo esc_html__('Save Delivery Details', 'restaurant-pos'); ?></button>
                         <button type="button" class="zaikon-btn zaikon-btn-secondary" id="zaikon-cancel-delivery"><?php echo esc_html__('Cancel Delivery', 'restaurant-pos'); ?></button>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side: Cart & Checkout -->
+        <div class="zaikon-pos-right">
+            <div class="zaikon-cart-header">
+                <h3><?php echo esc_html__('Current Order', 'restaurant-pos'); ?></h3>
+                <button class="zaikon-clear-cart-btn" id="rpos-clear-cart">
+                    <?php echo esc_html__('Clear', 'restaurant-pos'); ?>
+                </button>
+            </div>
+            
+            <div class="zaikon-cart-items" id="rpos-cart-items">
+                <div class="zaikon-cart-empty">
+                    <?php echo esc_html__('Cart is empty. Add products to start an order.', 'restaurant-pos'); ?>
+                </div>
+            </div>
+            
+            <div class="zaikon-cart-totals">
+                <div class="zaikon-total-row">
+                    <span><?php echo esc_html__('Subtotal:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-subtotal"><?php echo esc_html($currency); ?>0.00</span>
+                </div>
+                <div class="zaikon-total-row" id="rpos-delivery-charge-row" style="display: none;">
+                    <span><?php echo esc_html__('Delivery Charge:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-delivery-charge-display"><?php echo esc_html($currency); ?>0.00</span>
+                </div>
+                <div class="zaikon-total-row">
+                    <span><?php echo esc_html__('Discount:', 'restaurant-pos'); ?></span>
+                    <input type="number" id="rpos-discount" step="0.01" min="0" value="0.00" placeholder="0.00">
+                </div>
+                <div class="zaikon-total-row zaikon-grand-total">
+                    <span><?php echo esc_html__('Total:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-total"><?php echo esc_html($currency); ?>0.00</span>
                 </div>
             </div>
             
