@@ -417,7 +417,8 @@ class RPOS_REST_API {
             'delivery_charges_rs' => $delivery_charge,
             'is_free_delivery' => ($delivery_charge == 0) ? 1 : 0,
             'special_instruction' => sanitize_textarea_field($data['special_instructions'] ?? ''),
-            'delivery_status' => 'pending'
+            'delivery_status' => 'pending',
+            'assigned_rider_id' => isset($data['rider_id']) ? absint($data['rider_id']) : null
         );
         
         // Create order atomically using Zaikon_Order_Service
