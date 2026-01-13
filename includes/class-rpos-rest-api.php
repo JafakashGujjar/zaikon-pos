@@ -103,74 +103,12 @@ class RPOS_REST_API {
             'permission_callback' => array($this, 'check_manage_inventory_permission')
         ));
         
-        // Delivery Areas endpoints
+        // Delivery Areas endpoints (read-only for compatibility)
         register_rest_route($namespace, '/delivery-areas', array(
             array(
                 'methods' => 'GET',
                 'callback' => array($this, 'get_delivery_areas'),
                 'permission_callback' => array($this, 'check_permission')
-            ),
-            array(
-                'methods' => 'POST',
-                'callback' => array($this, 'create_delivery_area'),
-                'permission_callback' => array($this, 'check_manage_settings_permission')
-            )
-        ));
-        
-        register_rest_route($namespace, '/delivery-areas/(?P<id>\d+)', array(
-            array(
-                'methods' => 'GET',
-                'callback' => array($this, 'get_delivery_area'),
-                'permission_callback' => array($this, 'check_permission')
-            ),
-            array(
-                'methods' => 'PUT',
-                'callback' => array($this, 'update_delivery_area'),
-                'permission_callback' => array($this, 'check_manage_settings_permission')
-            ),
-            array(
-                'methods' => 'DELETE',
-                'callback' => array($this, 'delete_delivery_area'),
-                'permission_callback' => array($this, 'check_manage_settings_permission')
-            )
-        ));
-        
-        // Delivery Charge calculation endpoint
-        register_rest_route($namespace, '/delivery-charge/(?P<area_id>\d+)', array(
-            'methods' => 'GET',
-            'callback' => array($this, 'calculate_delivery_charge'),
-            'permission_callback' => array($this, 'check_permission')
-        ));
-        
-        // Delivery Logs endpoints
-        register_rest_route($namespace, '/delivery-logs', array(
-            array(
-                'methods' => 'GET',
-                'callback' => array($this, 'get_delivery_logs'),
-                'permission_callback' => array($this, 'check_permission')
-            ),
-            array(
-                'methods' => 'POST',
-                'callback' => array($this, 'create_delivery_log'),
-                'permission_callback' => array($this, 'check_manage_inventory_permission')
-            )
-        ));
-        
-        register_rest_route($namespace, '/delivery-logs/(?P<id>\d+)', array(
-            array(
-                'methods' => 'GET',
-                'callback' => array($this, 'get_delivery_log'),
-                'permission_callback' => array($this, 'check_permission')
-            ),
-            array(
-                'methods' => 'PUT',
-                'callback' => array($this, 'update_delivery_log'),
-                'permission_callback' => array($this, 'check_manage_inventory_permission')
-            ),
-            array(
-                'methods' => 'DELETE',
-                'callback' => array($this, 'delete_delivery_log'),
-                'permission_callback' => array($this, 'check_manage_inventory_permission')
             )
         ));
         
@@ -600,180 +538,18 @@ class RPOS_REST_API {
         $params = $request->get_params();
         $active_only = isset($params['active_only']) ? (bool)$params['active_only'] : false;
         
-        // Try to get Zaikon locations first (new system)
+        // Get Zaikon delivery locations (new system only)
         $zaikon_locations = Zaikon_Delivery_Locations::get_all($active_only);
         
-        if (!empty($zaikon_locations)) {
-            // Return Zaikon locations with normalized field names for compatibility
-            $areas = array();
-            foreach ($zaikon_locations as $location) {
-                $area = (array) $location;
-                // Add distance_value for backward compatibility with old code
-                $area['distance_value'] = $location->distance_km;
-                $areas[] = (object) $area;
-            }
-            return rest_ensure_response($areas);
+        // Return Zaikon locations with normalized field names for compatibility
+        $areas = array();
+        foreach ($zaikon_locations as $location) {
+            $area = (array) $location;
+            // Add distance_value for backward compatibility with old code
+            $area['distance_value'] = $location->distance_km;
+            $areas[] = (object) $area;
         }
-        
-        // Fallback to old RPOS system if no Zaikon locations exist
-        $areas = RPOS_Delivery_Areas::get_all($active_only);
         return rest_ensure_response($areas);
-    }
-    
-    /**
-     * Get single delivery area
-     */
-    public function get_delivery_area($request) {
-        $id = $request['id'];
-        $area = RPOS_Delivery_Areas::get($id);
-        
-        if (!$area) {
-            return new WP_Error('not_found', 'Delivery area not found', array('status' => 404));
-        }
-        
-        return rest_ensure_response($area);
-    }
-    
-    /**
-     * Create delivery area
-     */
-    public function create_delivery_area($request) {
-        $data = $request->get_json_params();
-        
-        $area_id = RPOS_Delivery_Areas::create($data);
-        
-        if (!$area_id) {
-            return new WP_Error('creation_failed', 'Failed to create delivery area', array('status' => 500));
-        }
-        
-        return rest_ensure_response(array('id' => $area_id));
-    }
-    
-    /**
-     * Update delivery area
-     */
-    public function update_delivery_area($request) {
-        $id = $request['id'];
-        $data = $request->get_json_params();
-        
-        $result = RPOS_Delivery_Areas::update($id, $data);
-        
-        if ($result === false) {
-            return new WP_Error('update_failed', 'Failed to update delivery area', array('status' => 500));
-        }
-        
-        return rest_ensure_response(array('success' => true));
-    }
-    
-    /**
-     * Delete delivery area
-     */
-    public function delete_delivery_area($request) {
-        $id = $request['id'];
-        
-        $result = RPOS_Delivery_Areas::delete($id);
-        
-        if ($result === false) {
-            return new WP_Error('delete_failed', 'Failed to delete delivery area', array('status' => 500));
-        }
-        
-        return rest_ensure_response(array('success' => true));
-    }
-    
-    /**
-     * Calculate delivery charge
-     */
-    public function calculate_delivery_charge($request) {
-        $area_id = $request['area_id'];
-        $params = $request->get_params();
-        $subtotal = isset($params['subtotal']) ? floatval($params['subtotal']) : 0;
-        
-        $minimum_free_delivery = floatval(RPOS_Delivery_Settings::get('minimum_free_delivery_amount', 0));
-        
-        $charge = RPOS_Delivery_Charges::calculate_charge($subtotal, $area_id, $minimum_free_delivery);
-        
-        return rest_ensure_response(array(
-            'delivery_charge' => $charge,
-            'is_free' => $charge == 0 && $subtotal >= $minimum_free_delivery
-        ));
-    }
-    
-    /**
-     * Get delivery logs
-     */
-    public function get_delivery_logs($request) {
-        $params = $request->get_params();
-        
-        $args = array(
-            'date_from' => $params['date_from'] ?? '',
-            'date_to' => $params['date_to'] ?? '',
-            'rider_id' => $params['rider_id'] ?? '',
-            'bike_id' => $params['bike_id'] ?? '',
-            'limit' => $params['limit'] ?? 50
-        );
-        
-        $logs = RPOS_Delivery_Logs::get_all($args);
-        return rest_ensure_response($logs);
-    }
-    
-    /**
-     * Get single delivery log
-     */
-    public function get_delivery_log($request) {
-        $id = $request['id'];
-        $log = RPOS_Delivery_Logs::get($id);
-        
-        if (!$log) {
-            return new WP_Error('not_found', 'Delivery log not found', array('status' => 404));
-        }
-        
-        return rest_ensure_response($log);
-    }
-    
-    /**
-     * Create delivery log
-     */
-    public function create_delivery_log($request) {
-        $data = $request->get_json_params();
-        
-        $log_id = RPOS_Delivery_Logs::create($data);
-        
-        if (!$log_id) {
-            return new WP_Error('creation_failed', 'Failed to create delivery log', array('status' => 500));
-        }
-        
-        return rest_ensure_response(array('id' => $log_id));
-    }
-    
-    /**
-     * Update delivery log
-     */
-    public function update_delivery_log($request) {
-        $id = $request['id'];
-        $data = $request->get_json_params();
-        
-        $result = RPOS_Delivery_Logs::update($id, $data);
-        
-        if ($result === false) {
-            return new WP_Error('update_failed', 'Failed to update delivery log', array('status' => 500));
-        }
-        
-        return rest_ensure_response(array('success' => true));
-    }
-    
-    /**
-     * Delete delivery log
-     */
-    public function delete_delivery_log($request) {
-        $id = $request['id'];
-        
-        $result = RPOS_Delivery_Logs::delete($id);
-        
-        if ($result === false) {
-            return new WP_Error('delete_failed', 'Failed to delete delivery log', array('status' => 500));
-        }
-        
-        return rest_ensure_response(array('success' => true));
     }
     
     /**
