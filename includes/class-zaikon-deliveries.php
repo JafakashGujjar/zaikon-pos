@@ -25,6 +25,7 @@ class Zaikon_Deliveries {
             'delivery_charges_rs' => floatval($data['delivery_charges_rs']),
             'is_free_delivery' => intval($data['is_free_delivery'] ?? 0),
             'special_instruction' => sanitize_text_field($data['special_instruction'] ?? ''),
+            'delivery_instructions' => sanitize_text_field($data['delivery_instructions'] ?? ''),
             'assigned_rider_id' => isset($data['assigned_rider_id']) ? absint($data['assigned_rider_id']) : null,
             'delivery_status' => sanitize_text_field($data['delivery_status'] ?? 'pending'),
             'created_at' => current_time('mysql'),
@@ -34,7 +35,7 @@ class Zaikon_Deliveries {
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_deliveries',
             $delivery_data,
-            array('%d', '%s', '%s', '%d', '%s', '%f', '%f', '%d', '%s', '%d', '%s', '%s', '%s')
+            array('%d', '%s', '%s', '%d', '%s', '%f', '%f', '%d', '%s', '%s', '%d', '%s', '%s', '%s')
         );
         
         if (!$result) {

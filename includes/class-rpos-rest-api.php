@@ -415,7 +415,8 @@ class RPOS_REST_API {
         }
         
         // Prepare delivery data
-        $special_instructions = sanitize_textarea_field($data['special_instructions'] ?? '');
+        $kitchen_instructions = sanitize_textarea_field($data['special_instructions'] ?? '');
+        $delivery_instructions = sanitize_textarea_field($data['delivery_instructions'] ?? '');
         $delivery_data = array(
             'customer_name' => sanitize_text_field($data['customer_name'] ?? ''),
             'customer_phone' => sanitize_text_field($data['customer_phone'] ?? ''),
@@ -424,7 +425,8 @@ class RPOS_REST_API {
             'distance_km' => $distance_km,
             'delivery_charges_rs' => $delivery_charge,
             'is_free_delivery' => ($delivery_charge == 0) ? 1 : 0,
-            'special_instruction' => $special_instructions,
+            'special_instruction' => $delivery_instructions, // For backward compatibility
+            'delivery_instructions' => $delivery_instructions,
             'delivery_status' => 'pending',
             'assigned_rider_id' => (isset($data['rider_id']) && $data['rider_id'] > 0) ? absint($data['rider_id']) : null
         );
@@ -449,7 +451,7 @@ class RPOS_REST_API {
             'total' => $subtotal + $delivery_charge - $discount,
             'status' => 'new',
             'order_type' => 'delivery',
-            'special_instructions' => $special_instructions,
+            'special_instructions' => $kitchen_instructions, // Kitchen instructions only
             'items' => $data['items'],
             'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id()),
             'is_delivery' => true,

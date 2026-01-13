@@ -1020,6 +1020,17 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$safe_table}` MODIFY `delivery_status` enum('pending','assigned','picked','on_route','delivered','failed') DEFAULT 'pending'");
         }
         
+        // Add delivery_instructions column to separate delivery vs kitchen instructions
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'delivery_instructions'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `delivery_instructions` varchar(255) DEFAULT NULL AFTER `special_instruction`");
+        }
+        
         // Create rider_orders records for existing deliveries with assigned riders
         $existing_deliveries = $wpdb->get_results(
             "SELECT d.*, o.order_number 

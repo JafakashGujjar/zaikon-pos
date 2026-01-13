@@ -441,7 +441,8 @@
             }
             
             var changeDue = cashReceived - total;
-            var specialInstructions = $('#rpos-special-instructions, #zaikon-special-instructions').val().trim();
+            // Kitchen special instructions from the right sidebar
+            var kitchenInstructions = $('#rpos-special-instructions').val().trim();
             
             var orderData = {
                 subtotal: subtotal,
@@ -451,7 +452,7 @@
                 change_due: changeDue,
                 status: 'new',
                 order_type: orderType,
-                special_instructions: specialInstructions,
+                special_instructions: kitchenInstructions,
                 items: this.cart.map(function(item) {
                     return {
                         product_id: item.product.id,
@@ -472,7 +473,7 @@
                 orderData.distance_km = this.deliveryData.distance_km || 0;
                 orderData.is_free_delivery = this.deliveryData.is_free_delivery || 0;
                 orderData.location_name = this.deliveryData.location_name || '';
-                orderData.special_instructions = this.deliveryData.special_instructions || '';
+                orderData.delivery_instructions = this.deliveryData.delivery_instructions || '';
                 orderData.rider_id = this.deliveryData.rider_id !== undefined && this.deliveryData.rider_id !== null ? this.deliveryData.rider_id : null;
             }
             
@@ -871,8 +872,8 @@
                 slipContent += ' (' + orderData.distance_km + ' km)';
             }
             slipContent += '</div>';
-            if (orderData.special_instructions && orderData.special_instructions.trim()) {
-                slipContent += '<div class="row"><span class="label">Instructions:</span> ' + orderData.special_instructions + '</div>';
+            if (orderData.delivery_instructions && orderData.delivery_instructions.trim()) {
+                slipContent += '<div class="row"><span class="label">Instructions:</span> ' + orderData.delivery_instructions + '</div>';
             }
             slipContent += '</div>';
             
@@ -1069,7 +1070,7 @@
                 is_free_delivery: this.deliveryCalculation.is_free_delivery ? 1 : 0,
                 customer_name: name,
                 customer_phone: phone,
-                special_instructions: instructions,
+                delivery_instructions: instructions,
                 rider_id: (riderId && riderId !== '') ? parseInt(riderId) : null,
                 rider_name: riderName
             };
