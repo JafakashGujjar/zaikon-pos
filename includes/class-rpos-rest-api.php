@@ -451,9 +451,20 @@ class RPOS_REST_API {
             'order_type' => 'delivery',
             'special_instructions' => $special_instructions,
             'items' => $data['items'],
-            'cashier_id' => get_current_user_id()
+            'cashier_id' => get_current_user_id(),
+            'is_delivery' => true,
+            'delivery_charge' => $delivery_charge,
+            'area_id' => $location_id,
+            'customer_name' => sanitize_text_field($data['customer_name'] ?? ''),
+            'customer_phone' => sanitize_text_field($data['customer_phone'] ?? '')
         );
-        RPOS_Orders::create($legacy_order_data);
+        $legacy_order_id = RPOS_Orders::create($legacy_order_data);
+        
+        if (!$legacy_order_id) {
+            error_log('ZAIKON: Warning - Failed to create legacy order in rpos_orders for KDS. Order ID: ' . $result['order_id']);
+        } else {
+            error_log('ZAIKON: Legacy order created in rpos_orders for KDS. Legacy Order ID: ' . $legacy_order_id);
+        }
         
         // Deduct stock for completed orders
         if (!empty($data['items'])) {
