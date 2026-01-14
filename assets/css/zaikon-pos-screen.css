@@ -19,6 +19,37 @@
     margin: 0 !important;
 }
 
+/* ===== FIX: REMOVE TOP EMPTY SPACE ON POS CASHIER PAGE ===== */
+/* Override WordPress admin toolbar spacing for POS cashier page only */
+html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+.restaurant-pos_page_restaurant-pos-cashier body {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Ensure the main content area starts at top */
+.restaurant-pos_page_restaurant-pos-cashier .zaikon-pos-screen,
+.restaurant-pos_page_restaurant-pos-cashier .zaikon-pos-container {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Remove any extra spacing from wpbody */
+.restaurant-pos_page_restaurant-pos-cashier #wpbody {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Ensure the delivery panel is visible without scrolling */
+.restaurant-pos_page_restaurant-pos-cashier .zaikon-delivery-panel,
+.restaurant-pos_page_restaurant-pos-cashier .zaikon-order-details {
+    margin-top: 0;
+}
+
 /* ===== POS CONTAINER ===== */
 .zaikon-pos-screen {
     background: var(--zaikon-bg-primary);
