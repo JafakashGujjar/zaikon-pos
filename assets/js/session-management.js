@@ -18,8 +18,8 @@
             // Open shift
             $('#rpos-confirm-open-shift').on('click', this.openShift.bind(this));
             
-            // Close shift
-            $('#rpos-close-shift-btn').on('click', this.showCloseShiftModal.bind(this));
+            // Close shift - handle both button and icon button
+            $('#rpos-close-shift-btn, #rpos-close-shift-icon-btn').on('click', this.showCloseShiftModal.bind(this));
             $('#rpos-confirm-close-shift').on('click', this.closeShift.bind(this));
             $('#rpos-cancel-close-shift, #rpos-close-shift-modal-close').on('click', function() {
                 $('#rpos-close-shift-modal').fadeOut(200);

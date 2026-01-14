@@ -141,25 +141,15 @@
                 self.renderProducts();
             });
             
-            // Order Type Pills
-            $('.zaikon-order-type-pill').on('click', function() {
-                var orderType = $(this).data('order-type');
+            // Order Type Pills - Changed to dropdown
+            $('#rpos-order-type').on('change', function() {
+                var orderType = $(this).val();
                 
                 // If delivery is selected, show inline delivery panel
                 if (orderType === 'delivery') {
-                    // Set order type immediately when delivery is clicked
-                    $('.zaikon-order-type-pill').removeClass('active');
-                    $(this).addClass('active');
-                    $('#rpos-order-type').val('delivery');
-                    
                     // Show the inline delivery panel
                     self.openDeliveryPanel();
                 } else {
-                    // Regular order type change
-                    $('.zaikon-order-type-pill').removeClass('active');
-                    $(this).addClass('active');
-                    $('#rpos-order-type').val(orderType);
-                    
                     // Clear delivery data if switching away from delivery
                     self.deliveryData = null;
                     $('#zaikon-delivery-panel').slideUp();
@@ -215,8 +205,6 @@
                 $('#rpos-cash-received').val('');
                 $('#rpos-discount').val('0.00');
                 $('#rpos-order-type').val('dine-in');
-                $('.zaikon-order-type-pill').removeClass('active');
-                $('.zaikon-order-type-pill[data-order-type="dine-in"]').addClass('active');
                 $('#rpos-special-instructions').val('');
                 
                 // Clear and hide delivery panel
@@ -1108,9 +1096,7 @@
                 rider_name: riderName
             };
             
-            // Update order type
-            $('.zaikon-order-type-pill').removeClass('active');
-            $('.zaikon-order-type-pill[data-order-type="delivery"]').addClass('active');
+            // Update order type (already set to delivery)
             $('#rpos-order-type').val('delivery');
             
             // Hide delivery panel
@@ -1147,8 +1133,6 @@
             var currentType = $('#rpos-order-type').val();
             if (currentType === 'delivery') {
                 $('#rpos-order-type').val('dine-in');
-                $('.zaikon-order-type-pill').removeClass('active');
-                $('.zaikon-order-type-pill[data-order-type="dine-in"]').addClass('active');
             }
             
             // Update totals

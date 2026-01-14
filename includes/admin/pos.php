@@ -138,9 +138,14 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
         <div class="zaikon-pos-right">
             <div class="zaikon-cart-header">
                 <h3><?php echo esc_html__('Current Order', 'restaurant-pos'); ?></h3>
-                <button class="zaikon-clear-cart-btn" id="rpos-clear-cart">
-                    <?php echo esc_html__('Clear', 'restaurant-pos'); ?>
-                </button>
+                <div class="zaikon-cart-header-actions">
+                    <button class="zaikon-clear-cart-btn" id="rpos-clear-cart">
+                        <?php echo esc_html__('Clear', 'restaurant-pos'); ?>
+                    </button>
+                    <button class="zaikon-close-shift-icon-btn" id="rpos-close-shift-icon-btn" title="<?php echo esc_attr__('Close Shift', 'restaurant-pos'); ?>">
+                        <span class="dashicons dashicons-exit"></span>
+                    </button>
+                </div>
             </div>
             
             <div class="zaikon-cart-items" id="rpos-cart-items">
@@ -170,28 +175,23 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             
             <div class="zaikon-order-details">
                 <h4><?php echo esc_html__('Order Details', 'restaurant-pos'); ?></h4>
-                <div class="zaikon-order-field">
-                    <label><?php echo esc_html__('Order Type:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
-                    <div class="zaikon-order-type-pills">
-                        <button type="button" class="zaikon-order-type-pill active" data-order-type="dine-in">
-                            <?php echo esc_html__('Dine-in', 'restaurant-pos'); ?>
-                        </button>
-                        <button type="button" class="zaikon-order-type-pill" data-order-type="takeaway">
-                            <?php echo esc_html__('Takeaway', 'restaurant-pos'); ?>
-                        </button>
-                        <button type="button" class="zaikon-order-type-pill" data-order-type="delivery">
-                            <?php echo esc_html__('Delivery', 'restaurant-pos'); ?>
-                        </button>
+                <div class="zaikon-order-type-payment-row">
+                    <div class="zaikon-order-field zaikon-order-field-half">
+                        <label><?php echo esc_html__('Order Type:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
+                        <select id="rpos-order-type" class="zaikon-select">
+                            <option value="dine-in" selected><?php echo esc_html__('Dine-in', 'restaurant-pos'); ?></option>
+                            <option value="takeaway"><?php echo esc_html__('Takeaway', 'restaurant-pos'); ?></option>
+                            <option value="delivery"><?php echo esc_html__('Delivery', 'restaurant-pos'); ?></option>
+                        </select>
                     </div>
-                    <input type="hidden" id="rpos-order-type" value="dine-in">
-                </div>
-                <div class="zaikon-order-field">
-                    <label><?php echo esc_html__('Payment Type:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
-                    <select id="rpos-payment-type" class="zaikon-select">
-                        <option value="cash" selected><?php echo esc_html__('Cash Payment', 'restaurant-pos'); ?></option>
-                        <option value="cod"><?php echo esc_html__('Cash on Delivery (COD)', 'restaurant-pos'); ?></option>
-                        <option value="online"><?php echo esc_html__('Online Payment', 'restaurant-pos'); ?></option>
-                    </select>
+                    <div class="zaikon-order-field zaikon-order-field-half">
+                        <label><?php echo esc_html__('Payment Type:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
+                        <select id="rpos-payment-type" class="zaikon-select">
+                            <option value="cash" selected><?php echo esc_html__('Cash Payment', 'restaurant-pos'); ?></option>
+                            <option value="cod"><?php echo esc_html__('Cash on Delivery (COD)', 'restaurant-pos'); ?></option>
+                            <option value="online"><?php echo esc_html__('Online Payment', 'restaurant-pos'); ?></option>
+                        </select>
+                    </div>
                 </div>
                 <div class="zaikon-order-field">
                     <label><?php echo esc_html__('Special Instructions:', 'restaurant-pos'); ?></label>
@@ -216,10 +216,6 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             <div class="zaikon-checkout-actions">
                 <button class="zaikon-complete-order-btn" id="rpos-complete-order">
                     <?php echo esc_html__('Complete Order', 'restaurant-pos'); ?>
-                </button>
-                <button class="zaikon-close-shift-btn" id="rpos-close-shift-btn" style="margin-top: 10px;">
-                    <span class="dashicons dashicons-exit"></span>
-                    <?php echo esc_html__('Close Shift', 'restaurant-pos'); ?>
                 </button>
             </div>
         </div>
