@@ -62,6 +62,7 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-database.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-roles.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-admin-menu.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-admin-notices.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-products.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-categories.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-inventory.php';
@@ -107,6 +108,7 @@ class Restaurant_POS {
         register_deactivation_hook(__FILE__, array('RPOS_Install', 'deactivate'));
         
         add_action('init', array($this, 'init'), 0);
+        add_action('plugins_loaded', array($this, 'check_version_and_migrate'), 5);
         add_action('admin_enqueue_scripts', array($this, 'admin_scripts'));
         add_action('wp_enqueue_scripts', array($this, 'frontend_scripts'));
         
@@ -116,11 +118,31 @@ class Restaurant_POS {
     }
     
     /**
+     * Check plugin version and run migrations if needed
+     */
+    public function check_version_and_migrate() {
+        $stored_version = get_option('rpos_version', '0.0.0');
+        
+        // If version has changed, run migrations
+        if (version_compare($stored_version, RPOS_VERSION, '<')) {
+            // Run the rider system migration
+            RPOS_Install::migrate_rider_system();
+            
+            // Update the stored version
+            update_option('rpos_version', RPOS_VERSION);
+            
+            // Log the upgrade
+            error_log('RPOS: Plugin upgraded from ' . $stored_version . ' to ' . RPOS_VERSION);
+        }
+    }
+    
+    /**
      * Init Restaurant POS when WordPress initializes
      */
     public function init() {
         // Initialize components
         RPOS_Admin_Menu::instance();
+        RPOS_Admin_Notices::instance();
         RPOS_REST_API::instance();
         
         // Load plugin text domain

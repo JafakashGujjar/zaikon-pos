@@ -972,7 +972,7 @@ class RPOS_Install {
     /**
      * Migrate rider system to new flexible payout model
      */
-    private static function migrate_rider_system() {
+    public static function migrate_rider_system() {
         global $wpdb;
         
         // Check if payout columns exist in zaikon_riders table
