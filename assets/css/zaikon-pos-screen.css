@@ -21,13 +21,12 @@
 
 /* ===== FIX: REMOVE TOP EMPTY SPACE ON POS CASHIER PAGE ===== */
 /* Override WordPress admin toolbar spacing for POS cashier page only */
-.restaurant-pos_page_restaurant-pos-cashier html.wp-toolbar {
+html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     padding-top: 0 !important;
     margin-top: 0 !important;
 }
 
-/* Alternative selector for html.wp-toolbar when page class is on body */
-html.wp-toolbar body.restaurant-pos_page_restaurant-pos-cashier {
+.restaurant-pos_page_restaurant-pos-cashier body {
     margin-top: 0 !important;
     padding-top: 0 !important;
 }
