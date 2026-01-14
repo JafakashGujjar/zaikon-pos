@@ -1354,3 +1354,125 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     box-shadow: 0 0 0 3px rgba(255, 138, 0, 0.1);
 }
 
+
+/* ===== EXPENSES DROPDOWN ===== */
+.zaikon-expenses-dropdown {
+    position: fixed;
+    margin-top: 8px;
+    background: var(--zaikon-white);
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    width: 450px;
+    max-height: 600px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: zaikon-slideDown var(--transition-base);
+}
+
+.zaikon-expenses-dropdown-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.zaikon-expenses-dropdown-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--zaikon-border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--zaikon-yellow);
+}
+
+.zaikon-expenses-dropdown-header h4 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--zaikon-dark);
+}
+
+.zaikon-dropdown-close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--zaikon-dark);
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+    transition: color var(--transition-base);
+}
+
+.zaikon-dropdown-close:hover {
+    color: var(--zaikon-red);
+}
+
+.zaikon-expenses-dropdown-body {
+    overflow-y: auto;
+    padding: var(--space-4);
+}
+
+.zaikon-expenses-dropdown-body h5 {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--zaikon-dark);
+}
+
+.zaikon-expenses-form {
+    background: var(--zaikon-gray-light);
+    padding: var(--space-4);
+    border-radius: 8px;
+    margin-bottom: var(--space-4);
+}
+
+.zaikon-expenses-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    background: var(--zaikon-gray-light);
+    border-radius: 6px;
+    margin-bottom: var(--space-2);
+}
+
+.zaikon-expense-info {
+    flex: 1;
+}
+
+.zaikon-expense-category {
+    font-weight: var(--font-semibold);
+    color: var(--zaikon-dark);
+    font-size: var(--text-sm);
+}
+
+.zaikon-expense-description {
+    font-size: var(--text-xs);
+    color: var(--zaikon-text-secondary);
+    margin-top: 2px;
+}
+
+.zaikon-expense-amount {
+    font-weight: var(--font-bold);
+    color: var(--zaikon-red);
+    font-size: var(--text-base);
+}
+
+/* Position expenses dropdown relative to button */
+.zaikon-pos-header-actions {
+    position: relative;
+}
+
+.zaikon-expenses-btn {
+    position: relative;
+}
+
+/* Button size variants */
+.zaikon-btn-sm {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    min-height: 32px;
+}
