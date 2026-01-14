@@ -25,6 +25,9 @@ class Zaikon_Orders {
             'taxes_rs' => floatval($data['taxes_rs'] ?? 0),
             'grand_total_rs' => floatval($data['grand_total_rs']),
             'payment_status' => sanitize_text_field($data['payment_status'] ?? 'unpaid'),
+            'payment_type' => sanitize_text_field($data['payment_type'] ?? 'cash'),
+            'order_status' => sanitize_text_field($data['order_status'] ?? 'active'),
+            'special_instructions' => isset($data['special_instructions']) ? sanitize_textarea_field($data['special_instructions']) : null,
             'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id()),
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql')
@@ -33,7 +36,7 @@ class Zaikon_Orders {
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_orders',
             $order_data,
-            array('%s', '%s', '%f', '%f', '%f', '%f', '%f', '%s', '%d', '%s', '%s')
+            array('%s', '%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%d', '%s', '%s')
         );
         
         if (!$result) {
