@@ -19,16 +19,34 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
         <div class="zaikon-pos-left">
             <div class="zaikon-pos-header">
                 <div class="zaikon-pos-header-top">
-                    <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-yellow);">POS</span></h2>
+                    <div class="zaikon-pos-branding">
+                        <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-yellow);">POS</span></h2>
+                        <p class="zaikon-dev-credit">
+                            <span style="font-size: 11px; color: var(--zaikon-gray-dark);"><?php echo esc_html__('Developed by:', 'restaurant-pos'); ?></span><br>
+                            <span style="font-size: 13px; font-weight: 600; color: var(--zaikon-dark);"><?php echo esc_html(base64_decode(RPOS_Settings::get('dev_credit', base64_encode('Muhammad Jafakash Nawaz')))); ?></span>
+                        </p>
+                    </div>
                     
-                    <!-- Notification Bell -->
-                    <div class="zaikon-notification-bell" id="rpos-notification-bell">
-                        <span class="dashicons dashicons-bell"></span>
-                        <span class="zaikon-notification-badge" id="rpos-notification-badge" style="display: none;">0</span>
+                    <div class="zaikon-pos-header-actions">
+                        <input type="search" class="zaikon-pos-search" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search" style="width: 220px;">
+                        
+                        <button class="zaikon-header-btn zaikon-expenses-btn" id="rpos-expenses-btn" title="<?php echo esc_attr__('Manage Expenses', 'restaurant-pos'); ?>">
+                            <span class="dashicons dashicons-money-alt"></span>
+                            <?php echo esc_html__('Expenses', 'restaurant-pos'); ?>
+                        </button>
+                        
+                        <!-- Notification Bell -->
+                        <div class="zaikon-notification-bell" id="rpos-notification-bell">
+                            <span class="dashicons dashicons-bell"></span>
+                            <span class="zaikon-notification-badge" id="rpos-notification-badge" style="display: none;">0</span>
+                        </div>
+                        
+                        <button class="zaikon-header-btn zaikon-orders-btn" id="rpos-orders-btn" title="<?php echo esc_attr__('View Orders', 'restaurant-pos'); ?>">
+                            <span class="dashicons dashicons-list-view"></span>
+                            <?php echo esc_html__('Orders', 'restaurant-pos'); ?>
+                        </button>
                     </div>
                 </div>
-                
-                <input type="search" class="zaikon-pos-search" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search">
                 
                 <div class="zaikon-pos-categories">
                     <button class="zaikon-category-btn active rpos-category-btn" data-category="0">
@@ -158,6 +176,14 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                     <input type="hidden" id="rpos-order-type" value="dine-in">
                 </div>
                 <div class="zaikon-order-field">
+                    <label><?php echo esc_html__('Payment Type:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
+                    <select id="rpos-payment-type" class="zaikon-select">
+                        <option value="cash" selected><?php echo esc_html__('Cash Payment', 'restaurant-pos'); ?></option>
+                        <option value="cod"><?php echo esc_html__('Cash on Delivery (COD)', 'restaurant-pos'); ?></option>
+                        <option value="online"><?php echo esc_html__('Online Payment', 'restaurant-pos'); ?></option>
+                    </select>
+                </div>
+                <div class="zaikon-order-field">
                     <label><?php echo esc_html__('Special Instructions:', 'restaurant-pos'); ?></label>
                     <textarea id="rpos-special-instructions" rows="2" placeholder="<?php echo esc_attr__('e.g., No mayo, Extra spicy, Table 5, etc.', 'restaurant-pos'); ?>"></textarea>
                 </div>
@@ -180,6 +206,10 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             <div class="zaikon-checkout-actions">
                 <button class="zaikon-complete-order-btn" id="rpos-complete-order">
                     <?php echo esc_html__('Complete Order', 'restaurant-pos'); ?>
+                </button>
+                <button class="zaikon-close-shift-btn" id="rpos-close-shift-btn" style="margin-top: 10px;">
+                    <span class="dashicons dashicons-exit"></span>
+                    <?php echo esc_html__('Close Shift', 'restaurant-pos'); ?>
                 </button>
             </div>
         </div>
@@ -244,6 +274,169 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             </button>
             <button class="zaikon-btn zaikon-btn-yellow zaikon-btn-lg" id="rpos-new-order">
                 <?php echo esc_html__('New Order', 'restaurant-pos'); ?>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Open Shift Modal -->
+<div id="rpos-open-shift-modal" class="zaikon-modal" style="display: none;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 500px;">
+        <div class="zaikon-modal-header">
+            <h3><?php echo esc_html__('Open Shift', 'restaurant-pos'); ?></h3>
+        </div>
+        <div class="zaikon-modal-body">
+            <p><?php echo esc_html__('Please enter the opening cash amount in your drawer to start your shift.', 'restaurant-pos'); ?></p>
+            <div class="zaikon-order-field" style="margin-top: 20px;">
+                <label><?php echo esc_html__('Opening Cash Amount (Rs):', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
+                <input type="number" id="rpos-opening-cash" step="0.01" min="0" value="0.00" placeholder="0.00" inputmode="numeric" style="width: 100%; padding: 10px; font-size: 18px;">
+            </div>
+            <div class="zaikon-order-field" style="margin-top: 15px;">
+                <label><?php echo esc_html__('Notes (optional):', 'restaurant-pos'); ?></label>
+                <textarea id="rpos-opening-notes" rows="2" placeholder="<?php echo esc_attr__('e.g., Morning shift, Weekend opening', 'restaurant-pos'); ?>"></textarea>
+            </div>
+        </div>
+        <div class="zaikon-modal-footer">
+            <button class="zaikon-btn zaikon-btn-primary" id="rpos-confirm-open-shift">
+                <?php echo esc_html__('Start Shift', 'restaurant-pos'); ?>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Close Shift Modal -->
+<div id="rpos-close-shift-modal" class="zaikon-modal" style="display: none;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 600px;">
+        <div class="zaikon-modal-header">
+            <h3><?php echo esc_html__('Close Shift', 'restaurant-pos'); ?></h3>
+            <button class="zaikon-modal-close" id="rpos-close-shift-modal-close">&times;</button>
+        </div>
+        <div class="zaikon-modal-body">
+            <h4><?php echo esc_html__('Shift Summary', 'restaurant-pos'); ?></h4>
+            <div class="zaikon-shift-summary">
+                <div class="zaikon-summary-row">
+                    <span><?php echo esc_html__('Opening Cash:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-summary-opening"><?php echo esc_html($currency); ?>0.00</span>
+                </div>
+                <div class="zaikon-summary-row">
+                    <span><?php echo esc_html__('Total Cash Sales:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-summary-cash-sales"><?php echo esc_html($currency); ?>0.00</span>
+                </div>
+                <div class="zaikon-summary-row">
+                    <span><?php echo esc_html__('Total COD Collected:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-summary-cod"><?php echo esc_html($currency); ?>0.00</span>
+                </div>
+                <div class="zaikon-summary-row">
+                    <span><?php echo esc_html__('Total Expenses:', 'restaurant-pos'); ?></span>
+                    <span id="rpos-summary-expenses" style="color: var(--zaikon-red);"><?php echo esc_html($currency); ?>0.00</span>
+                </div>
+                <div class="zaikon-summary-row zaikon-summary-total">
+                    <span><strong><?php echo esc_html__('Expected Cash in Drawer:', 'restaurant-pos'); ?></strong></span>
+                    <span id="rpos-summary-expected"><strong><?php echo esc_html($currency); ?>0.00</strong></span>
+                </div>
+            </div>
+            <div class="zaikon-order-field" style="margin-top: 20px;">
+                <label><?php echo esc_html__('Actual Cash Counted (Rs):', 'restaurant-pos'); ?></label>
+                <input type="number" id="rpos-closing-cash" step="0.01" min="0" placeholder="0.00" inputmode="numeric" style="width: 100%; padding: 10px; font-size: 18px;">
+            </div>
+            <div class="zaikon-order-field" style="margin-top: 15px;">
+                <label><?php echo esc_html__('Notes (optional):', 'restaurant-pos'); ?></label>
+                <textarea id="rpos-closing-notes" rows="2" placeholder="<?php echo esc_attr__('Any observations or issues', 'restaurant-pos'); ?>"></textarea>
+            </div>
+            <div id="rpos-cash-difference" style="margin-top: 15px; padding: 10px; background: var(--zaikon-gray-light); border-radius: 8px; display: none;">
+                <span><?php echo esc_html__('Difference:', 'restaurant-pos'); ?></span>
+                <span id="rpos-difference-amount" style="font-weight: bold; font-size: 18px;"></span>
+            </div>
+        </div>
+        <div class="zaikon-modal-footer">
+            <button class="zaikon-btn zaikon-btn-secondary" id="rpos-cancel-close-shift">
+                <?php echo esc_html__('Cancel', 'restaurant-pos'); ?>
+            </button>
+            <button class="zaikon-btn zaikon-btn-primary" id="rpos-confirm-close-shift">
+                <?php echo esc_html__('Close Shift', 'restaurant-pos'); ?>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Expenses Modal -->
+<div id="rpos-expenses-modal" class="zaikon-modal" style="display: none;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 700px;">
+        <div class="zaikon-modal-header">
+            <h3><?php echo esc_html__('Expenses', 'restaurant-pos'); ?></h3>
+            <button class="zaikon-modal-close" id="rpos-expenses-modal-close">&times;</button>
+        </div>
+        <div class="zaikon-modal-body">
+            <div class="zaikon-expenses-form" style="margin-bottom: 30px; padding: 20px; background: var(--zaikon-gray-light); border-radius: 8px;">
+                <h4><?php echo esc_html__('Add New Expense', 'restaurant-pos'); ?></h4>
+                <div class="zaikon-order-field">
+                    <label><?php echo esc_html__('Amount (Rs):', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
+                    <input type="number" id="rpos-expense-amount" step="0.01" min="0" placeholder="0.00" inputmode="numeric">
+                </div>
+                <div class="zaikon-order-field">
+                    <label><?php echo esc_html__('Category:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
+                    <select id="rpos-expense-category" class="zaikon-select">
+                        <option value=""><?php echo esc_html__('-- Select Category --', 'restaurant-pos'); ?></option>
+                        <option value="rider_payout"><?php echo esc_html__('Rider Payout', 'restaurant-pos'); ?></option>
+                        <option value="fuel"><?php echo esc_html__('Fuel', 'restaurant-pos'); ?></option>
+                        <option value="supplies"><?php echo esc_html__('Supplies', 'restaurant-pos'); ?></option>
+                        <option value="utilities"><?php echo esc_html__('Utilities', 'restaurant-pos'); ?></option>
+                        <option value="maintenance"><?php echo esc_html__('Maintenance', 'restaurant-pos'); ?></option>
+                        <option value="other"><?php echo esc_html__('Other', 'restaurant-pos'); ?></option>
+                    </select>
+                </div>
+                <div class="zaikon-order-field" id="rpos-expense-rider-field" style="display: none;">
+                    <label><?php echo esc_html__('Rider:', 'restaurant-pos'); ?></label>
+                    <select id="rpos-expense-rider" class="zaikon-select">
+                        <option value=""><?php echo esc_html__('-- Select Rider --', 'restaurant-pos'); ?></option>
+                    </select>
+                </div>
+                <div class="zaikon-order-field">
+                    <label><?php echo esc_html__('Description:', 'restaurant-pos'); ?></label>
+                    <textarea id="rpos-expense-description" rows="2" placeholder="<?php echo esc_attr__('Optional notes about this expense', 'restaurant-pos'); ?>"></textarea>
+                </div>
+                <button class="zaikon-btn zaikon-btn-primary" id="rpos-add-expense">
+                    <span class="dashicons dashicons-plus-alt"></span>
+                    <?php echo esc_html__('Add Expense', 'restaurant-pos'); ?>
+                </button>
+            </div>
+            
+            <h4><?php echo esc_html__('Today\'s Expenses', 'restaurant-pos'); ?></h4>
+            <div id="rpos-expenses-list" style="max-height: 300px; overflow-y: auto;">
+                <p style="text-align: center; color: var(--zaikon-gray-dark);"><?php echo esc_html__('No expenses recorded yet', 'restaurant-pos'); ?></p>
+            </div>
+        </div>
+        <div class="zaikon-modal-footer">
+            <button class="zaikon-btn zaikon-btn-secondary" id="rpos-close-expenses">
+                <?php echo esc_html__('Close', 'restaurant-pos'); ?>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Orders Management Modal -->
+<div id="rpos-orders-modal" class="zaikon-modal" style="display: none;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 1200px;">
+        <div class="zaikon-modal-header">
+            <h3><?php echo esc_html__('My Orders', 'restaurant-pos'); ?></h3>
+            <button class="zaikon-modal-close" id="rpos-orders-modal-close">&times;</button>
+        </div>
+        <div class="zaikon-modal-body">
+            <div class="zaikon-orders-filters" style="margin-bottom: 20px;">
+                <input type="date" id="rpos-orders-date" value="<?php echo date('Y-m-d'); ?>" style="padding: 8px;">
+                <button class="zaikon-btn zaikon-btn-primary" id="rpos-refresh-orders">
+                    <span class="dashicons dashicons-update"></span>
+                    <?php echo esc_html__('Refresh', 'restaurant-pos'); ?>
+                </button>
+            </div>
+            
+            <div id="rpos-orders-list" style="max-height: 500px; overflow-y: auto;">
+                <p style="text-align: center; color: var(--zaikon-gray-dark);"><?php echo esc_html__('Loading orders...', 'restaurant-pos'); ?></p>
+            </div>
+        </div>
+        <div class="zaikon-modal-footer">
+            <button class="zaikon-btn zaikon-btn-secondary" id="rpos-close-orders">
+                <?php echo esc_html__('Close', 'restaurant-pos'); ?>
             </button>
         </div>
     </div>

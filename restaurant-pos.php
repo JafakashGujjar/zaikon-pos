@@ -170,6 +170,7 @@ class Restaurant_POS {
             wp_enqueue_style('rpos-delivery', RPOS_PLUGIN_URL . 'assets/css/delivery.css', array('zaikon-pos-screen'), RPOS_VERSION);
             wp_enqueue_script('rpos-delivery', RPOS_PLUGIN_URL . 'assets/js/delivery.js', array('jquery', 'rpos-admin'), RPOS_VERSION, true);
             wp_enqueue_script('rpos-rider-assignment', RPOS_PLUGIN_URL . 'assets/js/rider-assignment.js', array('jquery', 'rpos-admin'), RPOS_VERSION, true);
+            wp_enqueue_script('rpos-session-management', RPOS_PLUGIN_URL . 'assets/js/session-management.js', array('jquery', 'rpos-admin'), RPOS_VERSION, true);
         } elseif (strpos($hook, 'restaurant-pos-kds') !== false) {
             wp_enqueue_style('zaikon-kds-screen', RPOS_PLUGIN_URL . 'assets/css/zaikon-kds-screen.css', array('zaikon-design-system', 'zaikon-components'), RPOS_VERSION);
         } else {
