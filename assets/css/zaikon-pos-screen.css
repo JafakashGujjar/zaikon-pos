@@ -21,12 +21,13 @@
 
 /* ===== FIX: REMOVE TOP EMPTY SPACE ON POS CASHIER PAGE ===== */
 /* Override WordPress admin toolbar spacing for POS cashier page only */
-html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
+.restaurant-pos_page_restaurant-pos-cashier html.wp-toolbar {
     padding-top: 0 !important;
     margin-top: 0 !important;
 }
 
-.restaurant-pos_page_restaurant-pos-cashier body {
+/* Alternative selector for html.wp-toolbar when page class is on body */
+html.wp-toolbar body.restaurant-pos_page_restaurant-pos-cashier {
     margin-top: 0 !important;
     padding-top: 0 !important;
 }
@@ -47,7 +48,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 /* Ensure the delivery panel is visible without scrolling */
 .restaurant-pos_page_restaurant-pos-cashier .zaikon-delivery-panel,
 .restaurant-pos_page_restaurant-pos-cashier .zaikon-order-details {
-    margin-top: 0;
+    margin-top: 0 !important;
 }
 
 /* ===== POS CONTAINER ===== */
