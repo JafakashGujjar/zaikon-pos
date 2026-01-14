@@ -21,44 +21,72 @@ class RPOS_Admin_Notices {
     public function __construct() {
         add_action('admin_notices', array($this, 'check_database_schema'));
         add_action('admin_init', array($this, 'handle_migration_request'));
-        add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('admin_footer', array($this, 'enqueue_scripts'));
     }
     
     /**
      * Enqueue scripts for admin notices
      */
     public function enqueue_scripts() {
-        // Add inline script for AJAX migration
-        ?>
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            $('.rpos-run-migration-btn').on('click', function(e) {
-                e.preventDefault();
-                var $btn = $(this);
-                var $notice = $btn.closest('.notice');
-                
-                $btn.prop('disabled', true).text('Running Migration...');
-                
-                $.post(ajaxurl, {
-                    action: 'rpos_run_database_migration',
-                    nonce: '<?php echo wp_create_nonce('rpos_migration_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $notice.removeClass('notice-warning').addClass('notice-success');
-                        $notice.html('<p><strong>Success!</strong> Database migration completed. Refresh the page to remove this notice.</p>');
-                        setTimeout(function() {
-                            location.reload();
-                        }, 2000);
-                    } else {
-                        $notice.removeClass('notice-warning').addClass('notice-error');
-                        $notice.html('<p><strong>Error:</strong> ' + (response.data || 'Migration failed. Please check error logs.') + '</p>');
-                        $btn.prop('disabled', false).text('Retry Migration');
-                    }
+        // Only enqueue on admin pages
+        if (!is_admin()) {
+            return;
+        }
+        
+        // Check if migration notice needs to be shown
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'zaikon_deliveries';
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            return; // Table doesn't exist yet
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'delivery_instructions'
+        ));
+        
+        // Only output script if migration is needed (column is missing)
+        if (empty($column_exists)) {
+            // Generate nonce at output time for this specific request
+            $nonce = wp_create_nonce('rpos_migration_nonce');
+            
+            // Add inline script for AJAX migration
+            ?>
+            <script type="text/javascript">
+            jQuery(document).ready(function($) {
+                $('.rpos-run-migration-btn').on('click', function(e) {
+                    e.preventDefault();
+                    var $btn = $(this);
+                    var $notice = $btn.closest('.notice');
+                    
+                    $btn.prop('disabled', true).text('Running Migration...');
+                    
+                    $.post(ajaxurl, {
+                        action: 'rpos_run_database_migration',
+                        nonce: <?php echo wp_json_encode($nonce); ?>
+                    }, function(response) {
+                        if (response.success) {
+                            $notice.removeClass('notice-warning').addClass('notice-success');
+                            $notice.html('<p><strong>Success!</strong> Database migration completed. Refresh the page to remove this notice.</p>');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            $notice.removeClass('notice-warning').addClass('notice-error');
+                            $notice.html('<p><strong>Error:</strong> ' + (response.data || 'Migration failed. Please check error logs.') + '</p>');
+                            $btn.prop('disabled', false).text('Retry Migration');
+                        }
+                    });
                 });
             });
-        });
-        </script>
-        <?php
+            </script>
+            <?php
+        }
     }
     
     /**

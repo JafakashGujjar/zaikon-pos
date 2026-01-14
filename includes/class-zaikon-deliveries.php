@@ -112,7 +112,9 @@ class Zaikon_Deliveries {
             return $column_cache[$table_name];
         }
         
-        $columns = $wpdb->get_col("SHOW COLUMNS FROM `{$table_name}`");
+        // Escape table name for security (table name comes from wpdb->prefix which is safe, but being defensive)
+        $safe_table = esc_sql($table_name);
+        $columns = $wpdb->get_col("SHOW COLUMNS FROM `{$safe_table}`");
         
         if ($columns) {
             $column_cache[$table_name] = $columns;
