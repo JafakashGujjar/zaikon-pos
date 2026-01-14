@@ -444,6 +444,9 @@ class RPOS_REST_API {
         $delivery_charge = floatval($data['delivery_charge'] ?? 0);
         
         // Prepare Zaikon order data
+        $payment_type = sanitize_text_field($data['payment_type'] ?? 'cash');
+        $payment_status = ($payment_type === 'cod') ? 'unpaid' : 'paid';
+        
         $order_data = array(
             'order_number' => $order_number,
             'order_type' => 'delivery',
@@ -452,8 +455,8 @@ class RPOS_REST_API {
             'discounts_rs' => $discount,
             'taxes_rs' => 0, // Can be extended later
             'grand_total_rs' => $subtotal + $delivery_charge - $discount,
-            'payment_type' => sanitize_text_field($data['payment_type'] ?? 'cash'),
-            'payment_status' => isset($data['payment_type']) && $data['payment_type'] === 'cod' ? 'unpaid' : 'paid',
+            'payment_type' => $payment_type,
+            'payment_status' => $payment_status,
             'order_status' => 'active',
             'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
             'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())

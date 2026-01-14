@@ -23,7 +23,17 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                         <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-yellow);">POS</span></h2>
                         <p class="zaikon-dev-credit">
                             <span style="font-size: 11px; color: var(--zaikon-gray-dark);"><?php echo esc_html__('Developed by:', 'restaurant-pos'); ?></span><br>
-                            <span style="font-size: 13px; font-weight: 600; color: var(--zaikon-dark);"><?php echo esc_html(base64_decode(RPOS_Settings::get('dev_credit', base64_encode('Muhammad Jafakash Nawaz')))); ?></span>
+                            <span style="font-size: 13px; font-weight: 600; color: var(--zaikon-dark);">
+                            <?php 
+                            $dev_credit = RPOS_Settings::get('dev_credit', base64_encode('Muhammad Jafakash Nawaz'));
+                            // Validate that it's a valid base64 string before decoding
+                            if (base64_encode(base64_decode($dev_credit, true)) === $dev_credit) {
+                                echo esc_html(base64_decode($dev_credit));
+                            } else {
+                                echo esc_html('Muhammad Jafakash Nawaz');
+                            }
+                            ?>
+                            </span>
                         </p>
                     </div>
                     

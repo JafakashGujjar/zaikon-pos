@@ -50,6 +50,25 @@
             $('#rpos-close-orders, #rpos-orders-modal-close').on('click', function() {
                 $('#rpos-orders-modal').fadeOut(200);
             });
+            
+            // Event delegation for order action buttons
+            $(document).on('click', '.mark-paid-btn', function(e) {
+                e.preventDefault();
+                var orderId = $(this).data('order-id');
+                SessionManager.markOrderPaid(orderId);
+            });
+            
+            $(document).on('click', '.zaikon-order-actions .cancel-btn', function(e) {
+                e.preventDefault();
+                var orderId = $(this).data('order-id');
+                SessionManager.cancelOrder(orderId);
+            });
+            
+            $(document).on('click', '.replacement-btn', function(e) {
+                e.preventDefault();
+                var orderId = $(this).data('order-id');
+                SessionManager.markReplacement(orderId);
+            });
         },
         
         checkActiveSession: function() {
@@ -401,16 +420,16 @@
                         
                         // Show "Mark Paid" button only for unpaid COD orders
                         if (order.payment_type === 'cod' && order.payment_status === 'unpaid') {
-                            html += '<button class="zaikon-order-action-btn" onclick="SessionManager.markOrderPaid(' + order.id + ')">Mark Paid</button>';
+                            html += '<button class="zaikon-order-action-btn mark-paid-btn" data-order-id="' + order.id + '">Mark Paid</button>';
                         }
                         
                         // Show "Cancel" button only for active orders
                         if ((order.order_status || 'active') === 'active') {
-                            html += '<button class="zaikon-order-action-btn cancel-btn" onclick="SessionManager.cancelOrder(' + order.id + ')">Cancel</button>';
+                            html += '<button class="zaikon-order-action-btn cancel-btn" data-order-id="' + order.id + '">Cancel</button>';
                         }
                         
                         // Show "Replacement" button
-                        html += '<button class="zaikon-order-action-btn replacement-btn" onclick="SessionManager.markReplacement(' + order.id + ')">Replacement</button>';
+                        html += '<button class="zaikon-order-action-btn replacement-btn" data-order-id="' + order.id + '">Replacement</button>';
                         
                         html += '</div></td>';
                         html += '</tr>';

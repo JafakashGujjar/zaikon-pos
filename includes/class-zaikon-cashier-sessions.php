@@ -104,14 +104,15 @@ class Zaikon_Cashier_Sessions {
         }
         
         // Get all orders from this cashier since session start
+        $end_time = $session->session_end ?? current_time('mysql');
         $orders = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}zaikon_orders 
              WHERE cashier_id = %d 
              AND created_at >= %s 
-             AND (session_end IS NULL OR created_at <= %s)",
+             AND created_at <= %s",
             $session->cashier_id,
             $session->session_start,
-            $session->session_end ?? current_time('mysql')
+            $end_time
         ));
         
         $cash_sales = 0;
