@@ -266,6 +266,13 @@ class RPOS_Install {
             self::migrate_rider_system();
             update_option('rpos_rider_system_migration_done', true);
         }
+        
+        // Run cashier session system migration if not already done
+        $cashier_session_migration_done = get_option('rpos_cashier_session_migration_done', false);
+        if (!$cashier_session_migration_done) {
+            self::migrate_cashier_session_system();
+            update_option('rpos_cashier_session_migration_done', true);
+        }
     }
     
     /**
@@ -925,6 +932,47 @@ class RPOS_Install {
             KEY entity_idx (entity_type, entity_id)
         ) $charset_collate;";
         
+        // Zaikon Cashier Sessions (cash drawer management)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_cashier_sessions (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cashier_id bigint(20) unsigned NOT NULL,
+            opening_cash_rs decimal(10,2) NOT NULL DEFAULT 0.00,
+            closing_cash_rs decimal(10,2) DEFAULT NULL,
+            expected_cash_rs decimal(10,2) DEFAULT NULL,
+            cash_difference_rs decimal(10,2) DEFAULT NULL,
+            total_cash_sales_rs decimal(10,2) DEFAULT 0.00,
+            total_cod_collected_rs decimal(10,2) DEFAULT 0.00,
+            total_expenses_rs decimal(10,2) DEFAULT 0.00,
+            session_start datetime NOT NULL,
+            session_end datetime DEFAULT NULL,
+            status enum('open','closed') DEFAULT 'open',
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cashier_idx (cashier_id),
+            KEY status_idx (status),
+            KEY session_start_idx (session_start)
+        ) $charset_collate;";
+        
+        // Zaikon Expenses (cashier session expenses tracking)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_expenses (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            session_id bigint(20) unsigned NOT NULL,
+            cashier_id bigint(20) unsigned NOT NULL,
+            amount_rs decimal(10,2) NOT NULL,
+            category varchar(100) NOT NULL,
+            description text,
+            rider_id bigint(20) unsigned DEFAULT NULL,
+            expense_date datetime NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY session_idx (session_id),
+            KEY cashier_idx (cashier_id),
+            KEY rider_idx (rider_id),
+            KEY expense_date_idx (expense_date)
+        ) $charset_collate;";
+        
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         foreach ($tables as $table) {
@@ -947,7 +995,9 @@ class RPOS_Install {
             'enable_tax' => '0',
             'restaurant_phone' => '',
             'restaurant_address' => '',
-            'receipt_footer_message' => 'Thank you for your order!'
+            'receipt_footer_message' => 'Thank you for your order!',
+            // Obfuscated developer credit - base64 encoded
+            'dev_credit' => base64_encode('Muhammad Jafakash Nawaz')
         );
         
         foreach ($default_settings as $key => $value) {
@@ -1136,6 +1186,58 @@ class RPOS_Install {
                     array('%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s')
                 );
             }
+        }
+    }
+    
+    /**
+     * Migrate cashier session system - add new fields to zaikon_orders
+     */
+    public static function migrate_cashier_session_system() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'zaikon_orders';
+        
+        // Verify table exists before altering
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            return; // Table doesn't exist, skip migration
+        }
+        
+        // Add payment_type field
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'payment_type'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `payment_type` enum('cash','cod','online') DEFAULT 'cash' AFTER `payment_status`");
+        }
+        
+        // Add order_status field (different from payment_status)
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'order_status'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `order_status` enum('active','completed','cancelled','replacement') DEFAULT 'active' AFTER `payment_type`");
+        }
+        
+        // Add special_instructions field if it doesn't exist
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'special_instructions'
+        ));
+        
+        if (empty($column_exists)) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `special_instructions` text AFTER `order_status`");
         }
     }
 }
