@@ -439,13 +439,20 @@
             
             var total = subtotal + deliveryCharge - discount;
             var cashReceived = parseFloat($('#rpos-cash-received, #zaikon-cash-received').val()) || 0;
+            var paymentType = $('#rpos-payment-type').val() || 'cash';
             
-            if (cashReceived < total) {
+            // Only validate cash received for cash payments
+            if (paymentType === 'cash' && cashReceived < total) {
                 ZAIKON_Toast.error('Cash received is less than total amount');
                 return;
             }
             
-            var changeDue = cashReceived - total;
+            // For COD and online, set cash received to 0
+            if (paymentType !== 'cash') {
+                cashReceived = 0;
+            }
+            
+            var changeDue = paymentType === 'cash' ? (cashReceived - total) : 0;
             // Kitchen special instructions from the right sidebar
             var kitchenInstructions = $('#rpos-special-instructions').val().trim();
             
@@ -457,6 +464,7 @@
                 change_due: changeDue,
                 status: 'new',
                 order_type: orderType,
+                payment_type: paymentType,
                 special_instructions: kitchenInstructions,
                 items: this.cart.map(function(item) {
                     return {

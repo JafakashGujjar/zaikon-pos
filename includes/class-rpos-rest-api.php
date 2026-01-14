@@ -176,6 +176,82 @@ class RPOS_REST_API {
             'callback' => array($this, 'get_delivery_areas'),
             'permission_callback' => array($this, 'check_permission')
         ));
+        
+        // Cashier Sessions endpoints
+        register_rest_route($zaikon_namespace, '/sessions/current', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_current_session'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/sessions/open', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'open_session'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/sessions/(?P<id>\d+)/close', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'close_session'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/sessions/(?P<id>\d+)/totals', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_session_totals'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        // Expenses endpoints
+        register_rest_route($zaikon_namespace, '/expenses', array(
+            array(
+                'methods' => 'GET',
+                'callback' => array($this, 'get_expenses'),
+                'permission_callback' => array($this, 'check_permission')
+            ),
+            array(
+                'methods' => 'POST',
+                'callback' => array($this, 'create_expense'),
+                'permission_callback' => array($this, 'check_process_orders_permission')
+            )
+        ));
+        
+        register_rest_route($zaikon_namespace, '/expenses/(?P<id>\d+)', array(
+            array(
+                'methods' => 'GET',
+                'callback' => array($this, 'get_expense'),
+                'permission_callback' => array($this, 'check_permission')
+            ),
+            array(
+                'methods' => 'PUT',
+                'callback' => array($this, 'update_expense'),
+                'permission_callback' => array($this, 'check_process_orders_permission')
+            ),
+            array(
+                'methods' => 'DELETE',
+                'callback' => array($this, 'delete_expense'),
+                'permission_callback' => array($this, 'check_process_orders_permission')
+            )
+        ));
+        
+        // Cashier Orders Management endpoints
+        register_rest_route($zaikon_namespace, '/orders/cashier', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_cashier_orders'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/payment-status', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'update_order_payment_status'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/order-status', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'update_order_order_status'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
     }
     
     /**
@@ -368,6 +444,9 @@ class RPOS_REST_API {
         $delivery_charge = floatval($data['delivery_charge'] ?? 0);
         
         // Prepare Zaikon order data
+        $payment_type = sanitize_text_field($data['payment_type'] ?? 'cash');
+        $payment_status = ($payment_type === 'cod') ? 'unpaid' : 'paid';
+        
         $order_data = array(
             'order_number' => $order_number,
             'order_type' => 'delivery',
@@ -376,7 +455,10 @@ class RPOS_REST_API {
             'discounts_rs' => $discount,
             'taxes_rs' => 0, // Can be extended later
             'grand_total_rs' => $subtotal + $delivery_charge - $discount,
-            'payment_status' => 'paid',
+            'payment_type' => $payment_type,
+            'payment_status' => $payment_status,
+            'order_status' => 'active',
+            'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
             'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
         );
         
@@ -870,5 +952,305 @@ class RPOS_REST_API {
         } else {
             return new WP_Error('assignment_failed', $result['message'], array('status' => 500));
         }
+    }
+    
+    /**
+     * Get current cashier session
+     */
+    public function get_current_session($request) {
+        $session = Zaikon_Cashier_Sessions::get_active_session();
+        
+        if (!$session) {
+            return rest_ensure_response(array(
+                'session' => null,
+                'has_active_session' => false
+            ));
+        }
+        
+        return rest_ensure_response(array(
+            'session' => $session,
+            'has_active_session' => true
+        ));
+    }
+    
+    /**
+     * Open new cashier session
+     */
+    public function open_session($request) {
+        $params = $request->get_json_params();
+        
+        // Check if there's already an active session
+        $existing_session = Zaikon_Cashier_Sessions::get_active_session();
+        if ($existing_session) {
+            return new WP_Error('session_exists', 'You already have an active session', array('status' => 400));
+        }
+        
+        $session_id = Zaikon_Cashier_Sessions::create($params);
+        
+        if (!$session_id) {
+            return new WP_Error('creation_failed', 'Failed to create session', array('status' => 500));
+        }
+        
+        $session = Zaikon_Cashier_Sessions::get($session_id);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'session' => $session
+        ));
+    }
+    
+    /**
+     * Close cashier session
+     */
+    public function close_session($request) {
+        $session_id = $request['id'];
+        $params = $request->get_json_params();
+        
+        // Get session totals
+        $totals = Zaikon_Cashier_Sessions::calculate_session_totals($session_id);
+        
+        if ($totals === false) {
+            return new WP_Error('not_found', 'Session not found', array('status' => 404));
+        }
+        
+        // Merge calculated totals with provided data
+        $closing_data = array(
+            'expected_cash_rs' => $totals['expected_cash'],
+            'total_cash_sales_rs' => $totals['cash_sales'],
+            'total_cod_collected_rs' => $totals['cod_collected'],
+            'total_expenses_rs' => $totals['expenses'],
+            'closing_cash_rs' => isset($params['closing_cash_rs']) ? floatval($params['closing_cash_rs']) : $totals['expected_cash'],
+            'notes' => isset($params['notes']) ? $params['notes'] : ''
+        );
+        
+        // Calculate difference
+        $closing_data['cash_difference_rs'] = $closing_data['closing_cash_rs'] - $closing_data['expected_cash_rs'];
+        
+        $result = Zaikon_Cashier_Sessions::close_session($session_id, $closing_data);
+        
+        if (!$result) {
+            return new WP_Error('close_failed', 'Failed to close session', array('status' => 500));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'totals' => $totals,
+            'closing_data' => $closing_data
+        ));
+    }
+    
+    /**
+     * Get session totals
+     */
+    public function get_session_totals($request) {
+        $session_id = $request['id'];
+        
+        $totals = Zaikon_Cashier_Sessions::calculate_session_totals($session_id);
+        
+        if ($totals === false) {
+            return new WP_Error('not_found', 'Session not found', array('status' => 404));
+        }
+        
+        return rest_ensure_response($totals);
+    }
+    
+    /**
+     * Get expenses
+     */
+    public function get_expenses($request) {
+        $params = $request->get_params();
+        
+        if (isset($params['session_id'])) {
+            $expenses = Zaikon_Expenses::get_by_session($params['session_id']);
+        } else {
+            $cashier_id = isset($params['cashier_id']) ? absint($params['cashier_id']) : get_current_user_id();
+            $start_date = $params['start_date'] ?? null;
+            $end_date = $params['end_date'] ?? null;
+            $expenses = Zaikon_Expenses::get_by_cashier($cashier_id, $start_date, $end_date);
+        }
+        
+        return rest_ensure_response($expenses);
+    }
+    
+    /**
+     * Create expense
+     */
+    public function create_expense($request) {
+        $params = $request->get_json_params();
+        
+        // Verify session is active
+        $session_id = absint($params['session_id'] ?? 0);
+        if (!$session_id) {
+            return new WP_Error('invalid_session', 'Session ID is required', array('status' => 400));
+        }
+        
+        $session = Zaikon_Cashier_Sessions::get($session_id);
+        if (!$session || $session->status !== 'open') {
+            return new WP_Error('invalid_session', 'Session is not active', array('status' => 400));
+        }
+        
+        $expense_id = Zaikon_Expenses::create($params);
+        
+        if (!$expense_id) {
+            return new WP_Error('creation_failed', 'Failed to create expense', array('status' => 500));
+        }
+        
+        $expense = Zaikon_Expenses::get($expense_id);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'expense' => $expense
+        ));
+    }
+    
+    /**
+     * Get single expense
+     */
+    public function get_expense($request) {
+        $expense_id = $request['id'];
+        $expense = Zaikon_Expenses::get($expense_id);
+        
+        if (!$expense) {
+            return new WP_Error('not_found', 'Expense not found', array('status' => 404));
+        }
+        
+        return rest_ensure_response($expense);
+    }
+    
+    /**
+     * Update expense
+     */
+    public function update_expense($request) {
+        $expense_id = $request['id'];
+        $params = $request->get_json_params();
+        
+        $result = Zaikon_Expenses::update($expense_id, $params);
+        
+        if (!$result) {
+            return new WP_Error('update_failed', 'Failed to update expense', array('status' => 500));
+        }
+        
+        $expense = Zaikon_Expenses::get($expense_id);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'expense' => $expense
+        ));
+    }
+    
+    /**
+     * Delete expense
+     */
+    public function delete_expense($request) {
+        $expense_id = $request['id'];
+        
+        $result = Zaikon_Expenses::delete($expense_id);
+        
+        if (!$result) {
+            return new WP_Error('delete_failed', 'Failed to delete expense', array('status' => 500));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Expense deleted successfully'
+        ));
+    }
+    
+    /**
+     * Get orders for cashier
+     */
+    public function get_cashier_orders($request) {
+        global $wpdb;
+        
+        $params = $request->get_params();
+        $cashier_id = isset($params['cashier_id']) ? absint($params['cashier_id']) : get_current_user_id();
+        $date = $params['date'] ?? date('Y-m-d');
+        
+        // Get orders for cashier on specified date
+        $orders = $wpdb->get_results($wpdb->prepare(
+            "SELECT o.*, d.assigned_rider_id, r.name as rider_name
+             FROM {$wpdb->prefix}zaikon_orders o
+             LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
+             WHERE o.cashier_id = %d 
+             AND DATE(o.created_at) = %s
+             ORDER BY o.created_at DESC",
+            $cashier_id,
+            $date
+        ));
+        
+        return rest_ensure_response($orders);
+    }
+    
+    /**
+     * Update order payment status
+     */
+    public function update_order_payment_status($request) {
+        global $wpdb;
+        
+        $order_id = $request['id'];
+        $params = $request->get_json_params();
+        
+        $payment_status = sanitize_text_field($params['payment_status'] ?? '');
+        
+        if (!in_array($payment_status, array('unpaid', 'paid', 'refunded', 'void'))) {
+            return new WP_Error('invalid_status', 'Invalid payment status', array('status' => 400));
+        }
+        
+        $result = $wpdb->update(
+            $wpdb->prefix . 'zaikon_orders',
+            array(
+                'payment_status' => $payment_status,
+                'updated_at' => current_time('mysql')
+            ),
+            array('id' => $order_id),
+            array('%s', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to update payment status', array('status' => 500));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Payment status updated successfully'
+        ));
+    }
+    
+    /**
+     * Update order status (active/completed/cancelled/replacement)
+     */
+    public function update_order_order_status($request) {
+        global $wpdb;
+        
+        $order_id = $request['id'];
+        $params = $request->get_json_params();
+        
+        $order_status = sanitize_text_field($params['order_status'] ?? '');
+        
+        if (!in_array($order_status, array('active', 'completed', 'cancelled', 'replacement'))) {
+            return new WP_Error('invalid_status', 'Invalid order status', array('status' => 400));
+        }
+        
+        $result = $wpdb->update(
+            $wpdb->prefix . 'zaikon_orders',
+            array(
+                'order_status' => $order_status,
+                'updated_at' => current_time('mysql')
+            ),
+            array('id' => $order_id),
+            array('%s', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Order status updated successfully'
+        ));
     }
 }
