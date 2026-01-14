@@ -975,7 +975,7 @@
     background: #f8f9fa;
     border: 2px solid #e0e5eb;
     border-radius: 8px;
-    margin: 10px auto 15px auto;
+    margin: 6px auto 15px auto;
     max-width: 950px;
     overflow: hidden;
     animation: slideDown 0.3s ease-out;
@@ -997,7 +997,7 @@
 .zaikon-delivery-panel-header {
     background: #fbbf24;
     color: #1f2937;
-    padding: 12px 16px;
+    padding: 10px 16px;
 }
 
 .zaikon-delivery-panel-header h4 {
@@ -1007,7 +1007,7 @@
 }
 
 .zaikon-delivery-panel-body {
-    padding: 16px;
+    padding: 12px;
 }
 
 /* Two-column grid layout for desktop */
@@ -1015,6 +1015,12 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px 16px;
+}
+
+/* Three-column compact layout */
+.zaikon-delivery-fields-grid.zaikon-delivery-compact {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 12px;
 }
 
 .zaikon-delivery-field {
@@ -1029,10 +1035,16 @@
 
 .zaikon-delivery-field label {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     font-weight: 500;
     font-size: 13px;
     color: #2c3e50;
+}
+
+/* Compact layout labels */
+.zaikon-delivery-compact .zaikon-delivery-field label {
+    font-size: 12px;
+    margin-bottom: 3px;
 }
 
 .zaikon-delivery-field .required {
@@ -1051,6 +1063,15 @@
     font-size: 14px;
     transition: border-color 0.2s, box-shadow 0.2s;
     background: white;
+}
+
+/* Compact layout input fields */
+.zaikon-delivery-compact .zaikon-delivery-field input[type="text"],
+.zaikon-delivery-compact .zaikon-delivery-field input[type="tel"],
+.zaikon-delivery-compact .zaikon-delivery-field select {
+    padding: 6px 10px;
+    height: 32px;
+    font-size: 13px;
 }
 
 .zaikon-delivery-field input[type="text"]:focus,
@@ -1088,8 +1109,8 @@
 .zaikon-delivery-actions {
     display: flex;
     gap: 10px;
-    margin-top: 18px;
-    padding-top: 16px;
+    margin-top: 14px;
+    padding-top: 12px;
     border-top: 1px solid #e0e5eb;
 }
 
@@ -1129,11 +1150,23 @@
     border-color: #94a3b8;
 }
 
+/* Responsive: Tablets - Two Column Layout */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .zaikon-delivery-fields-grid.zaikon-delivery-compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 /* Responsive: Tablets and Mobile - Single Column Layout */
 @media (max-width: 768px) {
     .zaikon-delivery-fields-grid {
         grid-template-columns: 1fr;
         gap: 14px;
+    }
+    
+    .zaikon-delivery-fields-grid.zaikon-delivery-compact {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
     
     .zaikon-delivery-panel {
