@@ -15,7 +15,12 @@ class Zaikon_Deliveries {
     public static function create($data) {
         global $wpdb;
         
-        $delivery_data = array(
+        // Get existing columns in the table for defensive coding
+        $table_name = $wpdb->prefix . 'zaikon_deliveries';
+        $existing_columns = self::get_table_columns($table_name);
+        
+        // Build delivery data array with all fields
+        $all_delivery_data = array(
             'order_id' => absint($data['order_id']),
             'customer_name' => sanitize_text_field($data['customer_name']),
             'customer_phone' => sanitize_text_field($data['customer_phone']),
@@ -37,22 +42,85 @@ class Zaikon_Deliveries {
             'updated_at' => current_time('mysql')
         );
         
+        // Optional columns that may not exist in older schemas
+        $optional_columns = array(
+            'delivery_instructions',
+            'rider_payout_amount',
+            'rider_payout_slab',
+            'payout_type',
+            'fuel_multiplier',
+            'payout_per_km_rate'
+        );
+        
+        // Filter data to only include columns that exist in the table
+        $delivery_data = array();
+        $missing_columns = array();
+        
+        foreach ($all_delivery_data as $column => $value) {
+            if (in_array($column, $existing_columns)) {
+                $delivery_data[$column] = $value;
+            } elseif (in_array($column, $optional_columns)) {
+                $missing_columns[] = $column;
+            }
+        }
+        
+        // Log warning if optional columns are missing
+        if (!empty($missing_columns)) {
+            error_log('ZAIKON: Warning - Missing columns in zaikon_deliveries table: ' . implode(', ', $missing_columns) . '. Please run database migration.');
+        }
+        
+        // Build formats array dynamically based on included columns
+        $formats = array();
+        foreach ($delivery_data as $column => $value) {
+            if (in_array($column, array('order_id', 'location_id', 'assigned_rider_id', 'is_free_delivery'))) {
+                $formats[] = '%d';
+            } elseif (in_array($column, array('distance_km', 'delivery_charges_rs', 'rider_payout_amount', 'fuel_multiplier', 'payout_per_km_rate'))) {
+                $formats[] = '%f';
+            } else {
+                $formats[] = '%s';
+            }
+        }
+        
         $result = $wpdb->insert(
-            $wpdb->prefix . 'zaikon_deliveries',
+            $table_name,
             $delivery_data,
-            array('%d', '%s', '%s', '%d', '%s', '%f', '%f', '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%f', '%f', '%s', '%s')
+            $formats
         );
         
         if (!$result) {
             // Log the actual database error for debugging
             error_log('ZAIKON: Failed to create delivery record. DB Error: ' . $wpdb->last_error);
             // Log query structure without sensitive data
-            error_log('ZAIKON: Insert failed for table: ' . $wpdb->prefix . 'zaikon_deliveries');
+            error_log('ZAIKON: Insert failed for table: ' . $table_name);
             error_log('ZAIKON: Number of fields: ' . count($delivery_data));
             return false;
         }
         
         return $wpdb->insert_id;
+    }
+    
+    /**
+     * Get table columns for defensive coding
+     */
+    private static function get_table_columns($table_name) {
+        global $wpdb;
+        
+        // Cache column list to avoid repeated queries
+        static $column_cache = array();
+        
+        if (isset($column_cache[$table_name])) {
+            return $column_cache[$table_name];
+        }
+        
+        $columns = $wpdb->get_col("SHOW COLUMNS FROM `{$table_name}`");
+        
+        if ($columns) {
+            $column_cache[$table_name] = $columns;
+            return $columns;
+        }
+        
+        // Return empty array if table doesn't exist or query fails
+        return array();
     }
     
     /**
