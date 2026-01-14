@@ -57,8 +57,8 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                     <h4><?php echo esc_html__('Delivery Details', 'restaurant-pos'); ?></h4>
                 </div>
                 <div class="zaikon-delivery-panel-body">
-                    <div class="zaikon-delivery-fields-grid">
-                        <!-- Row 1: Customer Name | Customer Phone -->
+                    <div class="zaikon-delivery-fields-grid zaikon-delivery-compact">
+                        <!-- Row 1: Customer Name | Customer Phone | Delivery Area (3 columns) -->
                         <div class="zaikon-delivery-field">
                             <label><?php echo esc_html__('Customer Name', 'restaurant-pos'); ?> <span class="required">*</span></label>
                             <input type="text" id="zaikon-delivery-name" placeholder="<?php echo esc_attr__('Enter customer name', 'restaurant-pos'); ?>" required>
@@ -67,20 +67,18 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                             <label><?php echo esc_html__('Customer Phone', 'restaurant-pos'); ?> <span class="required">*</span></label>
                             <input type="tel" id="zaikon-delivery-phone" placeholder="<?php echo esc_attr__('Enter phone number', 'restaurant-pos'); ?>" required>
                         </div>
-                        
-                        <!-- Row 2: Delivery Area | Distance (KM) -->
                         <div class="zaikon-delivery-field">
                             <label><?php echo esc_html__('Delivery Area', 'restaurant-pos'); ?> <span class="required">*</span></label>
                             <select id="zaikon-delivery-area">
                                 <option value=""><?php echo esc_html__('-- Select Area --', 'restaurant-pos'); ?></option>
                             </select>
                         </div>
+                        
+                        <!-- Row 2: Distance (KM) | Delivery Charge (Rs) | Assign Rider (3 columns) -->
                         <div class="zaikon-delivery-field">
                             <label><?php echo esc_html__('Distance (KM)', 'restaurant-pos'); ?></label>
                             <input type="text" id="zaikon-delivery-distance" readonly>
                         </div>
-                        
-                        <!-- Row 3: Delivery Charge (Rs) | Assign Rider -->
                         <div class="zaikon-delivery-field">
                             <label><?php echo esc_html__('Delivery Charge (Rs)', 'restaurant-pos'); ?></label>
                             <input type="text" id="zaikon-delivery-charge" readonly>
@@ -93,10 +91,10 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                             </select>
                         </div>
                         
-                        <!-- Row 4: Delivery Instructions (full width) -->
+                        <!-- Row 3: Delivery Instructions (full width, single-line) -->
                         <div class="zaikon-delivery-field full-width">
                             <label><?php echo esc_html__('Delivery Instructions', 'restaurant-pos'); ?></label>
-                            <textarea id="zaikon-delivery-instructions" rows="2" placeholder="<?php echo esc_attr__('e.g., Near mosque, Call on arrival', 'restaurant-pos'); ?>"></textarea>
+                            <input type="text" id="zaikon-delivery-instructions" placeholder="<?php echo esc_attr__('e.g., Near mosque, Call on arrival', 'restaurant-pos'); ?>">
                         </div>
                     </div>
                     
