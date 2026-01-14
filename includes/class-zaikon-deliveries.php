@@ -44,6 +44,11 @@ class Zaikon_Deliveries {
         );
         
         if (!$result) {
+            // Log the actual database error for debugging
+            error_log('ZAIKON: Failed to create delivery record. DB Error: ' . $wpdb->last_error);
+            // Log query structure without sensitive data
+            error_log('ZAIKON: Insert failed for table: ' . $wpdb->prefix . 'zaikon_deliveries');
+            error_log('ZAIKON: Number of fields: ' . count($delivery_data));
             return false;
         }
         
