@@ -44,6 +44,9 @@ class Zaikon_Deliveries {
         );
         
         if (!$result) {
+            // Log the actual database error for debugging
+            error_log('ZAIKON: Failed to create delivery record. DB Error: ' . $wpdb->last_error);
+            error_log('ZAIKON: Last query: ' . $wpdb->last_query);
             return false;
         }
         
