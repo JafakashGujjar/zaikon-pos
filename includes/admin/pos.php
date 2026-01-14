@@ -58,14 +58,14 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                 </div>
                 <div class="zaikon-delivery-panel-body">
                     <div class="zaikon-delivery-fields-grid">
-                        <!-- Row 1: Customer Phone | Customer Name -->
-                        <div class="zaikon-delivery-field">
-                            <label><?php echo esc_html__('Customer Phone', 'restaurant-pos'); ?> <span class="required">*</span></label>
-                            <input type="tel" id="zaikon-delivery-phone" placeholder="<?php echo esc_attr__('Enter phone number', 'restaurant-pos'); ?>" required>
-                        </div>
+                        <!-- Row 1: Customer Name | Customer Phone -->
                         <div class="zaikon-delivery-field">
                             <label><?php echo esc_html__('Customer Name', 'restaurant-pos'); ?> <span class="required">*</span></label>
                             <input type="text" id="zaikon-delivery-name" placeholder="<?php echo esc_attr__('Enter customer name', 'restaurant-pos'); ?>" required>
+                        </div>
+                        <div class="zaikon-delivery-field">
+                            <label><?php echo esc_html__('Customer Phone', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                            <input type="tel" id="zaikon-delivery-phone" placeholder="<?php echo esc_attr__('Enter phone number', 'restaurant-pos'); ?>" required>
                         </div>
                         
                         <!-- Row 2: Delivery Area | Distance (KM) -->
