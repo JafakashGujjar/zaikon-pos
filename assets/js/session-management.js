@@ -268,14 +268,13 @@
             if (dropdown.is(':visible')) {
                 dropdown.fadeOut(200);
             } else {
-                // Position dropdown below the button
+                // Position dropdown below the button relative to viewport
                 var btn = $('#rpos-expenses-btn');
-                var btnOffset = btn.offset();
-                var btnHeight = btn.outerHeight();
+                var btnRect = btn[0].getBoundingClientRect();
                 
                 dropdown.css({
-                    top: (btnOffset.top + btnHeight + 8) + 'px',
-                    left: (btnOffset.left - 450 + btn.outerWidth()) + 'px'  // Right-align with button
+                    top: (btnRect.bottom + 8) + 'px',
+                    left: (btnRect.right - 450) + 'px'  // Right-align with button (450 is dropdown width)
                 });
                 
                 dropdown.fadeIn(200);
