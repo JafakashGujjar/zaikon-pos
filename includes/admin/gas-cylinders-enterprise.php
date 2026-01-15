@@ -17,7 +17,7 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
         wp_die('Permission denied');
     }
     
-    $action = $_POST['action'] ?? '';
+    $action = isset($_POST['action']) ? sanitize_text_field($_POST['action']) : '';
     
     switch ($action) {
         case 'add_zone':

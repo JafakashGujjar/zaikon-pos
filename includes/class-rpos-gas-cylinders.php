@@ -10,6 +10,12 @@ if (!defined('ABSPATH')) {
 class RPOS_Gas_Cylinders {
     
     /**
+     * Default consumption units per product item
+     * Adjustable constant for cylinder consumption calculation
+     */
+    const DEFAULT_CONSUMPTION_UNITS_PER_ITEM = 0.001;
+    
+    /**
      * Get all cylinder types
      */
     public static function get_all_types() {
@@ -544,12 +550,15 @@ class RPOS_Gas_Cylinders {
             return false;
         }
         
+        // Calculate start date once at method start for consistency
+        $start_date = isset($data['start_date']) ? sanitize_text_field($data['start_date']) : date('Y-m-d');
+        
         // Create lifecycle record
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_cylinder_lifecycle',
             array(
                 'cylinder_id' => $cylinder_id,
-                'start_date' => sanitize_text_field($data['start_date'] ?? date('Y-m-d')),
+                'start_date' => $start_date,
                 'refill_cost' => floatval($data['refill_cost'] ?? 0),
                 'vendor' => isset($data['vendor']) ? sanitize_text_field($data['vendor']) : null,
                 'notes' => isset($data['notes']) ? sanitize_textarea_field($data['notes']) : null,
@@ -587,7 +596,13 @@ class RPOS_Gas_Cylinders {
         // Calculate metrics
         $start = new DateTime($lifecycle->start_date);
         $end = new DateTime($end_date);
-        $total_days = max(1, $end->diff($start)->days);
+        $days_diff = $end->diff($start)->days;
+        $total_days = max(1, $days_diff);
+        
+        // Log warning if start and end dates are the same (potential data issue)
+        if ($days_diff === 0) {
+            error_log('RPOS Gas Cylinders: Lifecycle #' . $lifecycle_id . ' has same start and end date, using 1 day for calculations');
+        }
         
         $orders_served = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->prefix}zaikon_cylinder_consumption 
@@ -697,7 +712,7 @@ class RPOS_Gas_Cylinders {
                 $lifecycle_id = $lifecycle->id;
             }
             
-            // Record consumption
+            // Record consumption using configurable constant
             $wpdb->insert(
                 $wpdb->prefix . 'zaikon_cylinder_consumption',
                 array(
@@ -706,7 +721,7 @@ class RPOS_Gas_Cylinders {
                     'order_id' => $order_id,
                     'product_id' => $product_id,
                     'quantity' => $quantity,
-                    'consumption_units' => $quantity * 0.001 // Default: 0.001 units per item
+                    'consumption_units' => $quantity * self::DEFAULT_CONSUMPTION_UNITS_PER_ITEM
                 ),
                 array('%d', '%d', '%d', '%d', '%d', '%f')
             );
@@ -867,7 +882,11 @@ class RPOS_Gas_Cylinders {
         $orders_per_day = $stats->order_count / $days_active;
         $units_per_day = $stats->total_units / $days_active;
         
-        // Estimate remaining days (assuming 100 units total capacity)
+        // Estimate remaining days
+        // Note: remaining_percentage represents the percentage of cylinder capacity remaining (0-100)
+        // We assume the cylinder starts at 100% and depletes based on consumption_units
+        // Formula: remaining_days = (remaining_percentage / 100) / (units_consumed_per_day / 100)
+        //          Simplified: remaining_days = remaining_percentage / units_per_day
         $remaining_percentage = floatval($cylinder->remaining_percentage);
         $remaining_days = ($units_per_day > 0) ? ($remaining_percentage / $units_per_day) : 0;
         

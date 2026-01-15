@@ -295,7 +295,7 @@ class RPOS_REST_API {
         register_rest_route($zaikon_namespace, '/cylinders/zones', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_cylinder_zones'),
-            'permission_callback' => array($this, 'check_permission')
+            'permission_callback' => array($this, 'check_manage_inventory_permission')
         ));
     }
     
