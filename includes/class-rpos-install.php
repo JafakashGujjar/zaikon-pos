@@ -138,17 +138,61 @@ class RPOS_Install {
         
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'target_prep_time'");
         if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `target_prep_time` int DEFAULT 10 AFTER `ingredients_deducted`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `target_prep_time` int(11) DEFAULT NULL AFTER `ingredients_deducted`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'prep_started_at'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `prep_started_at` datetime DEFAULT NULL AFTER `target_prep_time`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'prep_completed_at'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `prep_completed_at` datetime DEFAULT NULL AFTER `prep_started_at`");
         }
         
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'actual_prep_time'");
         if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `actual_prep_time` int DEFAULT NULL AFTER `target_prep_time`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `actual_prep_time` int(11) DEFAULT NULL AFTER `prep_completed_at`");
         }
         
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'is_late'");
+        // Check if payment_type and order_status columns exist in zaikon_orders table
+        $table_name = $wpdb->prefix . 'zaikon_orders';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'payment_type'");
         if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `is_late` tinyint(1) DEFAULT 0 AFTER `actual_prep_time`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payment_type` enum('cash','cod','online') DEFAULT 'cash' AFTER `payment_status`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'order_status'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `order_status` enum('active','cancelled','replacement','completed') DEFAULT 'active' AFTER `payment_type`");
+        }
+        
+        // Rename columns in zaikon_orders to match expected naming
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'subtotal_rs'");
+        if (empty($column_exists)) {
+            // Check if items_subtotal_rs exists first
+            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'items_subtotal_rs'");
+            if (!empty($old_column)) {
+                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `items_subtotal_rs` `subtotal_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
+            }
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_charge_rs'");
+        if (empty($column_exists)) {
+            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_charges_rs'");
+            if (!empty($old_column)) {
+                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `delivery_charges_rs` `delivery_charge_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
+            }
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'discount_rs'");
+        if (empty($column_exists)) {
+            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'discounts_rs'");
+            if (!empty($old_column)) {
+                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `discounts_rs` `discount_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
+            }
         }
         
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'late_reason'");

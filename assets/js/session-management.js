@@ -18,8 +18,8 @@
             // Open shift
             $('#rpos-confirm-open-shift').on('click', this.openShift.bind(this));
             
-            // Close shift
-            $('#rpos-close-shift-btn').on('click', this.showCloseShiftModal.bind(this));
+            // Close shift - handle both button and icon button
+            $('#rpos-close-shift-btn, #rpos-close-shift-icon-btn').on('click', this.showCloseShiftModal.bind(this));
             $('#rpos-confirm-close-shift').on('click', this.closeShift.bind(this));
             $('#rpos-cancel-close-shift, #rpos-close-shift-modal-close').on('click', function() {
                 $('#rpos-close-shift-modal').fadeOut(200);
@@ -31,8 +31,16 @@
             // Expenses
             $('#rpos-expenses-btn').on('click', this.showExpensesModal.bind(this));
             $('#rpos-add-expense').on('click', this.addExpense.bind(this));
-            $('#rpos-close-expenses, #rpos-expenses-modal-close').on('click', function() {
+            $('#rpos-close-expenses, #rpos-expenses-modal-close, #rpos-expenses-dropdown-close').on('click', function() {
                 $('#rpos-expenses-modal').fadeOut(200);
+                $('#rpos-expenses-dropdown').fadeOut(200);
+            });
+            
+            // Close dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#rpos-expenses-btn, #rpos-expenses-dropdown').length) {
+                    $('#rpos-expenses-dropdown').fadeOut(200);
+                }
             });
             
             // Show rider field when rider_payout category is selected
@@ -255,9 +263,25 @@
                 return;
             }
             
-            $('#rpos-expenses-modal').fadeIn(200);
-            this.loadExpenses();
-            this.loadRiders();
+            // Toggle dropdown instead of modal
+            var dropdown = $('#rpos-expenses-dropdown');
+            if (dropdown.is(':visible')) {
+                dropdown.fadeOut(200);
+            } else {
+                // Position dropdown below the button
+                var btn = $('#rpos-expenses-btn');
+                var btnOffset = btn.offset();
+                var btnHeight = btn.outerHeight();
+                
+                dropdown.css({
+                    top: (btnOffset.top + btnHeight + 8) + 'px',
+                    left: (btnOffset.left - 450 + btn.outerWidth()) + 'px'  // Right-align with button
+                });
+                
+                dropdown.fadeIn(200);
+                this.loadExpenses();
+                this.loadRiders();
+            }
         },
         
         loadRiders: function() {

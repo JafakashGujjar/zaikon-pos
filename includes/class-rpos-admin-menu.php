@@ -213,6 +213,16 @@ class RPOS_Admin_Menu {
             array($this, 'reports_page')
         );
         
+        // Shift Reports
+        add_submenu_page(
+            'restaurant-pos',
+            __('Shift Reports', 'restaurant-pos'),
+            __('Shift Reports', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-shift-reports',
+            array($this, 'shift_reports_page')
+        );
+        
         // Kitchen Staff Report (under Reports)
         add_submenu_page(
             'restaurant-pos',
@@ -416,5 +426,12 @@ class RPOS_Admin_Menu {
      */
     public function rider_payroll_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/rider-payroll.php';
+    }
+    
+    /**
+     * Shift Reports page
+     */
+    public function shift_reports_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/shift-reports.php';
     }
 }
