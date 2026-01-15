@@ -1167,8 +1167,12 @@ class RPOS_REST_API {
         $date = $params['date'] ?? date('Y-m-d');
         
         // Get orders for cashier on specified date
+        // SECURITY: Exclude customer_name and customer_phone from cashier view
         $orders = $wpdb->get_results($wpdb->prepare(
-            "SELECT o.*, d.assigned_rider_id, r.name as rider_name
+            "SELECT o.id, o.order_number, o.order_type, o.payment_type, o.payment_status, 
+                    o.order_status, o.subtotal_rs, o.delivery_charge_rs, o.discount_rs, 
+                    o.grand_total_rs, o.created_at, o.cashier_id,
+                    d.assigned_rider_id, r.name as rider_name
              FROM {$wpdb->prefix}zaikon_orders o
              LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
              LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
