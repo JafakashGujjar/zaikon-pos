@@ -150,16 +150,16 @@ $restaurant_address = RPOS_Settings::get('restaurant_address', '');
             <h2>PAYMENT</h2>
             <div class="payment-row">
                 <span class="label">Subtotal:</span>
-                <span class="value">Rs <?php echo esc_html(number_format($order->items_subtotal_rs, 2)); ?></span>
+                <span class="value">Rs <?php echo esc_html(number_format($order->subtotal_rs, 2)); ?></span>
             </div>
             <div class="payment-row">
                 <span class="label">Delivery Charges:</span>
-                <span class="value">Rs <?php echo esc_html(number_format($order->delivery_charges_rs, 2)); ?></span>
+                <span class="value">Rs <?php echo esc_html(number_format($order->delivery_charge_rs, 2)); ?></span>
             </div>
             <?php if ($delivery->is_free_delivery): ?>
                 <div class="payment-row free-delivery">
                     <span class="label">Free Delivery Applied:</span>
-                    <span class="value">- Rs <?php echo esc_html(number_format($order->delivery_charges_rs, 2)); ?></span>
+                    <span class="value">- Rs <?php echo esc_html(number_format($order->delivery_charge_rs, 2)); ?></span>
                 </div>
             <?php endif; ?>
             <div class="payment-row total">
