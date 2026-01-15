@@ -164,6 +164,9 @@ $currency = RPOS_Settings::get('currency_symbol', 'Rs');
                         <th><?php echo esc_html__('Start Time', 'restaurant-pos'); ?></th>
                         <th><?php echo esc_html__('End Time', 'restaurant-pos'); ?></th>
                         <th><?php echo esc_html__('Opening Cash', 'restaurant-pos'); ?></th>
+                        <th><?php echo esc_html__('Total Cash Sales', 'restaurant-pos'); ?></th>
+                        <th><?php echo esc_html__('Total COD Collected', 'restaurant-pos'); ?></th>
+                        <th><?php echo esc_html__('Total Expenses', 'restaurant-pos'); ?></th>
                         <th><?php echo esc_html__('Expected Cash', 'restaurant-pos'); ?></th>
                         <th><?php echo esc_html__('Actual Cash', 'restaurant-pos'); ?></th>
                         <th><?php echo esc_html__('Variance', 'restaurant-pos'); ?></th>
@@ -194,6 +197,9 @@ $currency = RPOS_Settings::get('currency_symbol', 'Rs');
                             <td><?php echo esc_html(date('Y-m-d H:i', strtotime($shift->session_start))); ?></td>
                             <td><?php echo $shift->session_end ? esc_html(date('Y-m-d H:i', strtotime($shift->session_end))) : '<span style="color: #46b450;">Active</span>'; ?></td>
                             <td><?php echo esc_html($currency . number_format($shift->opening_cash_rs, 2)); ?></td>
+                            <td><?php echo $shift->status === 'closed' ? esc_html($currency . number_format($shift->total_cash_sales_rs, 2)) : '-'; ?></td>
+                            <td><?php echo $shift->status === 'closed' ? esc_html($currency . number_format($shift->total_cod_collected_rs, 2)) : '-'; ?></td>
+                            <td><?php echo $shift->status === 'closed' ? esc_html($currency . number_format($shift->total_expenses_rs, 2)) : '-'; ?></td>
                             <td><?php echo esc_html($currency . number_format($shift->expected_cash_rs, 2)); ?></td>
                             <td><?php echo $shift->closing_cash_rs ? esc_html($currency . number_format($shift->closing_cash_rs, 2)) : '-'; ?></td>
                             <td>

@@ -1476,3 +1476,47 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     font-size: var(--text-sm);
     min-height: 32px;
 }
+
+/* ===== CLOSE SHIFT DROPDOWN ===== */
+.zaikon-close-shift-dropdown {
+    position: fixed;
+    margin-top: 8px;
+    background: var(--zaikon-white);
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    animation: zaikon-slideDown var(--transition-base);
+}
+
+.zaikon-close-shift-dropdown-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--zaikon-border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--zaikon-yellow);
+}
+
+.zaikon-close-shift-dropdown-header h4 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--zaikon-dark);
+}
+
+.zaikon-close-shift-dropdown-body {
+    padding: var(--space-4);
+}
+
+.zaikon-close-shift-dropdown-footer {
+    padding: var(--space-4);
+    border-top: 1px solid var(--zaikon-border-light);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+}
