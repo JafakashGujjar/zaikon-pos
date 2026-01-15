@@ -483,7 +483,8 @@
                         }
                         
                         // Show "Mark COD Received" button for COD orders that are delivered but not yet COD received
-                        if (order.payment_type === 'cod' && order.order_status === 'delivered' && order.payment_status !== 'cod_received') {
+                        if (order.payment_type === 'cod' && order.order_status === 'delivered' && 
+                            (order.payment_status === 'unpaid' || order.payment_status === 'cod_pending')) {
                             html += '<button class="zaikon-order-action-btn mark-cod-received-btn" data-order-id="' + order.id + '">Mark COD Received</button>';
                         }
                         

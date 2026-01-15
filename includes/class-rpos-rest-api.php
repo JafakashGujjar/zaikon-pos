@@ -1223,7 +1223,7 @@ class RPOS_REST_API {
         
         $payment_status = sanitize_text_field($params['payment_status'] ?? '');
         
-        if (!in_array($payment_status, array('unpaid', 'paid', 'refunded', 'void'))) {
+        if (!in_array($payment_status, array('unpaid', 'paid', 'cod_pending', 'cod_received', 'refunded', 'void'))) {
             return new WP_Error('invalid_status', 'Invalid payment status', array('status' => 400));
         }
         
@@ -1259,7 +1259,7 @@ class RPOS_REST_API {
         
         $order_status = sanitize_text_field($params['order_status'] ?? '');
         
-        if (!in_array($order_status, array('active', 'completed', 'cancelled', 'replacement'))) {
+        if (!in_array($order_status, array('active', 'delivered', 'completed', 'cancelled', 'replacement'))) {
             return new WP_Error('invalid_status', 'Invalid order status', array('status' => 400));
         }
         
@@ -1304,8 +1304,12 @@ class RPOS_REST_API {
             array('%d')
         );
         
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to mark order as delivered', array('status' => 500));
+        }
+        
         // Also update zaikon_deliveries table
-        $wpdb->update(
+        $delivery_result = $wpdb->update(
             $wpdb->prefix . 'zaikon_deliveries',
             array(
                 'delivery_status' => 'delivered',
@@ -1317,8 +1321,13 @@ class RPOS_REST_API {
             array('%d')
         );
         
+        // Log warning if delivery update fails, but don't fail the request
+        if ($delivery_result === false && $wpdb->last_error) {
+            error_log("Failed to update zaikon_deliveries for order {$order_id}: " . $wpdb->last_error);
+        }
+        
         // Update rider_orders status
-        $wpdb->update(
+        $rider_result = $wpdb->update(
             $wpdb->prefix . 'zaikon_rider_orders',
             array(
                 'status' => 'delivered',
@@ -1330,8 +1339,9 @@ class RPOS_REST_API {
             array('%d')
         );
         
-        if ($result === false) {
-            return new WP_Error('update_failed', 'Failed to mark order as delivered', array('status' => 500));
+        // Log warning if rider_orders update fails, but don't fail the request
+        if ($rider_result === false && $wpdb->last_error) {
+            error_log("Failed to update zaikon_rider_orders for order {$order_id}: " . $wpdb->last_error);
         }
         
         return rest_ensure_response(array(
