@@ -177,6 +177,11 @@ class Restaurant_POS {
         } else {
             // For all other admin pages
             wp_enqueue_style('zaikon-admin', RPOS_PLUGIN_URL . 'assets/css/zaikon-admin.css', array('zaikon-design-system', 'zaikon-components'), RPOS_VERSION);
+            
+            // Load modern dashboard styles on main dashboard page
+            if (strpos($hook, 'toplevel_page_restaurant-pos') !== false) {
+                wp_enqueue_style('zaikon-modern-dashboard', RPOS_PLUGIN_URL . 'assets/css/zaikon-modern-dashboard.css', array('zaikon-admin'), RPOS_VERSION);
+            }
         }
         
         // Keep legacy admin.css for backwards compatibility (will be removed after templates are updated)

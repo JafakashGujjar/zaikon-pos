@@ -1,0 +1,465 @@
+/**
+ * ZAIKON POS - Modern Dashboard Styles
+ * SaaS-style dashboard with charts, KPIs, and modern layout
+ */
+
+/* ===== DASHBOARD CONTAINER ===== */
+.zaikon-modern-dashboard {
+    background: #F5F5F7;
+    min-height: 100vh;
+    padding: 0;
+    margin: -20px -20px -20px -2px;
+}
+
+/* ===== TOP BAR ===== */
+.zaikon-dashboard-topbar {
+    background: #FFFFFF;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    border-bottom: 1px solid #E5E7EB;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.zaikon-topbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.zaikon-page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1F2933;
+    margin: 0;
+    padding: 0;
+}
+
+.zaikon-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.zaikon-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #F5F5F7;
+    border-radius: 8px;
+    padding: 8px 16px;
+    min-width: 280px;
+}
+
+.zaikon-search-box .dashicons {
+    color: #757575;
+    font-size: 18px;
+}
+
+.zaikon-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14px;
+    color: #1F2933;
+    width: 100%;
+}
+
+.zaikon-icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #F5F5F7;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.zaikon-icon-btn:hover {
+    background: #E5E7EB;
+}
+
+.zaikon-icon-btn .dashicons {
+    font-size: 20px;
+    color: #1F2933;
+}
+
+.zaikon-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.zaikon-user-profile:hover {
+    background: #F5F5F7;
+}
+
+.zaikon-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.zaikon-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1F2933;
+}
+
+/* ===== MAIN CONTENT ===== */
+.zaikon-dashboard-content {
+    padding: 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ===== KPI CARDS ===== */
+.zaikon-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.zaikon-kpi-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.zaikon-kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.zaikon-kpi-primary {
+    background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%);
+}
+
+.zaikon-kpi-primary .zaikon-kpi-label,
+.zaikon-kpi-primary .zaikon-kpi-value,
+.zaikon-kpi-primary .zaikon-kpi-meta {
+    color: #1F2933;
+}
+
+.zaikon-kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.zaikon-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: #FFC107;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zaikon-kpi-icon .dashicons {
+    font-size: 24px;
+    color: #FFFFFF;
+}
+
+.zaikon-kpi-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #65676B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.zaikon-kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1F2933;
+    margin: 12px 0 8px 0;
+    line-height: 1;
+}
+
+.zaikon-kpi-meta {
+    font-size: 14px;
+    color: #65676B;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zaikon-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.zaikon-trend-up {
+    color: #16A34A;
+}
+
+.zaikon-trend-down {
+    color: #EF4444;
+}
+
+.zaikon-trend .dashicons {
+    font-size: 16px;
+}
+
+/* ===== CHARTS ROW ===== */
+.zaikon-charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+@media (max-width: 1200px) {
+    .zaikon-charts-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.zaikon-chart-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.zaikon-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.zaikon-chart-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1F2933;
+    margin: 0;
+}
+
+.zaikon-chart-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.zaikon-btn-small {
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid #E5E7EB;
+    background: #FFFFFF;
+    color: #1F2933;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.zaikon-btn-small:hover {
+    background: #F5F5F7;
+}
+
+.zaikon-chart-body {
+    position: relative;
+    height: 300px;
+}
+
+.zaikon-chart-large .zaikon-chart-body {
+    height: 350px;
+}
+
+/* ===== TABLE CARD ===== */
+.zaikon-table-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    margin-bottom: 32px;
+}
+
+.zaikon-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.zaikon-table-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1F2933;
+    margin: 0;
+}
+
+.zaikon-btn-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFC107;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.zaikon-btn-link:hover {
+    color: #FFD54F;
+}
+
+.zaikon-table-body {
+    overflow-x: auto;
+}
+
+.zaikon-modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.zaikon-modern-table thead {
+    background: #F5F5F7;
+    border-radius: 8px;
+}
+
+.zaikon-modern-table thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #65676B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+}
+
+.zaikon-modern-table tbody tr {
+    border-bottom: 1px solid #E5E7EB;
+    transition: background 0.2s;
+}
+
+.zaikon-modern-table tbody tr:hover {
+    background: #F9FAFB;
+}
+
+.zaikon-modern-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.zaikon-modern-table tbody td {
+    padding: 16px;
+    font-size: 14px;
+    color: #1F2933;
+}
+
+.zaikon-modern-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.zaikon-badge-dine-in {
+    background: #E8F4FD;
+    color: #2196F3;
+}
+
+.zaikon-badge-takeaway {
+    background: #E8F5E9;
+    color: #4CAF50;
+}
+
+.zaikon-badge-delivery {
+    background: #FCE4EC;
+    color: #E91E63;
+}
+
+.zaikon-badge-new {
+    background: #E3F2FD;
+    color: #1976D2;
+}
+
+.zaikon-badge-cooking {
+    background: #FFF3E0;
+    color: #F57C00;
+}
+
+.zaikon-badge-ready {
+    background: #E8F5E9;
+    color: #388E3C;
+}
+
+.zaikon-badge-completed {
+    background: #F5F5F5;
+    color: #616161;
+}
+
+.zaikon-badge-dark {
+    background: #E0E0E0;
+    color: #424242;
+}
+
+/* ===== FOOTER ===== */
+.zaikon-dashboard-footer {
+    text-align: center;
+    padding: 24px;
+    color: #65676B;
+    font-size: 14px;
+    border-top: 1px solid #E5E7EB;
+    background: #FFFFFF;
+}
+
+.zaikon-dashboard-footer p {
+    margin: 0;
+    font-weight: 500;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+    .zaikon-dashboard-topbar {
+        padding: 0 16px;
+    }
+    
+    .zaikon-dashboard-content {
+        padding: 16px;
+    }
+    
+    .zaikon-search-box {
+        min-width: 200px;
+    }
+    
+    .zaikon-user-name {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .zaikon-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .zaikon-search-box {
+        display: none;
+    }
+    
+    .zaikon-kpi-value {
+        font-size: 28px;
+    }
+    
+    .zaikon-chart-body {
+        height: 250px;
+    }
+}
