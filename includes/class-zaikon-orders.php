@@ -16,6 +16,9 @@ class Zaikon_Orders {
     public static function create($data) {
         global $wpdb;
         
+        // Map input data to database columns (DB uses singular names after migration)
+        // Input uses plural names for backward compatibility: items_subtotal_rs, delivery_charges_rs, discounts_rs
+        // Database columns use singular names: subtotal_rs, delivery_charge_rs, discount_rs
         $order_data = array(
             'order_number' => sanitize_text_field($data['order_number']),
             'order_type' => sanitize_text_field($data['order_type'] ?? 'takeaway'),
