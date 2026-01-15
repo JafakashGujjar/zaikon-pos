@@ -15,6 +15,11 @@ $date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : dat
 $category = isset($_GET['category']) ? sanitize_text_field($_GET['category']) : '';
 $rider_id = isset($_GET['rider_id']) ? absint($_GET['rider_id']) : 0;
 
+// Pagination
+$per_page = 100;
+$paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+$offset = ($paged - 1) * $per_page;
+
 // Get all cashiers for dropdown
 $cashiers = get_users(array('role__in' => array('administrator', 'restaurant_admin', 'cashier')));
 
@@ -26,21 +31,31 @@ $categories = Zaikon_Expenses::get_categories();
 
 // Get expenses
 $expenses = array();
+$total_count = 0;
+
 if ($cashier_id > 0) {
     $expenses = Zaikon_Expenses::get_by_cashier($cashier_id, $date_from . ' 00:00:00', $date_to . ' 23:59:59');
 } else {
-    // Get all expenses by querying directly
+    // Get all expenses with pagination
     global $wpdb;
+    
+    $where = array("e.expense_date >= %s", "e.expense_date <= %s");
+    $params = array($date_from . ' 00:00:00', $date_to . ' 23:59:59');
+    
+    // Count total for pagination
+    $count_sql = "SELECT COUNT(*) FROM {$wpdb->prefix}zaikon_expenses e WHERE " . implode(' AND ', $where);
+    $total_count = $wpdb->get_var($wpdb->prepare($count_sql, $params));
+    
+    // Get paginated results
     $expenses = $wpdb->get_results($wpdb->prepare(
         "SELECT e.*, r.name as rider_name, u.display_name as cashier_name
          FROM {$wpdb->prefix}zaikon_expenses e
          LEFT JOIN {$wpdb->prefix}zaikon_riders r ON e.rider_id = r.id
          LEFT JOIN {$wpdb->users} u ON e.cashier_id = u.ID
-         WHERE e.expense_date >= %s 
-         AND e.expense_date <= %s
-         ORDER BY e.expense_date DESC",
-        $date_from . ' 00:00:00',
-        $date_to . ' 23:59:59'
+         WHERE " . implode(' AND ', $where) . "
+         ORDER BY e.expense_date DESC
+         LIMIT %d OFFSET %d",
+        array_merge($params, array($per_page, $offset))
     ));
 }
 
@@ -195,4 +210,24 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
             </tr>
         </tfoot>
     </table>
+    
+    <?php if ($total_count > $per_page): ?>
+        <!-- Pagination -->
+        <div style="margin-top: 20px; text-align: center;">
+            <?php
+            $total_pages = ceil($total_count / $per_page);
+            $base_url = remove_query_arg('paged');
+            
+            if ($paged > 1) {
+                echo '<a href="' . esc_url(add_query_arg('paged', $paged - 1, $base_url)) . '" class="button">« ' . __('Previous', 'restaurant-pos') . '</a> ';
+            }
+            
+            echo '<span style="margin: 0 10px;">' . sprintf(__('Page %d of %d', 'restaurant-pos'), $paged, $total_pages) . '</span>';
+            
+            if ($paged < $total_pages) {
+                echo ' <a href="' . esc_url(add_query_arg('paged', $paged + 1, $base_url)) . '" class="button">' . __('Next', 'restaurant-pos') . ' »</a>';
+            }
+            ?>
+        </div>
+    <?php endif; ?>
 </div>

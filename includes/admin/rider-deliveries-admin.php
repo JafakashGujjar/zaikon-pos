@@ -35,6 +35,13 @@ if ($date_to) {
 // Get rider orders
 $rider_orders = Zaikon_Rider_Orders::get_all($filters);
 
+// Pre-fetch all riders to avoid N+1 queries
+$all_riders = Zaikon_Riders::get_all();
+$riders_by_id = array();
+foreach ($all_riders as $r) {
+    $riders_by_id[$r->id] = $r;
+}
+
 // Calculate totals
 $total_deliveries = count($rider_orders);
 $total_payout = 0;
@@ -51,7 +58,7 @@ foreach ($rider_orders as $ro) {
     // Calculate payout if delivered
     if ($ro->status === 'delivered') {
         // Get rider details for payout calculation
-        $rider = Zaikon_Riders::get($ro->rider_id);
+        $rider = $riders_by_id[$ro->rider_id] ?? null;
         if ($rider && isset($ro->distance_km)) {
             $distance = floatval($ro->distance_km);
             $payout = 0;
@@ -171,7 +178,7 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                 <?php foreach ($rider_orders as $ro): ?>
                     <?php
                     // Calculate rider payout
-                    $rider = Zaikon_Riders::get($ro->rider_id);
+                    $rider = $riders_by_id[$ro->rider_id] ?? null;
                     $payout = 0;
                     
                     if ($rider && isset($ro->distance_km) && $ro->status === 'delivered') {
