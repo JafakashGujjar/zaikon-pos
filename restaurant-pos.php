@@ -101,6 +101,7 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-cashier-sessions.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-expenses.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-shift-reports-ajax.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-frontend.php';
     }
     
     /**
@@ -147,6 +148,7 @@ class Restaurant_POS {
         RPOS_Admin_Menu::instance();
         RPOS_Admin_Notices::instance();
         RPOS_REST_API::instance();
+        Zaikon_Frontend::init();
         
         // Load plugin text domain
         load_plugin_textdomain('restaurant-pos', false, dirname(plugin_basename(__FILE__)) . '/languages');
