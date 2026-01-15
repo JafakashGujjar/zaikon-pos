@@ -514,6 +514,18 @@ class RPOS_REST_API {
         );
         
         // Create order atomically using Zaikon_Order_Service
+        error_log('ZAIKON: About to create order with order_data: ' . json_encode(array(
+            'order_number' => $order_data['order_number'],
+            'order_type' => $order_data['order_type'],
+            'items_subtotal_rs' => $order_data['items_subtotal_rs'],
+            'delivery_charges_rs' => $order_data['delivery_charges_rs'],
+            'grand_total_rs' => $order_data['grand_total_rs'],
+            'payment_type' => $order_data['payment_type'],
+            'payment_status' => $order_data['payment_status'],
+            'order_status' => $order_data['order_status'],
+            'items_count' => count($items)
+        )));
+        
         $result = Zaikon_Order_Service::create_order($order_data, $items, $delivery_data);
         
         if (!$result['success']) {

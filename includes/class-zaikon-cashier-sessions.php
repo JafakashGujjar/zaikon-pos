@@ -105,7 +105,9 @@ class Zaikon_Cashier_Sessions {
         
         // Get all orders from this cashier since session start
         $end_time = $session->session_end ?? current_time('mysql');
-        $orders = $wpdb->get_results($wpdb->prepare(
+        
+        // Get delivery orders from zaikon_orders table
+        $zaikon_orders = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}zaikon_orders 
              WHERE cashier_id = %d 
              AND created_at >= %s 
@@ -118,11 +120,58 @@ class Zaikon_Cashier_Sessions {
         $cash_sales = 0;
         $cod_collected = 0;
         
-        foreach ($orders as $order) {
+        // Calculate totals from zaikon_orders (delivery orders)
+        foreach ($zaikon_orders as $order) {
             if ($order->payment_type === 'cash' && $order->payment_status === 'paid') {
                 $cash_sales += floatval($order->grand_total_rs);
             } elseif ($order->payment_type === 'cod' && $order->payment_status === 'paid') {
                 $cod_collected += floatval($order->grand_total_rs);
+            }
+        }
+        
+        // Also get non-delivery orders from rpos_orders table (dine-in and takeaway)
+        // Check if payment_type column exists in rpos_orders
+        $columns = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}rpos_orders");
+        $has_payment_type = in_array('payment_type', $columns);
+        $has_payment_status = in_array('payment_status', $columns);
+        
+        if ($has_payment_type && $has_payment_status) {
+            // New schema with payment_type and payment_status columns
+            $rpos_orders = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}rpos_orders 
+                 WHERE cashier_id = %d 
+                 AND created_at >= %s 
+                 AND created_at <= %s
+                 AND order_type IN ('dine-in', 'takeaway')",
+                $session->cashier_id,
+                $session->session_start,
+                $end_time
+            ));
+            
+            foreach ($rpos_orders as $order) {
+                if ($order->payment_type === 'cash' && $order->payment_status === 'paid') {
+                    $cash_sales += floatval($order->total);
+                } elseif ($order->payment_type === 'cod' && $order->payment_status === 'paid') {
+                    $cod_collected += floatval($order->total);
+                }
+            }
+        } else {
+            // Legacy schema - assume all dine-in and takeaway orders are cash and paid
+            $rpos_orders = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}rpos_orders 
+                 WHERE cashier_id = %d 
+                 AND created_at >= %s 
+                 AND created_at <= %s
+                 AND order_type IN ('dine-in', 'takeaway')
+                 AND status IN ('completed', 'ready', 'preparing')",
+                $session->cashier_id,
+                $session->session_start,
+                $end_time
+            ));
+            
+            foreach ($rpos_orders as $order) {
+                // Legacy orders are assumed to be cash sales
+                $cash_sales += floatval($order->total);
             }
         }
         
