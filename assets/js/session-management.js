@@ -80,6 +80,18 @@
                 var orderId = $(this).data('order-id');
                 SessionManager.markReplacement(orderId);
             });
+            
+            $(document).on('click', '.mark-delivered-btn', function(e) {
+                e.preventDefault();
+                var orderId = $(this).data('order-id');
+                SessionManager.markDelivered(orderId);
+            });
+            
+            $(document).on('click', '.mark-cod-received-btn', function(e) {
+                e.preventDefault();
+                var orderId = $(this).data('order-id');
+                SessionManager.markCodReceived(orderId);
+            });
         },
         
         checkActiveSession: function() {
@@ -464,6 +476,18 @@
                             html += '<button class="zaikon-order-action-btn cancel-btn" data-order-id="' + order.id + '">Cancel</button>';
                         }
                         
+                        // Show "Mark Delivered" button for active/assigned delivery orders
+                        if (order.order_type === 'delivery' && 
+                            (order.order_status === 'active' || order.delivery_status === 'assigned' || order.delivery_status === 'on_route')) {
+                            html += '<button class="zaikon-order-action-btn mark-delivered-btn" data-order-id="' + order.id + '">Mark Delivered</button>';
+                        }
+                        
+                        // Show "Mark COD Received" button for COD orders that are delivered but not yet COD received
+                        if (order.payment_type === 'cod' && order.order_status === 'delivered' && 
+                            (order.payment_status === 'unpaid' || order.payment_status === 'cod_pending')) {
+                            html += '<button class="zaikon-order-action-btn mark-cod-received-btn" data-order-id="' + order.id + '">Mark COD Received</button>';
+                        }
+                        
                         // Show "Replacement" button
                         html += '<button class="zaikon-order-action-btn replacement-btn" data-order-id="' + order.id + '">Replacement</button>';
                         
@@ -561,6 +585,56 @@
                 error: function(xhr) {
                     console.error('Error marking replacement:', xhr);
                     window.ZaikonToast.error('Failed to mark as replacement');
+                }
+            });
+        },
+        
+        markDelivered: function(orderId) {
+            var self = this;
+            
+            if (!confirm('Mark this order as delivered?')) {
+                return;
+            }
+            
+            $.ajax({
+                url: rposData.zaikonRestUrl + 'orders/' + orderId + '/mark-delivered',
+                method: 'PUT',
+                contentType: 'application/json',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(response) {
+                    window.ZaikonToast.success('Order marked as delivered');
+                    self.loadOrders();
+                },
+                error: function(xhr) {
+                    console.error('Error marking delivered:', xhr);
+                    window.ZaikonToast.error('Failed to mark as delivered');
+                }
+            });
+        },
+        
+        markCodReceived: function(orderId) {
+            var self = this;
+            
+            if (!confirm('Confirm COD payment received for this order?')) {
+                return;
+            }
+            
+            $.ajax({
+                url: rposData.zaikonRestUrl + 'orders/' + orderId + '/mark-cod-received',
+                method: 'PUT',
+                contentType: 'application/json',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(response) {
+                    window.ZaikonToast.success('COD payment received');
+                    self.loadOrders();
+                },
+                error: function(xhr) {
+                    console.error('Error marking COD received:', xhr);
+                    window.ZaikonToast.error('Failed to mark COD as received');
                 }
             });
         }

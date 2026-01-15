@@ -125,7 +125,8 @@ class Zaikon_Cashier_Sessions {
         foreach ($zaikon_orders as $order) {
             if ($order->payment_type === 'cash' && $order->payment_status === 'paid') {
                 $cash_sales += floatval($order->grand_total_rs);
-            } elseif ($order->payment_type === 'cod' && $order->payment_status === 'paid') {
+            } elseif ($order->payment_type === 'cod' && 
+                    ($order->payment_status === 'cod_received' || $order->payment_status === 'paid')) {
                 $cod_collected += floatval($order->grand_total_rs);
             }
         }

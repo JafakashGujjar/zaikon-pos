@@ -1284,5 +1284,19 @@ class RPOS_Install {
             $safe_table = esc_sql($table_name);
             $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `special_instructions` text AFTER `order_status`");
         }
+        
+        // Update payment_status enum to include COD_PENDING and COD_RECEIVED
+        $column_info = $wpdb->get_row("SHOW COLUMNS FROM `{$table_name}` LIKE 'payment_status'");
+        if ($column_info && strpos($column_info->Type, 'cod_pending') === false) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` MODIFY `payment_status` ENUM('unpaid','paid','cod_pending','cod_received','refunded','void') DEFAULT 'unpaid'");
+        }
+        
+        // Add 'delivered' to order_status enum
+        $column_info = $wpdb->get_row("SHOW COLUMNS FROM `{$table_name}` LIKE 'order_status'");
+        if ($column_info && strpos($column_info->Type, 'delivered') === false) {
+            $safe_table = esc_sql($table_name);
+            $wpdb->query("ALTER TABLE `{$safe_table}` MODIFY `order_status` ENUM('active','delivered','completed','cancelled','replacement') DEFAULT 'active'");
+        }
     }
 }
