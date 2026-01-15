@@ -91,6 +91,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zaikon_rider_nonce'])
         'status' => sanitize_text_field($_POST['status'])
     );
     
+    // Add payout fields if provided
+    if (isset($_POST['payout_type'])) {
+        $rider_data['payout_type'] = sanitize_text_field($_POST['payout_type']);
+    }
+    if (isset($_POST['per_delivery_rate'])) {
+        $rider_data['per_delivery_rate'] = floatval($_POST['per_delivery_rate']);
+    }
+    if (isset($_POST['per_km_rate'])) {
+        $rider_data['per_km_rate'] = floatval($_POST['per_km_rate']);
+    }
+    if (isset($_POST['base_rate'])) {
+        $rider_data['base_rate'] = floatval($_POST['base_rate']);
+    }
+    
     if (isset($_POST['rider_id']) && $_POST['rider_id']) {
         Zaikon_Riders::update($_POST['rider_id'], $rider_data);
         $message = __('Rider updated successfully!', 'restaurant-pos');
@@ -380,6 +394,42 @@ $active_rule = Zaikon_Free_Delivery_Rules::get_active_rule();
                         </select>
                     </td>
                 </tr>
+                <tr>
+                    <th colspan="2"><hr style="margin: 20px 0;"><h3 style="margin: 10px 0;"><?php _e('Payout Settings', 'restaurant-pos'); ?></h3></th>
+                </tr>
+                <tr>
+                    <th><label for="payout_type"><?php _e('Payout Type', 'restaurant-pos'); ?></label></th>
+                    <td>
+                        <select name="payout_type" id="payout_type" class="regular-text">
+                            <option value=""><?php _e('-- Select Payout Type --', 'restaurant-pos'); ?></option>
+                            <option value="per_delivery"><?php _e('Per Delivery', 'restaurant-pos'); ?></option>
+                            <option value="per_km"><?php _e('Per Kilometer', 'restaurant-pos'); ?></option>
+                            <option value="hybrid"><?php _e('Hybrid (Per Delivery + Per Km)', 'restaurant-pos'); ?></option>
+                        </select>
+                        <p class="description"><?php _e('How the rider is paid for deliveries', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="per_delivery_rate"><?php _e('Per Delivery Rate (Rs)', 'restaurant-pos'); ?></label></th>
+                    <td>
+                        <input type="number" name="per_delivery_rate" id="per_delivery_rate" step="0.01" min="0" class="regular-text" />
+                        <p class="description"><?php _e('Fixed amount per delivery (used for Per Delivery type)', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="per_km_rate"><?php _e('Per Km Rate (Rs)', 'restaurant-pos'); ?></label></th>
+                    <td>
+                        <input type="number" name="per_km_rate" id="per_km_rate" step="0.01" min="0" class="regular-text" />
+                        <p class="description"><?php _e('Amount per kilometer (used for Per Km and Hybrid types)', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="base_rate"><?php _e('Base Rate (Rs)', 'restaurant-pos'); ?></label></th>
+                    <td>
+                        <input type="number" name="base_rate" id="base_rate" step="0.01" min="0" class="regular-text" />
+                        <p class="description"><?php _e('Base amount per delivery in Hybrid type (base + per_km * distance)', 'restaurant-pos'); ?></p>
+                    </td>
+                </tr>
             </table>
             
             <p class="submit">
@@ -393,6 +443,8 @@ $active_rule = Zaikon_Free_Delivery_Rules::get_active_rule();
                 <tr>
                     <th><?php _e('Name', 'restaurant-pos'); ?></th>
                     <th><?php _e('Phone', 'restaurant-pos'); ?></th>
+                    <th><?php _e('Payout Type', 'restaurant-pos'); ?></th>
+                    <th><?php _e('Rates (Rs)', 'restaurant-pos'); ?></th>
                     <th><?php _e('Status', 'restaurant-pos'); ?></th>
                     <th><?php _e('Actions', 'restaurant-pos'); ?></th>
                 </tr>
@@ -400,13 +452,44 @@ $active_rule = Zaikon_Free_Delivery_Rules::get_active_rule();
             <tbody>
                 <?php if (empty($riders)): ?>
                     <tr>
-                        <td colspan="4"><?php _e('No riders found.', 'restaurant-pos'); ?></td>
+                        <td colspan="6"><?php _e('No riders found.', 'restaurant-pos'); ?></td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($riders as $rider): ?>
                         <tr>
                             <td><?php echo esc_html($rider->name); ?></td>
                             <td><?php echo esc_html($rider->phone); ?></td>
+                            <td>
+                                <?php 
+                                if (!empty($rider->payout_type)) {
+                                    $payout_labels = array(
+                                        'per_delivery' => __('Per Delivery', 'restaurant-pos'),
+                                        'per_km' => __('Per Km', 'restaurant-pos'),
+                                        'hybrid' => __('Hybrid', 'restaurant-pos')
+                                    );
+                                    echo '<span style="background: #f0f0f0; padding: 3px 8px; border-radius: 3px; font-size: 11px;">';
+                                    echo esc_html($payout_labels[$rider->payout_type] ?? $rider->payout_type);
+                                    echo '</span>';
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
+                            <td>
+                                <?php 
+                                $rates = array();
+                                if (!empty($rider->per_delivery_rate) && $rider->per_delivery_rate > 0) {
+                                    $rates[] = 'Per Delivery: Rs ' . number_format($rider->per_delivery_rate, 2);
+                                }
+                                if (!empty($rider->per_km_rate) && $rider->per_km_rate > 0) {
+                                    $rates[] = 'Per Km: Rs ' . number_format($rider->per_km_rate, 2);
+                                }
+                                if (!empty($rider->base_rate) && $rider->base_rate > 0) {
+                                    $rates[] = 'Base: Rs ' . number_format($rider->base_rate, 2);
+                                }
+                                echo $rates ? esc_html(implode(', ', $rates)) : '-';
+                                ?>
+                            </td>
                             <td>
                                 <?php if ($rider->status === 'active'): ?>
                                     <span class="dashicons dashicons-yes" style="color: green;"></span> <?php _e('Active', 'restaurant-pos'); ?>

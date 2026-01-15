@@ -449,6 +449,145 @@
     }
 }
 
+/* ===== DASHBOARD LAYOUT WITH SIDEBAR ===== */
+.zaikon-dashboard-content {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+}
+
+.zaikon-dashboard-left {
+    min-width: 0; /* Prevent grid overflow */
+}
+
+.zaikon-dashboard-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ===== SUMMARY CARD ===== */
+.zaikon-summary-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.zaikon-summary-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1F2933;
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #F5F5F7;
+}
+
+.zaikon-summary-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.zaikon-summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #F5F5F7;
+}
+
+.zaikon-summary-item:last-child {
+    border-bottom: none;
+}
+
+.zaikon-summary-label {
+    font-size: 13px;
+    color: #6B7280;
+    font-weight: 500;
+}
+
+.zaikon-summary-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1F2933;
+}
+
+/* ===== RECENT ORDERS ===== */
+.zaikon-recent-orders {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.zaikon-recent-order-item {
+    padding: 12px;
+    background: #F9FAFB;
+    border-radius: 8px;
+    border-left: 3px solid #f97316;
+    transition: all 0.2s;
+}
+
+.zaikon-recent-order-item:hover {
+    background: #F3F4F6;
+    transform: translateX(2px);
+}
+
+.zaikon-recent-order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.zaikon-recent-order-number {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1F2933;
+}
+
+.zaikon-recent-order-type {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.zaikon-badge-dine-in {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.zaikon-badge-takeaway {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.zaikon-badge-delivery {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.zaikon-recent-order-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.zaikon-recent-order-time {
+    font-size: 12px;
+    color: #6B7280;
+}
+
+.zaikon-recent-order-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f97316;
+}
+
 @media (max-width: 768px) {
     .zaikon-kpi-grid {
         grid-template-columns: 1fr;
@@ -464,5 +603,13 @@
     
     .zaikon-chart-body {
         height: 250px;
+    }
+    
+    .zaikon-dashboard-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .zaikon-dashboard-right {
+        order: -1; /* Move summary to top on mobile */
     }
 }

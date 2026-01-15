@@ -29,8 +29,9 @@ class RPOS_Install {
         update_option('rpos_version', RPOS_VERSION);
         update_option('rpos_installed', time());
         
-        // Flush rewrite rules
-        flush_rewrite_rules();
+        // Flush rewrite rules for frontend URLs
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-frontend.php';
+        Zaikon_Frontend::flush_rules();
     }
     
     /**
