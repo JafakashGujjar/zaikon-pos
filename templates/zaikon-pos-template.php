@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 $page = get_query_var('zaikon_pos_page');
 $current_user = wp_get_current_user();
 $user_name = $current_user->display_name;
+$user_roles = (array) $current_user->roles;
 
 ?>
 <!DOCTYPE html>
@@ -151,11 +152,8 @@ $user_name = $current_user->display_name;
         
         <nav class="zaikon-frontend-nav">
             <?php
-            $current_user = wp_get_current_user();
-            $roles = (array) $current_user->roles;
-            
-            // Show navigation based on user role
-            if (in_array('administrator', $roles) || in_array('restaurant_admin', $roles) || in_array('cashier', $roles)) {
+            // Show navigation based on user role (using pre-fetched roles)
+            if (in_array('administrator', $user_roles) || in_array('restaurant_admin', $user_roles) || in_array('cashier', $user_roles)) {
                 ?>
                 <a href="<?php echo home_url('/zaikon-pos/'); ?>" 
                    class="zaikon-nav-item <?php echo $page === 'dashboard' ? 'active' : ''; ?>">
@@ -168,7 +166,7 @@ $user_name = $current_user->display_name;
                 <?php
             }
             
-            if (in_array('administrator', $roles) || in_array('restaurant_admin', $roles) || in_array('kitchen_staff', $roles)) {
+            if (in_array('administrator', $user_roles) || in_array('restaurant_admin', $user_roles) || in_array('kitchen_staff', $user_roles)) {
                 ?>
                 <a href="<?php echo home_url('/zaikon-pos/kds/'); ?>" 
                    class="zaikon-nav-item <?php echo $page === 'kds' ? 'active' : ''; ?>">
@@ -177,7 +175,7 @@ $user_name = $current_user->display_name;
                 <?php
             }
             
-            if (in_array('delivery_rider', $roles)) {
+            if (in_array('delivery_rider', $user_roles)) {
                 ?>
                 <a href="<?php echo home_url('/zaikon-pos/deliveries/'); ?>" 
                    class="zaikon-nav-item <?php echo $page === 'deliveries' ? 'active' : ''; ?>">

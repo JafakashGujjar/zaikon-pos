@@ -102,7 +102,8 @@ try {
         $delivery_revenue = $delivery_summary;
     }
 } catch (Exception $e) {
-    // Delivery system not available or no data
+    // Delivery system not available or no data - log for debugging
+    error_log('Dashboard: Unable to load delivery summary - ' . $e->getMessage());
 }
 
 // Get current user info
