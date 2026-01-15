@@ -36,7 +36,8 @@ class Zaikon_Order_Service {
             $order_id = Zaikon_Orders::create($order_data);
             
             if (!$order_id) {
-                throw new Exception('Failed to create order');
+                $db_error = $wpdb->last_error ? ' - MySQL Error: ' . $wpdb->last_error : '';
+                throw new Exception('Failed to create order in zaikon_orders table' . $db_error);
             }
             
             $result['order_id'] = $order_id;

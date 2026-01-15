@@ -40,6 +40,9 @@ class Zaikon_Orders {
         );
         
         if (!$result) {
+            // Log the actual database error for debugging
+            error_log('ZAIKON: Failed to create order in zaikon_orders table. MySQL Error: ' . $wpdb->last_error);
+            error_log('ZAIKON: Order data: ' . print_r($order_data, true));
             return false;
         }
         
