@@ -272,6 +272,36 @@ class RPOS_Admin_Menu {
             'restaurant-pos-rider-payroll',
             array($this, 'rider_payroll_page')
         );
+        
+        // Cashier Shifts & Expenses
+        add_submenu_page(
+            'restaurant-pos',
+            __('Cashier Shifts & Expenses', 'restaurant-pos'),
+            __('Cashier Shifts', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-cashier-shifts',
+            array($this, 'cashier_shifts_page')
+        );
+        
+        // Expenses History
+        add_submenu_page(
+            'restaurant-pos',
+            __('Expenses History', 'restaurant-pos'),
+            __('Expenses History', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-expenses-history',
+            array($this, 'expenses_history_page')
+        );
+        
+        // Rider Deliveries Admin View
+        add_submenu_page(
+            'restaurant-pos',
+            __('Rider Deliveries (Admin)', 'restaurant-pos'),
+            __('Rider Deliveries (Admin)', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-rider-deliveries-admin',
+            array($this, 'rider_deliveries_admin_page')
+        );
     }
     
     /**
@@ -433,5 +463,26 @@ class RPOS_Admin_Menu {
      */
     public function shift_reports_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/shift-reports.php';
+    }
+    
+    /**
+     * Cashier Shifts & Expenses page
+     */
+    public function cashier_shifts_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/cashier-shifts-expenses.php';
+    }
+    
+    /**
+     * Expenses History page
+     */
+    public function expenses_history_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/expenses-history.php';
+    }
+    
+    /**
+     * Rider Deliveries Admin page
+     */
+    public function rider_deliveries_admin_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/rider-deliveries-admin.php';
     }
 }
