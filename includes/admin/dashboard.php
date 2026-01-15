@@ -137,10 +137,7 @@ wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/
                     <?php echo esc_html($currency); ?><?php echo number_format($today_sales->total_sales ?? 0, 2); ?>
                 </div>
                 <div class="zaikon-kpi-meta">
-                    <span class="zaikon-trend zaikon-trend-up">
-                        <span class="dashicons dashicons-arrow-up-alt"></span> 12%
-                    </span>
-                    <?php echo esc_html__('vs yesterday', 'restaurant-pos'); ?>
+                    <?php echo absint($today_sales->order_count ?? 0); ?> <?php echo esc_html__('orders completed today', 'restaurant-pos'); ?>
                 </div>
             </div>
 
@@ -185,7 +182,9 @@ wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/
                     <?php 
                     $type_counts = array('dine-in' => 0, 'takeaway' => 0, 'delivery' => 0);
                     foreach ($sales_by_type as $type) {
-                        $type_counts[$type->order_type] = $type->order_count;
+                        if (isset($type_counts[$type->order_type])) {
+                            $type_counts[$type->order_type] = $type->order_count;
+                        }
                     }
                     echo absint($type_counts['dine-in']) . ' / ' . absint($type_counts['takeaway']) . ' / ' . absint($type_counts['delivery']);
                     ?>
@@ -293,13 +292,14 @@ wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Wait for Chart.js to load
-    if (typeof Chart === 'undefined') {
-        setTimeout(arguments.callee, 50);
-        return;
-    }
+    function initCharts() {
+        if (typeof Chart === 'undefined') {
+            setTimeout(initCharts, 50);
+            return;
+        }
 
-    // Sales Chart Data
-    const salesData = {
+        // Sales Chart Data
+        const salesData = {
         labels: [
             <?php 
             foreach ($sales_by_date as $date => $data) {
@@ -398,5 +398,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Initialize charts
+    initCharts();
 });
 </script>
