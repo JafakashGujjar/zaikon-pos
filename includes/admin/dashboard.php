@@ -91,6 +91,20 @@ $category_sales = $wpdb->get_results($wpdb->prepare(
 // Get recent orders
 $recent_orders = RPOS_Orders::get_all(array('limit' => 8));
 
+// Get top selling products (by quantity) today
+$top_products = RPOS_Reports::get_top_products_by_quantity(5, $today_start, $today_end);
+
+// Get delivery revenue breakdown for today (if delivery system is active)
+$delivery_revenue = array();
+try {
+    $delivery_summary = Zaikon_Deliveries::get_delivery_summary($today_start, $today_end);
+    if ($delivery_summary) {
+        $delivery_revenue = $delivery_summary;
+    }
+} catch (Exception $e) {
+    // Delivery system not available or no data
+}
+
 // Get current user info
 $current_user = wp_get_current_user();
 $user_avatar_url = get_avatar_url($current_user->ID);
@@ -124,163 +138,199 @@ wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/
 
     <!-- Main Dashboard Content -->
     <div class="zaikon-dashboard-content">
-        <!-- KPI Cards -->
-        <div class="zaikon-kpi-grid">
-            <div class="zaikon-kpi-card zaikon-kpi-primary">
-                <div class="zaikon-kpi-header">
-                    <div class="zaikon-kpi-icon">
-                        <span class="dashicons dashicons-chart-line"></span>
+        <!-- Left Column: Main Content -->
+        <div class="zaikon-dashboard-left">
+            <!-- KPI Cards -->
+            <div class="zaikon-kpi-grid">
+                <div class="zaikon-kpi-card zaikon-kpi-primary">
+                    <div class="zaikon-kpi-header">
+                        <div class="zaikon-kpi-icon">
+                            <span class="dashicons dashicons-chart-line"></span>
+                        </div>
+                        <span class="zaikon-kpi-label"><?php echo esc_html__('Total Sales Today', 'restaurant-pos'); ?></span>
                     </div>
-                    <span class="zaikon-kpi-label"><?php echo esc_html__('Total Sales Today', 'restaurant-pos'); ?></span>
+                    <div class="zaikon-kpi-value">
+                        <?php echo esc_html($currency); ?><?php echo number_format($today_sales->total_sales ?? 0, 2); ?>
+                    </div>
+                    <div class="zaikon-kpi-meta">
+                        <?php echo absint($today_sales->order_count ?? 0); ?> <?php echo esc_html__('orders completed today', 'restaurant-pos'); ?>
+                    </div>
                 </div>
-                <div class="zaikon-kpi-value">
-                    <?php echo esc_html($currency); ?><?php echo number_format($today_sales->total_sales ?? 0, 2); ?>
+
+                <div class="zaikon-kpi-card">
+                    <div class="zaikon-kpi-header">
+                        <div class="zaikon-kpi-icon" style="background: #4CAF50;">
+                            <span class="dashicons dashicons-cart"></span>
+                        </div>
+                        <span class="zaikon-kpi-label"><?php echo esc_html__('Total Orders', 'restaurant-pos'); ?></span>
+                    </div>
+                    <div class="zaikon-kpi-value">
+                        <?php echo absint($today_sales->order_count ?? 0); ?>
+                    </div>
+                    <div class="zaikon-kpi-meta">
+                        <?php echo esc_html__('completed today', 'restaurant-pos'); ?>
+                    </div>
                 </div>
-                <div class="zaikon-kpi-meta">
-                    <?php echo absint($today_sales->order_count ?? 0); ?> <?php echo esc_html__('orders completed today', 'restaurant-pos'); ?>
+
+                <div class="zaikon-kpi-card">
+                    <div class="zaikon-kpi-header">
+                        <div class="zaikon-kpi-icon" style="background: #2196F3;">
+                            <span class="dashicons dashicons-money-alt"></span>
+                        </div>
+                        <span class="zaikon-kpi-label"><?php echo esc_html__('Average Order', 'restaurant-pos'); ?></span>
+                    </div>
+                    <div class="zaikon-kpi-value">
+                        <?php echo esc_html($currency); ?><?php echo number_format($today_sales->average_order ?? 0, 2); ?>
+                    </div>
+                    <div class="zaikon-kpi-meta">
+                        <?php echo esc_html__('per order today', 'restaurant-pos'); ?>
+                    </div>
                 </div>
             </div>
 
-            <div class="zaikon-kpi-card">
-                <div class="zaikon-kpi-header">
-                    <div class="zaikon-kpi-icon" style="background: #4CAF50;">
-                        <span class="dashicons dashicons-cart"></span>
+            <!-- Charts Row -->
+            <div class="zaikon-charts-row">
+                <!-- Sales Chart -->
+                <div class="zaikon-chart-card zaikon-chart-large">
+                    <div class="zaikon-chart-header">
+                        <h3 class="zaikon-chart-title"><?php echo esc_html__('Sales Figures (Last 7 Days)', 'restaurant-pos'); ?></h3>
                     </div>
-                    <span class="zaikon-kpi-label"><?php echo esc_html__('Total Orders', 'restaurant-pos'); ?></span>
+                    <div class="zaikon-chart-body">
+                        <canvas id="salesChart"></canvas>
+                    </div>
                 </div>
-                <div class="zaikon-kpi-value">
-                    <?php echo absint($today_sales->order_count ?? 0); ?>
-                </div>
-                <div class="zaikon-kpi-meta">
-                    <?php echo esc_html__('orders completed today', 'restaurant-pos'); ?>
+
+                <!-- Category Chart -->
+                <div class="zaikon-chart-card">
+                    <div class="zaikon-chart-header">
+                        <h3 class="zaikon-chart-title"><?php echo esc_html__('Sales by Category', 'restaurant-pos'); ?></h3>
+                    </div>
+                    <div class="zaikon-chart-body">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <div class="zaikon-kpi-card">
-                <div class="zaikon-kpi-header">
-                    <div class="zaikon-kpi-icon" style="background: #2196F3;">
-                        <span class="dashicons dashicons-money-alt"></span>
-                    </div>
-                    <span class="zaikon-kpi-label"><?php echo esc_html__('Average Order', 'restaurant-pos'); ?></span>
+            <!-- Top Selling Items -->
+            <div class="zaikon-table-card">
+                <div class="zaikon-table-header">
+                    <h3 class="zaikon-table-title"><?php echo esc_html__('Top 5 Selling Items (Today)', 'restaurant-pos'); ?></h3>
                 </div>
-                <div class="zaikon-kpi-value">
-                    <?php echo esc_html($currency); ?><?php echo number_format($today_sales->average_order ?? 0, 2); ?>
-                </div>
-                <div class="zaikon-kpi-meta">
-                    <?php echo esc_html__('per order today', 'restaurant-pos'); ?>
+                <div class="zaikon-table-body">
+                    <table class="zaikon-modern-table">
+                        <thead>
+                            <tr>
+                                <th><?php echo esc_html__('Item Name', 'restaurant-pos'); ?></th>
+                                <th><?php echo esc_html__('Quantity', 'restaurant-pos'); ?></th>
+                                <th><?php echo esc_html__('Total (Rs)', 'restaurant-pos'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($top_products)): ?>
+                                <?php foreach ($top_products as $product): ?>
+                                <tr>
+                                    <td><strong><?php echo esc_html($product->product_name); ?></strong></td>
+                                    <td><?php echo absint($product->quantity_sold); ?></td>
+                                    <td><?php echo esc_html($currency . number_format($product->total_revenue, 2)); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: #999;">
+                                        <?php echo esc_html__('No sales data available for today', 'restaurant-pos'); ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
 
-            <div class="zaikon-kpi-card">
-                <div class="zaikon-kpi-header">
-                    <div class="zaikon-kpi-icon" style="background: #FF9800;">
-                        <span class="dashicons dashicons-products"></span>
+        <!-- Right Column: Summary Panel -->
+        <div class="zaikon-dashboard-right">
+            <!-- Today Summary Widget -->
+            <div class="zaikon-summary-card">
+                <h3 class="zaikon-summary-title"><?php echo esc_html__('Today Summary', 'restaurant-pos'); ?></h3>
+                <div class="zaikon-summary-items">
+                    <div class="zaikon-summary-item">
+                        <div class="zaikon-summary-label"><?php echo esc_html__('Total Sales', 'restaurant-pos'); ?></div>
+                        <div class="zaikon-summary-value" style="color: #f97316;">
+                            <?php echo esc_html($currency); ?><?php echo number_format($today_sales->total_sales ?? 0, 2); ?>
+                        </div>
                     </div>
-                    <span class="zaikon-kpi-label"><?php echo esc_html__('Order Types', 'restaurant-pos'); ?></span>
-                </div>
-                <div class="zaikon-kpi-value" style="font-size: 1.5rem;">
-                    <?php 
-                    $type_counts = array('dine-in' => 0, 'takeaway' => 0, 'delivery' => 0);
+                    <?php
+                    // Calculate sales by type
+                    $dine_in_sales = 0;
+                    $takeaway_sales = 0;
+                    $delivery_sales = 0;
                     foreach ($sales_by_type as $type) {
-                        if (isset($type_counts[$type->order_type])) {
-                            $type_counts[$type->order_type] = $type->order_count;
+                        if ($type->order_type === 'dine-in') {
+                            $dine_in_sales = floatval($type->total_sales);
+                        } elseif ($type->order_type === 'takeaway') {
+                            $takeaway_sales = floatval($type->total_sales);
+                        } elseif ($type->order_type === 'delivery') {
+                            $delivery_sales = floatval($type->total_sales);
                         }
                     }
-                    echo absint($type_counts['dine-in']) . ' / ' . absint($type_counts['takeaway']) . ' / ' . absint($type_counts['delivery']);
                     ?>
-                </div>
-                <div class="zaikon-kpi-meta">
-                    <?php echo esc_html__('Dine-in / Takeaway / Delivery', 'restaurant-pos'); ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Row -->
-        <div class="zaikon-charts-row">
-            <!-- Sales Chart -->
-            <div class="zaikon-chart-card zaikon-chart-large">
-                <div class="zaikon-chart-header">
-                    <h3 class="zaikon-chart-title"><?php echo esc_html__('Sales Figures (Last 7 Days)', 'restaurant-pos'); ?></h3>
-                    <div class="zaikon-chart-actions">
-                        <button class="zaikon-btn-small"><?php echo esc_html__('Export', 'restaurant-pos'); ?></button>
+                    <div class="zaikon-summary-item">
+                        <div class="zaikon-summary-label"><?php echo esc_html__('Dine-in Sales', 'restaurant-pos'); ?></div>
+                        <div class="zaikon-summary-value">
+                            <?php echo esc_html($currency); ?><?php echo number_format($dine_in_sales, 2); ?>
+                        </div>
+                    </div>
+                    <div class="zaikon-summary-item">
+                        <div class="zaikon-summary-label"><?php echo esc_html__('Takeaway Sales', 'restaurant-pos'); ?></div>
+                        <div class="zaikon-summary-value">
+                            <?php echo esc_html($currency); ?><?php echo number_format($takeaway_sales, 2); ?>
+                        </div>
+                    </div>
+                    <div class="zaikon-summary-item">
+                        <div class="zaikon-summary-label"><?php echo esc_html__('Delivery Sales', 'restaurant-pos'); ?></div>
+                        <div class="zaikon-summary-value">
+                            <?php echo esc_html($currency); ?><?php echo number_format($delivery_sales, 2); ?>
+                        </div>
                     </div>
                 </div>
-                <div class="zaikon-chart-body">
-                    <canvas id="salesChart"></canvas>
-                </div>
             </div>
 
-            <!-- Category Chart -->
-            <div class="zaikon-chart-card">
-                <div class="zaikon-chart-header">
-                    <h3 class="zaikon-chart-title"><?php echo esc_html__('Earning by Category', 'restaurant-pos'); ?></h3>
-                </div>
-                <div class="zaikon-chart-body">
-                    <canvas id="categoryChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Orders Table -->
-        <?php if (current_user_can('rpos_view_orders') && !empty($recent_orders)): ?>
-        <div class="zaikon-table-card">
-            <div class="zaikon-table-header">
-                <h3 class="zaikon-table-title"><?php echo esc_html__('Last Orders', 'restaurant-pos'); ?></h3>
-                <a href="<?php echo admin_url('admin.php?page=restaurant-pos-orders'); ?>" class="zaikon-btn-link">
-                    <?php echo esc_html__('View All', 'restaurant-pos'); ?> →
-                </a>
-            </div>
-            <div class="zaikon-table-body">
-                <table class="zaikon-modern-table">
-                    <thead>
-                        <tr>
-                            <th><?php echo esc_html__('Order #', 'restaurant-pos'); ?></th>
-                            <th><?php echo esc_html__('Type', 'restaurant-pos'); ?></th>
-                            <th><?php echo esc_html__('Amount', 'restaurant-pos'); ?></th>
-                            <th><?php echo esc_html__('Status', 'restaurant-pos'); ?></th>
-                            <th><?php echo esc_html__('Date', 'restaurant-pos'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($recent_orders as $order): ?>
-                        <tr>
-                            <td><strong>#<?php echo esc_html($order->order_number); ?></strong></td>
-                            <td>
-                                <?php 
-                                $type_classes = array(
-                                    'dine-in' => 'zaikon-badge-dine-in',
-                                    'takeaway' => 'zaikon-badge-takeaway',
-                                    'delivery' => 'zaikon-badge-delivery'
-                                );
-                                $type_class = $type_classes[$order->order_type] ?? 'zaikon-badge-dark';
-                                ?>
-                                <span class="zaikon-modern-badge <?php echo esc_attr($type_class); ?>">
+            <!-- Recent Orders Widget -->
+            <div class="zaikon-summary-card">
+                <h3 class="zaikon-summary-title"><?php echo esc_html__('Last Orders', 'restaurant-pos'); ?></h3>
+                <div class="zaikon-recent-orders">
+                    <?php if (!empty($recent_orders)): ?>
+                        <?php foreach (array_slice($recent_orders, 0, 8) as $order): ?>
+                        <div class="zaikon-recent-order-item">
+                            <div class="zaikon-recent-order-header">
+                                <span class="zaikon-recent-order-number">#<?php echo esc_html($order->order_number); ?></span>
+                                <span class="zaikon-recent-order-type zaikon-badge-<?php echo esc_attr($order->order_type); ?>">
                                     <?php echo esc_html(ucfirst(str_replace('-', ' ', $order->order_type))); ?>
                                 </span>
-                            </td>
-                            <td><strong><?php echo esc_html($currency . number_format($order->total, 2)); ?></strong></td>
-                            <td>
-                                <?php
-                                $status_classes = array(
-                                    'new' => 'zaikon-badge-new',
-                                    'cooking' => 'zaikon-badge-cooking',
-                                    'ready' => 'zaikon-badge-ready',
-                                    'completed' => 'zaikon-badge-completed'
-                                );
-                                $status_class = $status_classes[$order->status] ?? 'zaikon-badge-dark';
-                                ?>
-                                <span class="zaikon-modern-badge <?php echo esc_attr($status_class); ?>">
-                                    <?php echo esc_html(ucfirst($order->status)); ?>
+                            </div>
+                            <div class="zaikon-recent-order-footer">
+                                <span class="zaikon-recent-order-time">
+                                    <?php echo esc_html(date_i18n('g:i A', strtotime($order->created_at))); ?>
                                 </span>
-                            </td>
-                            <td><?php echo esc_html(date_i18n('M j, g:i A', strtotime($order->created_at))); ?></td>
-                        </tr>
+                                <span class="zaikon-recent-order-amount">
+                                    <?php echo esc_html($currency . number_format($order->total, 2)); ?>
+                                </span>
+                            </div>
+                        </div>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
+                    <?php else: ?>
+                        <p style="text-align: center; color: #999; padding: 20px 0;">
+                            <?php echo esc_html__('No recent orders', 'restaurant-pos'); ?>
+                        </p>
+                    <?php endif; ?>
+                </div>
+                <?php if (current_user_can('rpos_view_orders')): ?>
+                <a href="<?php echo admin_url('admin.php?page=restaurant-pos-orders'); ?>" class="zaikon-btn-link" style="display: block; text-align: center; margin-top: 10px;">
+                    <?php echo esc_html__('View All Orders', 'restaurant-pos'); ?> →
+                </a>
+                <?php endif; ?>
             </div>
         </div>
-        <?php endif; ?>
     </div>
 
     <!-- Footer Credit -->
