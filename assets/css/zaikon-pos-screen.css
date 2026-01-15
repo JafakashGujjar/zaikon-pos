@@ -1123,11 +1123,13 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-orders-btn {
-    background: var(--zaikon-blue);
+    background: linear-gradient(135deg, #694FFB 0%, #F45C43 100%) !important;
+    color: white !important;
+    border: none !important;
 }
 
 .zaikon-orders-btn:hover {
-    background: #1864ab;
+    background: linear-gradient(135deg, #5a3fd9 0%, #d94a35 100%) !important;
 }
 
 .zaikon-close-shift-btn {
@@ -1519,4 +1521,69 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
+}
+
+/* Order Status Badge Colors */
+.zaikon-order-status-badge.active {
+    background-color: #22c55e;
+    color: white;
+}
+
+.zaikon-order-status-badge.assigned,
+.zaikon-order-status-badge.on_route {
+    background-color: #f97316;
+    color: white;
+}
+
+.zaikon-order-status-badge.delivered {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.zaikon-order-status-badge.cancelled {
+    background-color: #ef4444;
+    color: white;
+}
+
+.zaikon-order-status-badge.completed {
+    background-color: #22c55e;
+    color: white;
+}
+
+/* Payment Status Badge Colors */
+.zaikon-payment-status-badge.unpaid,
+.zaikon-payment-status-badge.cod_pending {
+    background-color: #f97316;
+    color: white;
+}
+
+.zaikon-payment-status-badge.paid {
+    background-color: #22c55e;
+    color: white;
+}
+
+.zaikon-payment-status-badge.cod_received {
+    background-color: #a855f7;
+    color: white;
+}
+
+/* Action Button Styles */
+.zaikon-order-action-btn.mark-delivered-btn {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.zaikon-order-action-btn.mark-cod-received-btn {
+    background-color: #a855f7;
+    color: white;
+}
+
+/* My Orders Modal - Centered */
+#rpos-orders-modal .zaikon-modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-height: 90vh;
+    overflow-y: auto;
 }

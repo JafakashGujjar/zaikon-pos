@@ -252,6 +252,20 @@ class RPOS_REST_API {
             'callback' => array($this, 'update_order_order_status'),
             'permission_callback' => array($this, 'check_process_orders_permission')
         ));
+        
+        // Mark order as delivered (from cashier view)
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/mark-delivered', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'mark_order_delivered'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
+        
+        // Mark COD as received
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/mark-cod-received', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'mark_cod_received'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
     }
     
     /**
@@ -1184,7 +1198,7 @@ class RPOS_REST_API {
             "SELECT o.id, o.order_number, o.order_type, o.payment_type, o.payment_status, 
                     o.order_status, o.subtotal_rs, o.delivery_charge_rs, o.discount_rs, 
                     o.grand_total_rs, o.created_at, o.cashier_id,
-                    d.assigned_rider_id, r.name as rider_name
+                    d.assigned_rider_id, d.delivery_status, r.name as rider_name
              FROM {$wpdb->prefix}zaikon_orders o
              LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
              LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
@@ -1267,6 +1281,107 @@ class RPOS_REST_API {
         return rest_ensure_response(array(
             'success' => true,
             'message' => 'Order status updated successfully'
+        ));
+    }
+    
+    /**
+     * Mark order as delivered
+     */
+    public function mark_order_delivered($request) {
+        global $wpdb;
+        
+        $order_id = absint($request['id']);
+        
+        // Update zaikon_orders table
+        $result = $wpdb->update(
+            $wpdb->prefix . 'zaikon_orders',
+            array(
+                'order_status' => 'delivered',
+                'updated_at' => current_time('mysql')
+            ),
+            array('id' => $order_id),
+            array('%s', '%s'),
+            array('%d')
+        );
+        
+        // Also update zaikon_deliveries table
+        $wpdb->update(
+            $wpdb->prefix . 'zaikon_deliveries',
+            array(
+                'delivery_status' => 'delivered',
+                'delivered_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ),
+            array('order_id' => $order_id),
+            array('%s', '%s', '%s'),
+            array('%d')
+        );
+        
+        // Update rider_orders status
+        $wpdb->update(
+            $wpdb->prefix . 'zaikon_rider_orders',
+            array(
+                'status' => 'delivered',
+                'delivered_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ),
+            array('order_id' => $order_id),
+            array('%s', '%s', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to mark order as delivered', array('status' => 500));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Order marked as delivered'
+        ));
+    }
+    
+    /**
+     * Mark COD as received
+     */
+    public function mark_cod_received($request) {
+        global $wpdb;
+        
+        $order_id = absint($request['id']);
+        
+        // Verify this is a COD order
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        if (!$order) {
+            return new WP_Error('not_found', 'Order not found', array('status' => 404));
+        }
+        
+        if ($order->payment_type !== 'cod') {
+            return new WP_Error('invalid_payment_type', 'This order is not COD', array('status' => 400));
+        }
+        
+        // Update payment status to cod_received and order_status to completed
+        $result = $wpdb->update(
+            $wpdb->prefix . 'zaikon_orders',
+            array(
+                'payment_status' => 'cod_received',
+                'order_status' => 'completed',
+                'updated_at' => current_time('mysql')
+            ),
+            array('id' => $order_id),
+            array('%s', '%s', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to mark COD as received', array('status' => 500));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'COD marked as received'
         ));
     }
 }
