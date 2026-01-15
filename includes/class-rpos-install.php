@@ -194,19 +194,6 @@ class RPOS_Install {
                 $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `discounts_rs` `discount_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
             }
         }
-        if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `target_prep_time` int DEFAULT 10 AFTER `ingredients_deducted`");
-        }
-        
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'actual_prep_time'");
-        if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `actual_prep_time` int DEFAULT NULL AFTER `target_prep_time`");
-        }
-        
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'is_late'");
-        if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `is_late` tinyint(1) DEFAULT 0 AFTER `actual_prep_time`");
-        }
         
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'late_reason'");
         if (empty($column_exists)) {

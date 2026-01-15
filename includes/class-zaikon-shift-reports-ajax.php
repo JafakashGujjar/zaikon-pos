@@ -45,7 +45,7 @@ class Zaikon_Shift_Reports_Ajax {
         }
         
         // Calculate totals if not already stored
-        if ($shift->status === 'closed' && !$shift->total_cash_sales_rs) {
+        if ($shift->status === 'closed' && is_null($shift->total_cash_sales_rs)) {
             $totals = Zaikon_Cashier_Sessions::calculate_session_totals($shift_id);
             if ($totals) {
                 $shift->total_cash_sales_rs = $totals['cash_sales'];
