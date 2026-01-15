@@ -266,6 +266,37 @@ class RPOS_REST_API {
             'callback' => array($this, 'mark_cod_received'),
             'permission_callback' => array($this, 'check_process_orders_permission')
         ));
+        
+        // Cylinder endpoints
+        register_rest_route($zaikon_namespace, '/cylinders/consumption', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_cylinder_consumption'),
+            'permission_callback' => array($this, 'check_manage_inventory_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/cylinders/analytics', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_cylinder_analytics'),
+            'permission_callback' => array($this, 'check_manage_inventory_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/cylinders/(?P<id>\d+)/forecast', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_cylinder_forecast'),
+            'permission_callback' => array($this, 'check_manage_inventory_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/cylinders/(?P<id>\d+)/refill', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'process_cylinder_refill'),
+            'permission_callback' => array($this, 'check_manage_inventory_permission')
+        ));
+        
+        register_rest_route($zaikon_namespace, '/cylinders/zones', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_cylinder_zones'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
     }
     
     /**
@@ -1392,6 +1423,124 @@ class RPOS_REST_API {
         return rest_ensure_response(array(
             'success' => true,
             'message' => 'COD marked as received'
+        ));
+    }
+    
+    /**
+     * Get cylinder consumption logs
+     */
+    public function get_cylinder_consumption($request) {
+        $params = $request->get_params();
+        $cylinder_id = isset($params['cylinder_id']) ? absint($params['cylinder_id']) : 0;
+        $limit = isset($params['limit']) ? absint($params['limit']) : 100;
+        
+        global $wpdb;
+        
+        $query = "SELECT c.*, p.name as product_name, o.order_number, 
+                         cyl.cylinder_type_id, t.name as cylinder_type
+                  FROM {$wpdb->prefix}zaikon_cylinder_consumption c
+                  LEFT JOIN {$wpdb->prefix}rpos_products p ON c.product_id = p.id
+                  LEFT JOIN {$wpdb->prefix}rpos_orders o ON c.order_id = o.id
+                  LEFT JOIN {$wpdb->prefix}rpos_gas_cylinders cyl ON c.cylinder_id = cyl.id
+                  LEFT JOIN {$wpdb->prefix}rpos_gas_cylinder_types t ON cyl.cylinder_type_id = t.id";
+        
+        if ($cylinder_id > 0) {
+            $query .= $wpdb->prepare(" WHERE c.cylinder_id = %d", $cylinder_id);
+        }
+        
+        $query .= $wpdb->prepare(" ORDER BY c.created_at DESC LIMIT %d", $limit);
+        
+        $consumption = $wpdb->get_results($query);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'data' => $consumption
+        ));
+    }
+    
+    /**
+     * Get cylinder analytics
+     */
+    public function get_cylinder_analytics($request) {
+        $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
+        $efficiency = RPOS_Gas_Cylinders::get_efficiency_comparison();
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'data' => array(
+                'dashboard' => $analytics,
+                'efficiency' => $efficiency
+            )
+        ));
+    }
+    
+    /**
+     * Get cylinder forecast
+     */
+    public function get_cylinder_forecast($request) {
+        $cylinder_id = absint($request['id']);
+        
+        if ($cylinder_id <= 0) {
+            return new WP_Error('invalid_id', 'Invalid cylinder ID', array('status' => 400));
+        }
+        
+        $burn_rate = RPOS_Gas_Cylinders::calculate_burn_rate($cylinder_id);
+        $cylinder = RPOS_Gas_Cylinders::get_cylinder($cylinder_id);
+        
+        if (!$cylinder) {
+            return new WP_Error('not_found', 'Cylinder not found', array('status' => 404));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'data' => array(
+                'cylinder' => $cylinder,
+                'forecast' => $burn_rate
+            )
+        ));
+    }
+    
+    /**
+     * Process cylinder refill
+     */
+    public function process_cylinder_refill($request) {
+        $cylinder_id = absint($request['id']);
+        $params = $request->get_json_params();
+        
+        if ($cylinder_id <= 0) {
+            return new WP_Error('invalid_id', 'Invalid cylinder ID', array('status' => 400));
+        }
+        
+        $refill_data = array(
+            'refill_date' => isset($params['refill_date']) ? sanitize_text_field($params['refill_date']) : date('Y-m-d'),
+            'vendor' => isset($params['vendor']) ? sanitize_text_field($params['vendor']) : null,
+            'cost' => isset($params['cost']) ? floatval($params['cost']) : 0,
+            'quantity' => isset($params['quantity']) ? floatval($params['quantity']) : 1,
+            'notes' => isset($params['notes']) ? sanitize_textarea_field($params['notes']) : null
+        );
+        
+        $refill_id = RPOS_Gas_Cylinders::process_refill($cylinder_id, $refill_data);
+        
+        if (!$refill_id) {
+            return new WP_Error('refill_failed', 'Failed to process refill', array('status' => 500));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Refill processed successfully',
+            'refill_id' => $refill_id
+        ));
+    }
+    
+    /**
+     * Get cylinder zones
+     */
+    public function get_cylinder_zones($request) {
+        $zones = RPOS_Gas_Cylinders::get_all_zones();
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'data' => $zones
         ));
     }
 }
