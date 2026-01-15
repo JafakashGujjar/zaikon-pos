@@ -16,12 +16,15 @@ class Zaikon_Orders {
     public static function create($data) {
         global $wpdb;
         
+        // Map input data to database columns (DB uses singular names after migration)
+        // Input uses plural names for backward compatibility: items_subtotal_rs, delivery_charges_rs, discounts_rs
+        // Database columns use singular names: subtotal_rs, delivery_charge_rs, discount_rs
         $order_data = array(
             'order_number' => sanitize_text_field($data['order_number']),
             'order_type' => sanitize_text_field($data['order_type'] ?? 'takeaway'),
-            'items_subtotal_rs' => floatval($data['items_subtotal_rs'] ?? 0),
-            'delivery_charges_rs' => floatval($data['delivery_charges_rs'] ?? 0),
-            'discounts_rs' => floatval($data['discounts_rs'] ?? 0),
+            'subtotal_rs' => floatval($data['items_subtotal_rs'] ?? 0),
+            'delivery_charge_rs' => floatval($data['delivery_charges_rs'] ?? 0),
+            'discount_rs' => floatval($data['discounts_rs'] ?? 0),
             'taxes_rs' => floatval($data['taxes_rs'] ?? 0),
             'grand_total_rs' => floatval($data['grand_total_rs']),
             'payment_status' => sanitize_text_field($data['payment_status'] ?? 'unpaid'),
@@ -217,9 +220,9 @@ class Zaikon_Orders {
                     SUM(CASE WHEN order_type = 'delivery' THEN 1 ELSE 0 END) as delivery_orders,
                     SUM(CASE WHEN order_type = 'dine_in' THEN 1 ELSE 0 END) as dine_in_orders,
                     SUM(CASE WHEN order_type = 'takeaway' THEN 1 ELSE 0 END) as takeaway_orders,
-                    SUM(items_subtotal_rs) as total_items_sales,
-                    SUM(delivery_charges_rs) as total_delivery_charges,
-                    SUM(discounts_rs) as total_discounts,
+                    SUM(subtotal_rs) as total_items_sales,
+                    SUM(delivery_charge_rs) as total_delivery_charges,
+                    SUM(discount_rs) as total_discounts,
                     SUM(taxes_rs) as total_taxes,
                     SUM(grand_total_rs) as total_grand
                   FROM {$wpdb->prefix}zaikon_orders
