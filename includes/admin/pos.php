@@ -312,58 +312,56 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
     </div>
 </div>
 
-<!-- Close Shift Modal -->
-<div id="rpos-close-shift-modal" class="zaikon-modal" style="display: none;">
-    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 600px;">
-        <div class="zaikon-modal-header">
-            <h3><?php echo esc_html__('Close Shift', 'restaurant-pos'); ?></h3>
-            <button class="zaikon-modal-close" id="rpos-close-shift-modal-close">&times;</button>
-        </div>
-        <div class="zaikon-modal-body">
-            <h4><?php echo esc_html__('Shift Summary', 'restaurant-pos'); ?></h4>
-            <div class="zaikon-shift-summary">
-                <div class="zaikon-summary-row">
-                    <span><?php echo esc_html__('Opening Cash:', 'restaurant-pos'); ?></span>
-                    <span id="rpos-summary-opening"><?php echo esc_html($currency); ?>0.00</span>
-                </div>
-                <div class="zaikon-summary-row">
-                    <span><?php echo esc_html__('Total Cash Sales:', 'restaurant-pos'); ?></span>
-                    <span id="rpos-summary-cash-sales"><?php echo esc_html($currency); ?>0.00</span>
-                </div>
-                <div class="zaikon-summary-row">
-                    <span><?php echo esc_html__('Total COD Collected:', 'restaurant-pos'); ?></span>
-                    <span id="rpos-summary-cod"><?php echo esc_html($currency); ?>0.00</span>
-                </div>
-                <div class="zaikon-summary-row">
-                    <span><?php echo esc_html__('Total Expenses:', 'restaurant-pos'); ?></span>
-                    <span id="rpos-summary-expenses" style="color: var(--zaikon-red);"><?php echo esc_html($currency); ?>0.00</span>
-                </div>
-                <div class="zaikon-summary-row zaikon-summary-total">
-                    <span><strong><?php echo esc_html__('Expected Cash in Drawer:', 'restaurant-pos'); ?></strong></span>
-                    <span id="rpos-summary-expected"><strong><?php echo esc_html($currency); ?>0.00</strong></span>
-                </div>
+<!-- Close Shift Dropdown -->
+<div id="rpos-close-shift-dropdown" class="zaikon-close-shift-dropdown" style="display: none;">
+    <div class="zaikon-close-shift-dropdown-header">
+        <h4><?php echo esc_html__('Close Shift', 'restaurant-pos'); ?></h4>
+        <button class="zaikon-dropdown-close" id="rpos-close-shift-dropdown-close">&times;</button>
+    </div>
+    <div class="zaikon-close-shift-dropdown-body">
+        <h4><?php echo esc_html__('Shift Summary', 'restaurant-pos'); ?></h4>
+        <div class="zaikon-shift-summary">
+            <div class="zaikon-summary-row">
+                <span><?php echo esc_html__('Opening Cash:', 'restaurant-pos'); ?></span>
+                <span id="rpos-summary-opening"><?php echo esc_html($currency); ?>0.00</span>
             </div>
-            <div class="zaikon-order-field" style="margin-top: 20px;">
-                <label><?php echo esc_html__('Actual Cash Counted (Rs):', 'restaurant-pos'); ?></label>
-                <input type="number" id="rpos-closing-cash" step="0.01" min="0" placeholder="0.00" inputmode="numeric" style="width: 100%; padding: 10px; font-size: 18px;">
+            <div class="zaikon-summary-row">
+                <span><?php echo esc_html__('Total Cash Sales:', 'restaurant-pos'); ?></span>
+                <span id="rpos-summary-cash-sales"><?php echo esc_html($currency); ?>0.00</span>
             </div>
-            <div class="zaikon-order-field" style="margin-top: 15px;">
-                <label><?php echo esc_html__('Notes (optional):', 'restaurant-pos'); ?></label>
-                <textarea id="rpos-closing-notes" rows="2" placeholder="<?php echo esc_attr__('Any observations or issues', 'restaurant-pos'); ?>"></textarea>
+            <div class="zaikon-summary-row">
+                <span><?php echo esc_html__('Total COD Collected:', 'restaurant-pos'); ?></span>
+                <span id="rpos-summary-cod"><?php echo esc_html($currency); ?>0.00</span>
             </div>
-            <div id="rpos-cash-difference" style="margin-top: 15px; padding: 10px; background: var(--zaikon-gray-light); border-radius: 8px; display: none;">
-                <span><?php echo esc_html__('Difference:', 'restaurant-pos'); ?></span>
-                <span id="rpos-difference-amount" style="font-weight: bold; font-size: 18px;"></span>
+            <div class="zaikon-summary-row">
+                <span><?php echo esc_html__('Total Expenses:', 'restaurant-pos'); ?></span>
+                <span id="rpos-summary-expenses" style="color: var(--zaikon-red);"><?php echo esc_html($currency); ?>0.00</span>
+            </div>
+            <div class="zaikon-summary-row zaikon-summary-total">
+                <span><strong><?php echo esc_html__('Expected Cash in Drawer:', 'restaurant-pos'); ?></strong></span>
+                <span id="rpos-summary-expected"><strong><?php echo esc_html($currency); ?>0.00</strong></span>
             </div>
         </div>
-        <div class="zaikon-modal-footer">
-            <button class="zaikon-btn zaikon-btn-secondary" id="rpos-cancel-close-shift">
-                <?php echo esc_html__('Cancel', 'restaurant-pos'); ?>
-            </button>
-            <button class="zaikon-btn zaikon-btn-primary" id="rpos-confirm-close-shift">
-                <?php echo esc_html__('Close Shift', 'restaurant-pos'); ?>
-            </button>
+        <div class="zaikon-order-field" style="margin-top: 20px;">
+            <label><?php echo esc_html__('Actual Cash Counted (Rs):', 'restaurant-pos'); ?></label>
+            <input type="number" id="rpos-closing-cash" step="0.01" min="0" placeholder="0.00" inputmode="numeric" style="width: 100%; padding: 10px; font-size: 18px;">
         </div>
+        <div class="zaikon-order-field" style="margin-top: 15px;">
+            <label><?php echo esc_html__('Notes (optional):', 'restaurant-pos'); ?></label>
+            <textarea id="rpos-closing-notes" rows="2" placeholder="<?php echo esc_attr__('Any observations or issues', 'restaurant-pos'); ?>"></textarea>
+        </div>
+        <div id="rpos-cash-difference" style="margin-top: 15px; padding: 10px; background: var(--zaikon-gray-light); border-radius: 8px; display: none;">
+            <span><?php echo esc_html__('Difference:', 'restaurant-pos'); ?></span>
+            <span id="rpos-difference-amount" style="font-weight: bold; font-size: 18px;"></span>
+        </div>
+    </div>
+    <div class="zaikon-close-shift-dropdown-footer">
+        <button class="zaikon-btn zaikon-btn-secondary" id="rpos-cancel-close-shift">
+            <?php echo esc_html__('Cancel', 'restaurant-pos'); ?>
+        </button>
+        <button class="zaikon-btn zaikon-btn-primary" id="rpos-confirm-close-shift">
+            <?php echo esc_html__('Close Shift', 'restaurant-pos'); ?>
+        </button>
     </div>
 </div>
 

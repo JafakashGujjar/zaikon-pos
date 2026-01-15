@@ -21,8 +21,8 @@
             // Close shift - handle both button and icon button
             $('#rpos-close-shift-btn, #rpos-close-shift-icon-btn').on('click', this.showCloseShiftModal.bind(this));
             $('#rpos-confirm-close-shift').on('click', this.closeShift.bind(this));
-            $('#rpos-cancel-close-shift, #rpos-close-shift-modal-close').on('click', function() {
-                $('#rpos-close-shift-modal').fadeOut(200);
+            $('#rpos-cancel-close-shift, #rpos-close-shift-dropdown-close').on('click', function() {
+                $('#rpos-close-shift-dropdown').fadeOut(200);
             });
             
             // Calculate cash difference on input
@@ -40,6 +40,9 @@
             $(document).on('click', function(e) {
                 if (!$(e.target).closest('#rpos-expenses-btn, #rpos-expenses-dropdown').length) {
                     $('#rpos-expenses-dropdown').fadeOut(200);
+                }
+                if (!$(e.target).closest('#rpos-close-shift-icon-btn, #rpos-close-shift-btn, #rpos-close-shift-dropdown').length) {
+                    $('#rpos-close-shift-dropdown').fadeOut(200);
                 }
             });
             
@@ -169,10 +172,20 @@
                     $('#rpos-summary-expected').text(rposData.currency + parseFloat(totals.expected_cash).toFixed(2));
                     
                     // Store expected cash for difference calculation
-                    $('#rpos-close-shift-modal').data('expected-cash', totals.expected_cash);
+                    $('#rpos-close-shift-dropdown').data('expected-cash', totals.expected_cash);
                     
-                    // Show modal
-                    $('#rpos-close-shift-modal').fadeIn(200);
+                    // Position dropdown below the button relative to viewport
+                    var btn = $('#rpos-close-shift-icon-btn');
+                    if (!btn.length) btn = $('#rpos-close-shift-btn');
+                    var btnRect = btn[0].getBoundingClientRect();
+                    
+                    $('#rpos-close-shift-dropdown').css({
+                        top: (btnRect.bottom + 8) + 'px',
+                        right: (window.innerWidth - btnRect.right) + 'px'
+                    });
+                    
+                    // Show dropdown
+                    $('#rpos-close-shift-dropdown').fadeIn(200);
                 },
                 error: function(xhr) {
                     console.error('Error getting session totals:', xhr);
@@ -183,7 +196,7 @@
         
         calculateDifference: function() {
             var closingCash = parseFloat($('#rpos-closing-cash').val()) || 0;
-            var expectedCash = parseFloat($('#rpos-close-shift-modal').data('expected-cash')) || 0;
+            var expectedCash = parseFloat($('#rpos-close-shift-dropdown').data('expected-cash')) || 0;
             var difference = closingCash - expectedCash;
             
             var diffDiv = $('#rpos-cash-difference');
@@ -234,7 +247,7 @@
                     notes: notes
                 }),
                 success: function(response) {
-                    $('#rpos-close-shift-modal').fadeOut(200);
+                    $('#rpos-close-shift-dropdown').fadeOut(200);
                     window.ZaikonToast.success('Shift closed successfully');
                     
                     // Clear current session
