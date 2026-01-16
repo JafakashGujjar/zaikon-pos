@@ -187,17 +187,7 @@
                     // Store expected cash for difference calculation
                     $('#rpos-close-shift-dropdown').data('expected-cash', totals.expected_cash);
                     
-                    // Position dropdown below the button relative to viewport
-                    var btn = $('#rpos-close-shift-icon-btn');
-                    if (!btn.length) btn = $('#rpos-close-shift-btn');
-                    var btnRect = btn[0].getBoundingClientRect();
-                    
-                    $('#rpos-close-shift-dropdown').css({
-                        top: (btnRect.bottom + 8) + 'px',
-                        right: (window.innerWidth - btnRect.right) + 'px'
-                    });
-                    
-                    // Show dropdown
+                    // Show modal (now centered like other modals)
                     $('#rpos-close-shift-dropdown').fadeIn(200);
                 },
                 error: function(xhr) {
