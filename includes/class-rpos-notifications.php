@@ -169,7 +169,19 @@ class RPOS_Notifications {
                 return false;
         }
         
-        // Create notification
-        return self::create($cashier_id, $order_id, $type, $message);
+        // Create notification for cashier
+        self::create($cashier_id, $order_id, $type, $message);
+        
+        // Also notify all restaurant admins
+        $admin_users = get_users(array(
+            'role__in' => array('administrator', 'rpos_restaurant_admin'),
+            'exclude' => array($cashier_id) // Don't double-notify if cashier is admin
+        ));
+        
+        foreach ($admin_users as $admin) {
+            self::create($admin->ID, $order_id, $type, $message);
+        }
+        
+        return true;
     }
 }

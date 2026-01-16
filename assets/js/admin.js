@@ -560,10 +560,10 @@
             // Initial load
             this.loadNotifications();
             
-            // Poll every 20 seconds
+            // Poll every 10 seconds
             this.notificationInterval = setInterval(function() {
                 self.loadNotifications();
-            }, 20000);
+            }, 10000);
             
             // Bind notification bell click
             $('#rpos-notification-bell').on('click', function() {
@@ -573,6 +573,21 @@
             // Bind mark all as read
             $('#rpos-mark-all-read').on('click', function() {
                 self.markAllAsRead();
+            });
+            
+            // Bind View Order button
+            $(document).on('click', '.rpos-view-order-btn', function(e) {
+                e.stopPropagation();
+                var orderId = $(this).data('order-id');
+                // Navigate to order detail
+                window.location.href = '?page=restaurant-pos-orders&view=' + orderId;
+            });
+            
+            // Bind Dismiss button
+            $(document).on('click', '.rpos-dismiss-notification-btn', function(e) {
+                e.stopPropagation();
+                var notificationId = $(this).data('id');
+                self.markAsRead(notificationId);
             });
             
             // Close dropdown when clicking outside
@@ -675,10 +690,18 @@
                 $details.append($order, $message, $time);
                 $content.append($icon, $details);
                 
+                // Add action buttons
+                var $actions = $('<div class="zaikon-notification-actions">');
+                var $viewBtn = $('<button class="zaikon-btn zaikon-btn-sm zaikon-btn-primary rpos-view-order-btn">').text('View Order');
+                $viewBtn.attr('data-order-id', notification.order_id);
+                var $dismissBtn = $('<button class="zaikon-btn zaikon-btn-sm zaikon-btn-secondary rpos-dismiss-notification-btn">').text('Dismiss');
+                $dismissBtn.attr('data-id', notification.id);
+                $actions.append($viewBtn, $dismissBtn);
+                
                 var $markReadBtn = $('<button class="zaikon-notification-mark-read">').text('✕');
                 $markReadBtn.attr('data-id', notification.id);
                 
-                $item.append($content, $markReadBtn);
+                $item.append($content, $actions, $markReadBtn);
                 $list.append($item);
             });
             
