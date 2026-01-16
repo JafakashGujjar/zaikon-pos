@@ -333,6 +333,9 @@ class RPOS_Orders {
         // Deduct ingredient stock
         RPOS_Recipes::deduct_ingredients_for_order($order_id, $order_items);
         
+        // Track cylinder consumption (enterprise feature)
+        RPOS_Gas_Cylinders::record_consumption($order_id, $order_items);
+        
         // Mark as deducted
         $result = self::mark_ingredients_deducted($order_id);
         error_log('RPOS Orders: Completed stock deduction for order #' . $order_id);

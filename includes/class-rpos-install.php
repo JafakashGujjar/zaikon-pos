@@ -298,6 +298,30 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `lead_time_days` int DEFAULT 0 AFTER `default_supplier_id`");
         }
         
+        // Add new columns to rpos_gas_cylinders table for enterprise tracking
+        $table_name = $wpdb->prefix . 'rpos_gas_cylinders';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'zone_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `zone_id` bigint(20) unsigned DEFAULT NULL AFTER `cylinder_type_id`");
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `zone_id` (`zone_id`)");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'orders_served'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `orders_served` int DEFAULT 0 AFTER `notes`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'remaining_percentage'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `remaining_percentage` decimal(5,2) DEFAULT 100.00 AFTER `orders_served`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'vendor'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `vendor` varchar(255) DEFAULT NULL AFTER `remaining_percentage`");
+        }
+        
         // Run batch system migration if not already done
         $migration_done = get_option('rpos_batch_migration_done', false);
         if (!$migration_done) {
@@ -661,18 +685,108 @@ class RPOS_Install {
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_gas_cylinders (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             cylinder_type_id bigint(20) unsigned NOT NULL,
+            zone_id bigint(20) unsigned DEFAULT NULL,
             purchase_date date DEFAULT NULL,
             cost decimal(10,2) DEFAULT 0.00,
             start_date date NOT NULL,
             end_date date DEFAULT NULL,
             status varchar(20) DEFAULT 'active',
             notes text,
+            orders_served int DEFAULT 0,
+            remaining_percentage decimal(5,2) DEFAULT 100.00,
+            vendor varchar(255) DEFAULT NULL,
             created_by bigint(20) unsigned,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY cylinder_type_id (cylinder_type_id),
+            KEY zone_id (zone_id),
             KEY status (status)
+        ) $charset_collate;";
+        
+        // Cylinder Zones table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_cylinder_zones (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            description text,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY is_active (is_active)
+        ) $charset_collate;";
+        
+        // Cylinder Lifecycle table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_cylinder_lifecycle (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_id bigint(20) unsigned NOT NULL,
+            start_date date NOT NULL,
+            end_date date DEFAULT NULL,
+            orders_served int DEFAULT 0,
+            total_days int DEFAULT 0,
+            avg_orders_per_day decimal(10,2) DEFAULT 0.00,
+            refill_cost decimal(10,2) DEFAULT 0.00,
+            cost_per_order decimal(10,4) DEFAULT 0.0000,
+            vendor varchar(255) DEFAULT NULL,
+            notes text,
+            status varchar(20) DEFAULT 'active',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cylinder_id (cylinder_id),
+            KEY status (status),
+            KEY start_date (start_date),
+            KEY end_date (end_date)
+        ) $charset_collate;";
+        
+        // Cylinder Consumption table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_cylinder_consumption (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_id bigint(20) unsigned NOT NULL,
+            lifecycle_id bigint(20) unsigned DEFAULT NULL,
+            order_id bigint(20) unsigned NOT NULL,
+            product_id bigint(20) unsigned NOT NULL,
+            quantity int NOT NULL,
+            consumption_units decimal(10,4) DEFAULT 0.0000,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cylinder_id (cylinder_id),
+            KEY lifecycle_id (lifecycle_id),
+            KEY order_id (order_id),
+            KEY product_id (product_id),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+        
+        // Cylinder Refill table
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_cylinder_refill (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_id bigint(20) unsigned NOT NULL,
+            lifecycle_id bigint(20) unsigned DEFAULT NULL,
+            refill_date date NOT NULL,
+            vendor varchar(255) DEFAULT NULL,
+            cost decimal(10,2) DEFAULT 0.00,
+            quantity decimal(10,2) DEFAULT 1.00,
+            notes text,
+            created_by bigint(20) unsigned,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cylinder_id (cylinder_id),
+            KEY lifecycle_id (lifecycle_id),
+            KEY refill_date (refill_date)
+        ) $charset_collate;";
+        
+        // Cylinder Forecast Cache table (optional)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_cylinder_forecast_cache (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            cylinder_id bigint(20) unsigned NOT NULL,
+            burn_rate_orders_per_day decimal(10,2) DEFAULT 0.00,
+            burn_rate_units_per_day decimal(10,4) DEFAULT 0.0000,
+            projected_depletion_date date DEFAULT NULL,
+            remaining_days decimal(10,2) DEFAULT 0.00,
+            last_updated datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY cylinder_id (cylinder_id),
+            KEY last_updated (last_updated)
         ) $charset_collate;";
         
         // Delivery Areas table

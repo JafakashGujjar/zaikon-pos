@@ -378,7 +378,7 @@ class RPOS_Admin_Menu {
      * Gas Cylinders page
      */
     public function gas_cylinders_page() {
-        include RPOS_PLUGIN_DIR . 'includes/admin/gas-cylinders.php';
+        include RPOS_PLUGIN_DIR . 'includes/admin/gas-cylinders-enterprise.php';
     }
     
     /**
