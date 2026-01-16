@@ -579,8 +579,12 @@
             $(document).on('click', '.rpos-view-order-btn', function(e) {
                 e.stopPropagation();
                 var orderId = $(this).data('order-id');
-                // Navigate to order detail
-                window.location.href = '?page=restaurant-pos-orders&view=' + orderId;
+                // Validate orderId is numeric before navigating
+                if (orderId && !isNaN(orderId) && parseInt(orderId) > 0) {
+                    window.location.href = '?page=restaurant-pos-orders&view=' + encodeURIComponent(orderId);
+                } else {
+                    console.error('Invalid order ID:', orderId);
+                }
             });
             
             // Bind Dismiss button

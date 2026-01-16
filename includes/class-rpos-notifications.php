@@ -170,16 +170,23 @@ class RPOS_Notifications {
         }
         
         // Create notification for cashier
-        self::create($cashier_id, $order_id, $type, $message);
+        $cashier_result = self::create($cashier_id, $order_id, $type, $message);
+        if (!$cashier_result) {
+            error_log('RPOS Notifications: Failed to create notification for cashier #' . $cashier_id . ' for order #' . $order_id);
+        }
         
         // Also notify all restaurant admins
         $admin_users = get_users(array(
             'role__in' => array('administrator', 'rpos_restaurant_admin'),
-            'exclude' => array($cashier_id) // Don't double-notify if cashier is admin
+            'exclude' => array($cashier_id), // Don't double-notify if cashier is admin
+            'number' => 100 // Limit to prevent performance issues with large user bases
         ));
         
         foreach ($admin_users as $admin) {
-            self::create($admin->ID, $order_id, $type, $message);
+            $admin_result = self::create($admin->ID, $order_id, $type, $message);
+            if (!$admin_result) {
+                error_log('RPOS Notifications: Failed to create notification for admin #' . $admin->ID . ' for order #' . $order_id);
+            }
         }
         
         return true;
