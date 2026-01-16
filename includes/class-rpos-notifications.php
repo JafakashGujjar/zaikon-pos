@@ -122,7 +122,8 @@ class RPOS_Notifications {
     }
     
     /**
-     * Notify cashier about order status change
+     * Notify cashier and admins about order status change
+     * Creates notifications for the cashier who created the order and all restaurant administrators
      */
     public static function notify_order_status_change($order_id, $old_status, $new_status) {
         global $wpdb;
@@ -175,11 +176,12 @@ class RPOS_Notifications {
             error_log('RPOS Notifications: Failed to create notification for cashier #' . $cashier_id . ' for order #' . $order_id);
         }
         
-        // Also notify all restaurant admins
+        // Also notify all restaurant admins (fetch only IDs for performance)
         $admin_users = get_users(array(
             'role__in' => array('administrator', 'rpos_restaurant_admin'),
             'exclude' => array($cashier_id), // Don't double-notify if cashier is admin
-            'number' => 100 // Limit to prevent performance issues with large user bases
+            'number' => 100, // Limit to prevent performance issues with large user bases
+            'fields' => array('ID') // Only fetch user IDs for better performance
         ));
         
         foreach ($admin_users as $admin) {
