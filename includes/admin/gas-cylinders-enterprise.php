@@ -277,7 +277,7 @@ jQuery(document).ready(function($) {
     
     <h2 class="nav-tab-wrapper">
         <a href="?page=restaurant-pos-gas-cylinders&tab=dashboard" class="nav-tab <?php echo $tab === 'dashboard' ? 'nav-tab-active' : ''; ?>">📊 Dashboard</a>
-        <a href="?page=restaurant-pos-gas-cylinders&tab=types" class="nav-tab <?php echo $tab === 'types' ? 'nav-tab-active' : ''; ?>">🏷️ Cylinder Types</a>
+        <a href="?page=restaurant-pos-gas-cylinders&tab=types" class="nav-tab <?php echo $tab === 'types' ? 'nav-tab-active' : ''; ?>">⚙️ Manage Types</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=zones" class="nav-tab <?php echo $tab === 'zones' ? 'nav-tab-active' : ''; ?>">🏭 Zones</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=mapping" class="nav-tab <?php echo $tab === 'mapping' ? 'nav-tab-active' : ''; ?>">📦 Product Mapping</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=cylinders" class="nav-tab <?php echo $tab === 'cylinders' ? 'nav-tab-active' : ''; ?>">⛽ Cylinders</a>
@@ -402,6 +402,13 @@ jQuery(document).ready(function($) {
     
     <!-- Tab 2: Cylinder Types -->
     <?php elseif ($tab === 'types'): ?>
+        <div class="notice notice-info" style="margin: 20px 0; padding: 15px; background: #e8f4f8; border-left: 4px solid #2271b1;">
+            <p style="margin: 0; font-size: 14px;">
+                <strong>ℹ️ Manage Cylinder Types:</strong> Define custom cylinder types here (e.g., "Grill Cylinder", "Fryer Cylinder", "Backup Cylinder"). 
+                These types will be available when adding new cylinders.
+            </p>
+        </div>
+        
         <h2>Add New Cylinder Type</h2>
         <form method="post" style="max-width: 600px; background: white; padding: 20px; border-radius: 8px;">
             <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
@@ -656,6 +663,9 @@ jQuery(document).ready(function($) {
                                 <option value="<?php echo esc_attr($type->id); ?>"><?php echo esc_html($type->name); ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <p class="description">
+                            Need to add a new cylinder type? <a href="?page=restaurant-pos-gas-cylinders&tab=types" style="font-weight: bold;">⚙️ Manage Types →</a>
+                        </p>
                     </td>
                 </tr>
                 <tr>
