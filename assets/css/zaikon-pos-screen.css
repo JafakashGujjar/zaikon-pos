@@ -580,7 +580,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     color: var(--zaikon-text-primary);
     font-size: var(--text-sm);
     font-family: var(--font-primary);
-    min-height: 36px;
+    min-height: var(--touch-compact);
     transition: border-color var(--transition-base);
 }
 
@@ -673,7 +673,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     text-align: center;
     box-shadow: 0 4px 12px rgba(255, 138, 0, 0.25);
     letter-spacing: 0.5px;
-    min-height: 36px;
+    min-height: var(--touch-compact);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -705,7 +705,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
     text-transform: uppercase;
     letter-spacing: 1px;
-    min-height: 44px;
+    min-height: var(--touch-min);
 }
 
 .zaikon-complete-order-btn:hover:not(:disabled) {

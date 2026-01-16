@@ -159,6 +159,7 @@
     
     /* ===== TOUCH TARGETS ===== */
     --touch-min: 44px;       /* Minimum touch target size */
+    --touch-compact: 36px;   /* Compact touch target for dense layouts */
     --touch-comfortable: 48px;
     --touch-large: 56px;
     

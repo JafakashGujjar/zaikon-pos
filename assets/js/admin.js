@@ -1248,8 +1248,14 @@
          * @param {boolean} show - true to show COD option, false to hide it
          */
         toggleCODOption: function(show) {
-            var $codOption = $('#rpos-payment-type option[value="cod"]');
             var $paymentTypeSelect = $('#rpos-payment-type');
+            var $codOption = $paymentTypeSelect.find('option[value="cod"]');
+            
+            // Validate elements exist before manipulating
+            if (!$paymentTypeSelect.length || !$codOption.length) {
+                console.warn('Payment type select or COD option not found');
+                return;
+            }
             
             if (show) {
                 // Show COD option
@@ -1258,9 +1264,9 @@
                 // Hide COD option
                 $codOption.hide();
                 
-                // If COD is currently selected, switch to cash
+                // If COD is currently selected, switch to cash and trigger change event
                 if ($paymentTypeSelect.val() === 'cod') {
-                    $paymentTypeSelect.val('cash');
+                    $paymentTypeSelect.val('cash').trigger('change');
                 }
             }
         }
