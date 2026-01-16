@@ -788,28 +788,35 @@
                     xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
                 },
                 success: function(order) {
-                    var html = '<div class="order-detail-content">';
-                    html += '<p><strong>Order Number:</strong> ' + order.order_number + '</p>';
-                    html += '<p><strong>Order Type:</strong> ' + (order.order_type || 'Dine-in').replace('-', ' ').toUpperCase() + '</p>';
-                    html += '<p><strong>Payment Type:</strong> ' + (order.payment_type || 'Cash').toUpperCase() + '</p>';
-                    html += '<p><strong>Status:</strong> ' + (order.status || '').toUpperCase() + '</p>';
-                    html += '<h4>Items:</h4><ul>';
+                    var $content = $('<div class="order-detail-content">');
+                    
+                    $content.append($('<p>').append($('<strong>').text('Order Number: ')).append(document.createTextNode(order.order_number)));
+                    $content.append($('<p>').append($('<strong>').text('Order Type: ')).append(document.createTextNode((order.order_type || 'Dine-in').replace('-', ' ').toUpperCase())));
+                    $content.append($('<p>').append($('<strong>').text('Payment Type: ')).append(document.createTextNode((order.payment_type || 'Cash').toUpperCase())));
+                    $content.append($('<p>').append($('<strong>').text('Status: ')).append(document.createTextNode((order.status || '').toUpperCase())));
+                    
+                    var $itemsSection = $('<div>');
+                    $itemsSection.append($('<h4>').text('Items:'));
+                    var $itemsList = $('<ul>');
                     if (order.items && order.items.length) {
                         order.items.forEach(function(item) {
-                            html += '<li>' + item.quantity + ' × ' + item.product_name + ' - ' + formatPrice(item.line_total, rposData.currency) + '</li>';
+                            var $li = $('<li>');
+                            $li.text(item.quantity + ' × ' + item.product_name + ' - ' + formatPrice(item.line_total, rposData.currency));
+                            $itemsList.append($li);
                         });
                     }
-                    html += '</ul>';
-                    html += '<p><strong>Subtotal:</strong> ' + formatPrice(order.subtotal, rposData.currency) + '</p>';
+                    $itemsSection.append($itemsList);
+                    $content.append($itemsSection);
+                    
+                    $content.append($('<p>').append($('<strong>').text('Subtotal: ')).append(document.createTextNode(formatPrice(order.subtotal, rposData.currency))));
                     if (order.delivery_charge && parseFloat(order.delivery_charge) > 0) {
-                        html += '<p><strong>Delivery Charge:</strong> ' + formatPrice(order.delivery_charge, rposData.currency) + '</p>';
+                        $content.append($('<p>').append($('<strong>').text('Delivery Charge: ')).append(document.createTextNode(formatPrice(order.delivery_charge, rposData.currency))));
                     }
-                    html += '<p><strong>Discount:</strong> ' + formatPrice(order.discount, rposData.currency) + '</p>';
-                    html += '<p><strong>Total:</strong> ' + formatPrice(order.total, rposData.currency) + '</p>';
-                    html += '</div>';
+                    $content.append($('<p>').append($('<strong>').text('Discount: ')).append(document.createTextNode(formatPrice(order.discount, rposData.currency))));
+                    $content.append($('<p>').append($('<strong>').text('Total: ')).append(document.createTextNode(formatPrice(order.total, rposData.currency))));
                     
                     $('#order-detail-title').text('Order #' + order.order_number);
-                    $('#rpos-order-detail-body').html(html);
+                    $('#rpos-order-detail-body').empty().append($content);
                 },
                 error: function() {
                     $('#rpos-order-detail-body').html('<p style="color: red;">Failed to load order details.</p>');
