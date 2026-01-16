@@ -269,8 +269,12 @@
                         self.addToCart(product);
                     });
                 
+                // Add product image with safe attribute insertion
                 if (product.image_url) {
-                    $item.append('<img src="' + product.image_url + '" alt="' + product.name + '" class="zaikon-product-image">');
+                    var $img = $('<img class="zaikon-product-image">')
+                        .attr('src', product.image_url)
+                        .attr('alt', product.name);
+                    $item.append($img);
                 } else {
                     $item.append('<div class="zaikon-product-image"><span class="dashicons dashicons-cart"></span></div>');
                 }

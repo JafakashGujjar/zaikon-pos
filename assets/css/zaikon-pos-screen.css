@@ -381,6 +381,12 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     justify-content: center;
 }
 
+.zaikon-cart-empty-icon {
+    font-size: 48px;
+    opacity: 0.3;
+    margin-bottom: var(--space-4);
+}
+
 .zaikon-cart-item {
     background: var(--zaikon-bg-primary);
     border-radius: var(--radius-md);
