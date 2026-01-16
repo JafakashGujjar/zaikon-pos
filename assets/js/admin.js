@@ -277,6 +277,12 @@
                 
                 var $info = $('<div class="zaikon-product-info">');
                 $info.append('<div class="zaikon-product-name">' + product.name + '</div>');
+                
+                // Add product description if available
+                if (product.description && product.description.trim() !== '') {
+                    $info.append('<div class="zaikon-product-description">' + product.description + '</div>');
+                }
+                
                 $info.append('<div class="zaikon-product-price">' + rposData.currency + parseFloat(product.selling_price).toFixed(2) + '</div>');
                 $item.append($info);
                 
