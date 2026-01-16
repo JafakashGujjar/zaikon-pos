@@ -286,14 +286,14 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     background: var(--zaikon-bg-secondary);
     color: var(--zaikon-text-primary);
     height: 100vh;
-    overflow: hidden;
+    overflow-y: auto;
     border-left: 1px solid var(--zaikon-border-light);
     position: relative;
 }
 
 .zaikon-cart-header {
-    padding: var(--space-4) var(--space-4);
-    border-bottom: 2px solid var(--zaikon-border-light);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--zaikon-border-light);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -303,7 +303,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-cart-header h3 {
     margin: 0;
-    font-size: var(--text-lg);
+    font-size: var(--text-base);
     font-weight: var(--font-bold);
     color: var(--zaikon-text-primary);
     text-transform: uppercase;
@@ -362,10 +362,10 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 /* Cart Items */
 .zaikon-cart-items {
     flex: 1;
-    min-height: 100px;
-    max-height: 25vh;
+    min-height: 80px;
+    max-height: 20vh;
     overflow-y: auto;
-    padding: var(--space-4);
+    padding: var(--space-2);
     flex-shrink: 1;
 }
 
@@ -465,9 +465,9 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 /* Cart Totals */
 .zaikon-cart-totals {
-    padding: var(--space-3);
-    border-top: 2px solid var(--zaikon-border-light);
-    border-bottom: 2px solid var(--zaikon-border-light);
+    padding: var(--space-2);
+    border-top: 1px solid var(--zaikon-border-light);
+    border-bottom: 1px solid var(--zaikon-border-light);
     background: var(--zaikon-bg-secondary);
     flex-shrink: 0;
 }
@@ -476,8 +476,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-2);
-    font-size: var(--text-sm);
+    margin-bottom: 4px;
+    font-size: 12px;
 }
 
 .zaikon-total-row:last-child {
@@ -512,10 +512,10 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-grand-total {
-    margin-top: var(--space-2);
-    padding-top: var(--space-2);
+    margin-top: 4px;
+    padding-top: 4px;
     border-top: 3px solid var(--zaikon-orange);
-    font-size: var(--text-lg);
+    font-size: var(--text-base);
 }
 
 .zaikon-grand-total span {
@@ -526,17 +526,17 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 /* Order Details */
 .zaikon-order-details,
 .zaikon-payment-section {
-    padding: var(--space-3);
+    padding: var(--space-2);
     flex-shrink: 0;
     background: var(--zaikon-bg-primary);
-    margin: var(--space-2) var(--space-3);
+    margin: 4px var(--space-2);
     border-radius: var(--radius-md);
 }
 
 .zaikon-order-details h4,
 .zaikon-payment-section h4 {
-    margin: 0 0 var(--space-2) 0;
-    font-size: var(--text-xs);
+    margin: 0 0 4px 0;
+    font-size: 10px;
     font-weight: var(--font-bold);
     color: var(--zaikon-text-secondary);
     text-transform: uppercase;
@@ -545,14 +545,14 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-order-field,
 .zaikon-payment-field {
-    margin-bottom: var(--space-2);
+    margin-bottom: 4px;
 }
 
 .zaikon-order-field label,
 .zaikon-payment-field label {
     display: block;
-    margin-bottom: var(--space-1);
-    font-size: var(--text-xs);
+    margin-bottom: 2px;
+    font-size: 11px;
     font-weight: var(--font-semibold);
     color: var(--zaikon-text-primary);
 }
@@ -579,20 +579,20 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 .zaikon-order-field textarea,
 .zaikon-payment-field input {
     width: 100%;
-    padding: var(--space-2);
+    padding: 6px 8px;
     background: var(--zaikon-bg-secondary);
     border: 2px solid var(--zaikon-border-light);
     border-radius: var(--radius-md);
     color: var(--zaikon-text-primary);
-    font-size: var(--text-sm);
+    font-size: 13px;
     font-family: var(--font-primary);
-    min-height: var(--touch-compact);
+    min-height: 32px;
     transition: border-color var(--transition-base);
 }
 
 .zaikon-order-field textarea {
-    min-height: 50px;
-    max-height: 70px;
+    min-height: 40px;
+    max-height: 50px;
     resize: vertical;
     line-height: 1.5;
 }
@@ -663,23 +663,23 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 .zaikon-payment-fields-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-2);
-    margin-bottom: var(--space-2);
+    gap: 4px;
+    margin-bottom: 4px;
 }
 
 .zaikon-change-due-display {
     width: 100%;
-    padding: var(--space-2);
+    padding: 6px;
     background: linear-gradient(135deg, var(--zaikon-yellow) 0%, var(--zaikon-orange-light) 100%);
     border: 2px solid var(--zaikon-orange);
     border-radius: var(--radius-md);
     color: var(--zaikon-dark);
-    font-size: var(--text-lg);
+    font-size: var(--text-base);
     font-weight: var(--font-extrabold);
     text-align: center;
     box-shadow: 0 4px 12px rgba(255, 138, 0, 0.25);
     letter-spacing: 0.5px;
-    min-height: var(--touch-compact);
+    min-height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -687,7 +687,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 /* Checkout Actions */
 .zaikon-checkout-actions {
-    padding: var(--space-3);
+    padding: var(--space-2);
     position: sticky;
     bottom: 0;
     margin-top: auto;
@@ -700,19 +700,19 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 /* Primary action button uses --touch-min (44px) for optimal accessibility and prominence */
 .zaikon-complete-order-btn {
     width: 100%;
-    padding: var(--space-3);
+    padding: 10px;
     background: var(--zaikon-orange);
     color: white;
     border: none;
     border-radius: var(--radius-md);
-    font-size: var(--text-base);
+    font-size: 14px;
     font-weight: var(--font-extrabold);
     cursor: pointer;
     transition: all var(--transition-base);
     box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
     text-transform: uppercase;
     letter-spacing: 1px;
-    min-height: var(--touch-min);
+    min-height: 40px;
 }
 
 .zaikon-complete-order-btn:hover:not(:disabled) {
