@@ -57,6 +57,15 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
             $message = $refill_id ? 'Cylinder refilled successfully!' : 'Failed to process refill.';
             $message_type = $refill_id ? 'success' : 'error';
             break;
+            
+        case 'update_mapping':
+            $result = RPOS_Gas_Cylinders::set_product_mappings(
+                absint($_POST['type_id'] ?? 0),
+                isset($_POST['products']) ? array_map('absint', $_POST['products']) : array()
+            );
+            $message = 'Product mapping updated successfully!';
+            $message_type = 'success';
+            break;
     }
 }
 
@@ -66,6 +75,7 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
 $zones = RPOS_Gas_Cylinders::get_all_zones();
 $cylinders = RPOS_Gas_Cylinders::get_all_cylinders();
 $cylinder_types = RPOS_Gas_Cylinders::get_all_types();
+$products = RPOS_Products::get_all();
 $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
 ?>
 
@@ -135,6 +145,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
     <h2 class="nav-tab-wrapper">
         <a href="?page=restaurant-pos-gas-cylinders&tab=dashboard" class="nav-tab <?php echo $tab === 'dashboard' ? 'nav-tab-active' : ''; ?>">📊 Dashboard</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=zones" class="nav-tab <?php echo $tab === 'zones' ? 'nav-tab-active' : ''; ?>">🏭 Zones</a>
+        <a href="?page=restaurant-pos-gas-cylinders&tab=mapping" class="nav-tab <?php echo $tab === 'mapping' ? 'nav-tab-active' : ''; ?>">📦 Product Mapping</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=cylinders" class="nav-tab <?php echo $tab === 'cylinders' ? 'nav-tab-active' : ''; ?>">⛽ Cylinders</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=lifecycle" class="nav-tab <?php echo $tab === 'lifecycle' ? 'nav-tab-active' : ''; ?>">🔄 Lifecycle</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=consumption" class="nav-tab <?php echo $tab === 'consumption' ? 'nav-tab-active' : ''; ?>">📈 Consumption</a>
@@ -288,7 +299,46 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
             </tbody>
         </table>
     
-    <!-- Tab 3: Cylinders -->
+    <!-- Tab 3: Product Mapping -->
+    <?php elseif ($tab === 'mapping'): ?>
+        <h2>Product Mapping</h2>
+        <p style="margin: 20px 0;">Assign products to cylinder types. When an order contains a mapped product, consumption is automatically tracked for that cylinder type.</p>
+        
+        <?php foreach ($cylinder_types as $type): 
+            $mappings = RPOS_Gas_Cylinders::get_product_mappings($type->id);
+            $mapped_ids = array_map(function($m) { return $m->product_id; }, $mappings);
+        ?>
+            <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0; color: #2271b1; border-bottom: 2px solid #2271b1; padding-bottom: 10px;">
+                    <?php echo esc_html($type->name); ?>
+                </h2>
+                <form method="post">
+                    <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
+                    <input type="hidden" name="action" value="update_mapping">
+                    <input type="hidden" name="type_id" value="<?php echo esc_attr($type->id); ?>">
+                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #f9f9f9;">
+                        <?php if (empty($products)): ?>
+                            <p style="color: #666; font-style: italic;">No products found. Please add products first.</p>
+                        <?php else: ?>
+                            <?php foreach ($products as $product): ?>
+                                <label style="display: block; margin: 8px 0; padding: 8px; background: white; border-radius: 4px; cursor: pointer; transition: background 0.2s;">
+                                    <input type="checkbox" name="products[]" value="<?php echo esc_attr($product->id); ?>" <?php checked(in_array($product->id, $mapped_ids)); ?>>
+                                    <strong><?php echo esc_html($product->name); ?></strong>
+                                    <?php if (!empty($product->category_name)): ?>
+                                        <span style="color: #666; font-size: 12px;"> - <?php echo esc_html($product->category_name); ?></span>
+                                    <?php endif; ?>
+                                </label>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                    <button type="submit" class="button button-primary" style="margin-top: 15px;">
+                        💾 Update Mapping for <?php echo esc_html($type->name); ?>
+                    </button>
+                </form>
+            </div>
+        <?php endforeach; ?>
+    
+    <!-- Tab 4: Cylinders -->
     <?php elseif ($tab === 'cylinders'): ?>
         <h2>Add New Cylinder</h2>
         <form method="post" style="max-width: 700px; background: white; padding: 20px; border-radius: 8px;">
@@ -372,7 +422,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
             </tbody>
         </table>
     
-    <!-- Tab 4: Lifecycle -->
+    <!-- Tab 5: Lifecycle -->
     <?php elseif ($tab === 'lifecycle'): ?>
         <h2>Cylinder Lifecycle History</h2>
         <?php
@@ -424,7 +474,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
             </tbody>
         </table>
     
-    <!-- Tab 5: Consumption -->
+    <!-- Tab 6: Consumption -->
     <?php elseif ($tab === 'consumption'): ?>
         <h2>Consumption Logs</h2>
         <?php
@@ -496,7 +546,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
             </tbody>
         </table>
     
-    <!-- Tab 6: Refill -->
+    <!-- Tab 7: Refill -->
     <?php elseif ($tab === 'refill'): ?>
         <h2>Process Cylinder Refill</h2>
         <?php
@@ -579,7 +629,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
             </tbody>
         </table>
     
-    <!-- Tab 7: Analytics -->
+    <!-- Tab 8: Analytics -->
     <?php elseif ($tab === 'analytics'): ?>
         <h2>Cylinder Performance Analytics</h2>
         
