@@ -579,9 +579,9 @@
             $(document).on('click', '.rpos-view-order-btn', function(e) {
                 e.stopPropagation();
                 var orderId = $(this).data('order-id');
-                // Validate orderId is a positive integer before navigating
                 var orderIdNum = parseInt(orderId, 10);
-                if (orderIdNum && Number.isInteger(orderIdNum) && orderIdNum > 0) {
+                // Validate orderId is a positive integer (parseInt returns NaN for invalid input)
+                if (orderIdNum > 0) {
                     window.location.href = '?page=restaurant-pos-orders&view=' + encodeURIComponent(orderIdNum);
                 } else {
                     console.error('Invalid order ID:', orderId);

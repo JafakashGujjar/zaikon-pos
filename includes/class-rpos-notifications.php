@@ -177,6 +177,8 @@ class RPOS_Notifications {
         }
         
         // Also notify all restaurant admins (fetch only IDs for performance)
+        // Note: If cashier is also an admin, they only get ONE notification (as cashier)
+        // to avoid duplicate notifications for the same order
         $admin_query_args = array(
             'role__in' => array('administrator', 'rpos_restaurant_admin'),
             'number' => 100, // Limit to prevent performance issues with large user bases
