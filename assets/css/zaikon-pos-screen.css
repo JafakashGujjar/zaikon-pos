@@ -569,8 +569,12 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     margin-bottom: 0;
 }
 
-/* Form fields use compact touch targets for dense POS layout.
-   Primary actions (Complete Order button) use standard --touch-min (44px) for accessibility. */
+/* Form fields use compact touch targets (36px) for dense POS layout to fit all sections at 100% zoom.
+   Primary actions (Complete Order button) use standard --touch-min (44px) for accessibility.
+   Note: 36px is above the minimum 28px used for quantity buttons and provides adequate touch area
+   for form inputs which are used less frequently in the POS workflow. This is a deliberate
+   trade-off between accessibility standards and the requirement to display all sections
+   without scrolling at 100% browser zoom. */
 .zaikon-order-field select,
 .zaikon-order-field textarea,
 .zaikon-payment-field input {
