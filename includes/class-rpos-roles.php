@@ -39,6 +39,7 @@ class RPOS_Roles {
             'rpos_view_pos' => true,
             'rpos_process_orders' => true,
             'rpos_view_orders' => true,
+            'rpos_manage_settings' => true,
         ));
         
         // Kitchen Staff - Kitchen display only
@@ -84,6 +85,12 @@ class RPOS_Roles {
             $admin->add_cap('rpos_adjust_inventory');
             $admin->add_cap('rpos_view_inventory_reports');
             $admin->add_cap('rpos_manage_inventory_settings');
+        }
+        
+        // Update capabilities for existing cashier role
+        $cashier = get_role('cashier');
+        if ($cashier) {
+            $cashier->add_cap('rpos_manage_settings');
         }
     }
     
