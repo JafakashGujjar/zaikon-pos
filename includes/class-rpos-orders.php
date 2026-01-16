@@ -143,6 +143,8 @@ class RPOS_Orders {
     
     /**
      * Get all orders
+     * Note: This method does NOT filter by cashier_id, allowing kitchen staff
+     * and other users with appropriate permissions to see all orders.
      */
     public static function get_all($args = array()) {
         global $wpdb;
