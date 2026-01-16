@@ -133,7 +133,113 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
     border-radius: 8px;
     margin: 20px 0;
 }
+
+/* Enhanced Product Mapping Styles */
+.rpos-product-item:hover {
+    background: #f0f8ff !important;
+    border-color: #2271b1 !important;
+    transform: translateX(3px);
+}
+.rpos-product-item input[type="checkbox"]:checked + div {
+    background: transparent;
+}
+.rpos-product-item:has(input[type="checkbox"]:checked) {
+    background: #e8f4f8 !important;
+    border-color: #2271b1 !important;
+}
+.rpos-product-search {
+    padding: 8px 12px !important;
+    border: 2px solid #ddd !important;
+    border-radius: 4px !important;
+    transition: border-color 0.3s ease !important;
+}
+.rpos-product-search:focus {
+    border-color: #2271b1 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 1px #2271b1 !important;
+}
+.rpos-product-item.hidden {
+    display: none !important;
+}
+.rpos-selection-counter {
+    background: #f0f8ff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #2271b1;
+}
 </style>
+
+<script>
+jQuery(document).ready(function($) {
+    // Function to update selection counter
+    function updateCounter(cylinderType) {
+        var container = $('.rpos-product-list[data-cylinder-type="' + cylinderType + '"]');
+        var counter = $('.rpos-selection-counter[data-cylinder-type="' + cylinderType + '"]');
+        
+        var total = container.find('.rpos-product-checkbox').not('.hidden').length;
+        var selected = container.find('.rpos-product-checkbox:checked').not('.hidden').length;
+        
+        counter.find('.selected-count').text(selected);
+        counter.find('.total-count').text(total);
+    }
+    
+    // Search functionality
+    $('.rpos-product-search').on('keyup', function() {
+        var searchTerm = $(this).val().toLowerCase();
+        var cylinderType = $(this).data('cylinder-type');
+        var container = $('.rpos-product-list[data-cylinder-type="' + cylinderType + '"]');
+        
+        container.find('.rpos-product-item').each(function() {
+            var productName = $(this).data('product-name');
+            if (productName.indexOf(searchTerm) !== -1) {
+                $(this).removeClass('hidden').show();
+            } else {
+                $(this).addClass('hidden').hide();
+            }
+        });
+        
+        // Hide/show category headers if all products in category are hidden
+        container.find('.rpos-product-category').each(function() {
+            var visibleItems = $(this).find('.rpos-product-item:not(.hidden)').length;
+            if (visibleItems === 0) {
+                $(this).hide();
+            } else {
+                $(this).show();
+            }
+        });
+        
+        updateCounter(cylinderType);
+    });
+    
+    // Select All functionality
+    $('.rpos-select-all').on('click', function() {
+        var cylinderType = $(this).data('cylinder-type');
+        var container = $('.rpos-product-list[data-cylinder-type="' + cylinderType + '"]');
+        container.find('.rpos-product-checkbox:not(.hidden)').prop('checked', true);
+        updateCounter(cylinderType);
+    });
+    
+    // Deselect All functionality
+    $('.rpos-deselect-all').on('click', function() {
+        var cylinderType = $(this).data('cylinder-type');
+        var container = $('.rpos-product-list[data-cylinder-type="' + cylinderType + '"]');
+        container.find('.rpos-product-checkbox:not(.hidden)').prop('checked', false);
+        updateCounter(cylinderType);
+    });
+    
+    // Update counter on checkbox change
+    $('.rpos-product-checkbox').on('change', function() {
+        var cylinderType = $(this).data('cylinder-type');
+        updateCounter(cylinderType);
+    });
+    
+    // Initialize counters
+    $('.rpos-product-list').each(function() {
+        var cylinderType = $(this).data('cylinder-type');
+        updateCounter(cylinderType);
+    });
+});
+</script>
 
 <div class="wrap">
     <h1><?php esc_html_e('Enterprise Cylinder Management', 'restaurant-pos'); ?></h1>
@@ -307,8 +413,19 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
         <?php foreach ($cylinder_types as $type): 
             $mappings = RPOS_Gas_Cylinders::get_product_mappings($type->id);
             $mapped_ids = array_map(function($m) { return $m->product_id; }, $mappings);
+            
+            // Group products by category
+            $products_by_category = array();
+            foreach ($products as $product) {
+                $category = !empty($product->category_name) ? $product->category_name : 'Uncategorized';
+                if (!isset($products_by_category[$category])) {
+                    $products_by_category[$category] = array();
+                }
+                $products_by_category[$category][] = $product;
+            }
+            ksort($products_by_category);
         ?>
-            <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div class="rpos-mapping-card" style="background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                 <h2 style="margin-top: 0; color: #2271b1; border-bottom: 2px solid #2271b1; padding-bottom: 10px;">
                     <?php echo esc_html($type->name); ?>
                 </h2>
@@ -316,22 +433,71 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
                     <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
                     <input type="hidden" name="action" value="update_mapping">
                     <input type="hidden" name="type_id" value="<?php echo esc_attr($type->id); ?>">
-                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #f9f9f9;">
+                    
+                    <!-- Search and Controls -->
+                    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" 
+                               class="rpos-product-search regular-text" 
+                               placeholder="🔍 Search products..." 
+                               data-cylinder-type="<?php echo esc_attr($type->id); ?>"
+                               style="flex: 1; min-width: 250px;">
+                        <button type="button" 
+                                class="button rpos-select-all" 
+                                data-cylinder-type="<?php echo esc_attr($type->id); ?>"
+                                style="white-space: nowrap;">
+                            ✓ Select All
+                        </button>
+                        <button type="button" 
+                                class="button rpos-deselect-all" 
+                                data-cylinder-type="<?php echo esc_attr($type->id); ?>"
+                                style="white-space: nowrap;">
+                            ✗ Deselect All
+                        </button>
+                        <span class="rpos-selection-counter" 
+                              data-cylinder-type="<?php echo esc_attr($type->id); ?>"
+                              style="font-weight: bold; color: #2271b1; white-space: nowrap;">
+                            <span class="selected-count"><?php echo count($mapped_ids); ?></span> of 
+                            <span class="total-count"><?php echo count($products); ?></span> selected
+                        </span>
+                    </div>
+                    
+                    <div class="rpos-product-list" 
+                         data-cylinder-type="<?php echo esc_attr($type->id); ?>"
+                         style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #f9f9f9;">
                         <?php if (empty($products)): ?>
                             <p style="color: #666; font-style: italic;">No products found. Please add products first.</p>
                         <?php else: ?>
-                            <?php foreach ($products as $product): ?>
-                                <label style="display: block; margin: 8px 0; padding: 8px; background: white; border-radius: 4px; cursor: pointer; transition: background 0.2s;">
-                                    <input type="checkbox" name="products[]" value="<?php echo esc_attr($product->id); ?>" <?php checked(in_array($product->id, $mapped_ids)); ?>>
-                                    <strong><?php echo esc_html($product->name); ?></strong>
-                                    <?php if (!empty($product->category_name)): ?>
-                                        <span style="color: #666; font-size: 12px;"> - <?php echo esc_html($product->category_name); ?></span>
-                                    <?php endif; ?>
-                                </label>
+                            <?php foreach ($products_by_category as $category => $category_products): ?>
+                                <div class="rpos-product-category" style="margin-bottom: 15px;">
+                                    <div style="background: #2271b1; color: white; padding: 8px 12px; margin: 0 -15px 10px -15px; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        <?php echo esc_html($category); ?>
+                                    </div>
+                                    <?php foreach ($category_products as $product): ?>
+                                        <label class="rpos-product-item" 
+                                               data-product-name="<?php echo esc_attr(strtolower($product->name)); ?>"
+                                               style="display: flex; align-items: center; margin: 0 0 10px 0; padding: 12px; background: white; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; border: 2px solid transparent;">
+                                            <input type="checkbox" 
+                                                   name="products[]" 
+                                                   value="<?php echo esc_attr($product->id); ?>" 
+                                                   class="rpos-product-checkbox"
+                                                   data-cylinder-type="<?php echo esc_attr($type->id); ?>"
+                                                   <?php checked(in_array($product->id, $mapped_ids)); ?>
+                                                   style="width: 18px; height: 18px; margin-right: 12px; cursor: pointer;">
+                                            <div style="flex: 1;">
+                                                <strong style="font-size: 14px;"><?php echo esc_html($product->name); ?></strong>
+                                                <?php if (!empty($product->price)): ?>
+                                                    <span style="color: #46b450; font-size: 13px; margin-left: 10px;">
+                                                        <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?><?php echo number_format($product->price, 2); ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
-                    <button type="submit" class="button button-primary" style="margin-top: 15px;">
+                    <button type="submit" class="button button-primary button-large" style="margin-top: 15px;">
                         💾 Update Mapping for <?php echo esc_html($type->name); ?>
                     </button>
                 </form>
