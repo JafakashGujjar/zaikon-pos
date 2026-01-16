@@ -127,6 +127,8 @@
                 this.bindEvents();
                 this.initNotifications();
                 this.initNotificationSound();
+                // Initialize COD option visibility (hide by default since default is "dine-in")
+                this.toggleCODOption(false);
             }
         },
         
@@ -144,6 +146,9 @@
             // Order Type Pills - Changed to dropdown
             $('#rpos-order-type').on('change', function() {
                 var orderType = $(this).val();
+                
+                // Toggle COD option based on order type
+                self.toggleCODOption(orderType === 'delivery');
                 
                 // If delivery is selected, show inline delivery panel
                 if (orderType === 'delivery') {
@@ -1230,12 +1235,42 @@
             var currentType = $('#rpos-order-type').val();
             if (currentType === 'delivery') {
                 $('#rpos-order-type').val('dine-in');
+                // Hide COD option when switching away from delivery
+                this.toggleCODOption(false);
             }
             
             // Update totals
             this.updateTotals();
             
             ZAIKON_Toast.info('Delivery cancelled');
+        },
+        
+        /**
+         * Toggle COD (Cash on Delivery) payment option visibility
+         * @param {boolean} show - true to show COD option, false to hide it
+         */
+        toggleCODOption: function(show) {
+            var $paymentTypeSelect = $('#rpos-payment-type');
+            var $codOption = $paymentTypeSelect.find('option[value="cod"]');
+            
+            // Validate elements exist before manipulating
+            if (!$paymentTypeSelect.length || !$codOption.length) {
+                console.warn('Payment type select or COD option not found');
+                return;
+            }
+            
+            if (show) {
+                // Show COD option
+                $codOption.show();
+            } else {
+                // Hide COD option
+                $codOption.hide();
+                
+                // If COD is currently selected, switch to cash and trigger change event
+                if ($paymentTypeSelect.val() === 'cod') {
+                    $paymentTypeSelect.val('cash').trigger('change');
+                }
+            }
         }
     };
     
