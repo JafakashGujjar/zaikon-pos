@@ -20,6 +20,33 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
     $action = isset($_POST['action']) ? sanitize_text_field($_POST['action']) : '';
     
     switch ($action) {
+        case 'add_type':
+            $type_id = RPOS_Gas_Cylinders::create_type(array(
+                'name' => sanitize_text_field($_POST['type_name'] ?? ''),
+                'description' => sanitize_textarea_field($_POST['type_desc'] ?? '')
+            ));
+            $message = $type_id ? 'Cylinder type added successfully!' : 'Failed to add cylinder type.';
+            $message_type = $type_id ? 'success' : 'error';
+            break;
+            
+        case 'update_type':
+            $result = RPOS_Gas_Cylinders::update_type(
+                absint($_POST['type_id'] ?? 0),
+                array(
+                    'name' => sanitize_text_field($_POST['type_name'] ?? ''),
+                    'description' => sanitize_textarea_field($_POST['type_desc'] ?? '')
+                )
+            );
+            $message = $result !== false ? 'Cylinder type updated successfully!' : 'Failed to update cylinder type.';
+            $message_type = $result !== false ? 'success' : 'error';
+            break;
+            
+        case 'delete_type':
+            $result = RPOS_Gas_Cylinders::delete_type(absint($_POST['type_id'] ?? 0));
+            $message = $result ? 'Cylinder type deleted successfully!' : 'Cannot delete cylinder type. It may be in use by existing cylinders.';
+            $message_type = $result ? 'success' : 'error';
+            break;
+        
         case 'add_zone':
             $zone_id = RPOS_Gas_Cylinders::create_zone(array(
                 'name' => sanitize_text_field($_POST['zone_name'] ?? ''),
@@ -250,6 +277,7 @@ jQuery(document).ready(function($) {
     
     <h2 class="nav-tab-wrapper">
         <a href="?page=restaurant-pos-gas-cylinders&tab=dashboard" class="nav-tab <?php echo $tab === 'dashboard' ? 'nav-tab-active' : ''; ?>">📊 Dashboard</a>
+        <a href="?page=restaurant-pos-gas-cylinders&tab=types" class="nav-tab <?php echo $tab === 'types' ? 'nav-tab-active' : ''; ?>">🏷️ Cylinder Types</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=zones" class="nav-tab <?php echo $tab === 'zones' ? 'nav-tab-active' : ''; ?>">🏭 Zones</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=mapping" class="nav-tab <?php echo $tab === 'mapping' ? 'nav-tab-active' : ''; ?>">📦 Product Mapping</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=cylinders" class="nav-tab <?php echo $tab === 'cylinders' ? 'nav-tab-active' : ''; ?>">⛽ Cylinders</a>
@@ -372,7 +400,115 @@ jQuery(document).ready(function($) {
             </table>
         </div>
     
-    <!-- Tab 2: Zones -->
+    <!-- Tab 2: Cylinder Types -->
+    <?php elseif ($tab === 'types'): ?>
+        <h2>Add New Cylinder Type</h2>
+        <form method="post" style="max-width: 600px; background: white; padding: 20px; border-radius: 8px;">
+            <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
+            <input type="hidden" name="action" value="add_type">
+            <table class="form-table">
+                <tr><th><label>Type Name *</label></th><td><input type="text" name="type_name" required class="regular-text" placeholder="e.g., Grill Cylinder, Fryer Cylinder"></td></tr>
+                <tr><th><label>Description</label></th><td><textarea name="type_desc" rows="3" class="large-text" placeholder="Optional description for this cylinder type"></textarea></td></tr>
+            </table>
+            <button type="submit" class="button button-primary">Add Type</button>
+        </form>
+        
+        <h2>Existing Cylinder Types</h2>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>Type Name</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($cylinder_types)): ?>
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 20px;">No cylinder types found. Add a new type using the form above.</td>
+                    </tr>
+                <?php else: ?>
+                    <?php 
+                    // Fetch all usage counts in a single query to avoid N+1 problem
+                    global $wpdb;
+                    // Extract and validate type IDs (ensure they're integers)
+                    $type_ids = array_map('absint', array_column($cylinder_types, 'id'));
+                    $type_ids = array_filter($type_ids); // Remove any zero/invalid values
+                    
+                    $usage_counts = array();
+                    if (!empty($type_ids)) {
+                        // Note: $placeholders is safe as it only contains '%d' strings from array_fill()
+                        // The actual IDs are sanitized by array_map('absint') and passed via wpdb::prepare()
+                        $placeholders = implode(',', array_fill(0, count($type_ids), '%d'));
+                        $usage_counts = $wpdb->get_results($wpdb->prepare(
+                            "SELECT cylinder_type_id, COUNT(*) as count 
+                             FROM {$wpdb->prefix}rpos_gas_cylinders 
+                             WHERE cylinder_type_id IN ($placeholders) 
+                             GROUP BY cylinder_type_id",
+                            $type_ids
+                        ), OBJECT_K);
+                    }
+                    
+                    foreach ($cylinder_types as $type): 
+                        $in_use = isset($usage_counts[$type->id]) ? $usage_counts[$type->id]->count : 0;
+                    ?>
+                        <tr id="type-row-<?php echo esc_attr($type->id); ?>">
+                            <td><strong><?php echo esc_html($type->name); ?></strong></td>
+                            <td><?php echo esc_html($type->description); ?></td>
+                            <td>
+                                <button type="button" class="button button-small" onclick="editType(<?php echo esc_attr($type->id); ?>, '<?php echo esc_js($type->name); ?>', '<?php echo esc_js($type->description); ?>')">Edit</button>
+                                <?php if ($in_use == 0): ?>
+                                    <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this cylinder type?');">
+                                        <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
+                                        <input type="hidden" name="action" value="delete_type">
+                                        <input type="hidden" name="type_id" value="<?php echo esc_attr($type->id); ?>">
+                                        <button type="submit" class="button button-small button-link-delete">Delete</button>
+                                    </form>
+                                <?php else: ?>
+                                    <span style="color: #999; font-size: 12px;">(In use - cannot delete)</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        
+        <!-- Edit Type Modal (inline form) -->
+        <div id="edit-type-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 10000; min-width: 500px;">
+            <h2 style="margin-top: 0;">Edit Cylinder Type</h2>
+            <form method="post" id="edit-type-form">
+                <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
+                <input type="hidden" name="action" value="update_type">
+                <input type="hidden" name="type_id" id="edit-type-id">
+                <table class="form-table">
+                    <tr><th><label>Type Name *</label></th><td><input type="text" name="type_name" id="edit-type-name" required class="regular-text"></td></tr>
+                    <tr><th><label>Description</label></th><td><textarea name="type_desc" id="edit-type-desc" rows="3" class="large-text"></textarea></td></tr>
+                </table>
+                <div style="margin-top: 15px;">
+                    <button type="submit" class="button button-primary">Update Type</button>
+                    <button type="button" class="button" onclick="closeEditModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+        <div id="edit-type-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;" onclick="closeEditModal()"></div>
+        
+        <script>
+        function editType(id, name, description) {
+            document.getElementById('edit-type-id').value = id;
+            document.getElementById('edit-type-name').value = name;
+            document.getElementById('edit-type-desc').value = description;
+            document.getElementById('edit-type-modal').style.display = 'block';
+            document.getElementById('edit-type-overlay').style.display = 'block';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('edit-type-modal').style.display = 'none';
+            document.getElementById('edit-type-overlay').style.display = 'none';
+        }
+        </script>
+    
+    <!-- Tab 3: Zones -->
     <?php elseif ($tab === 'zones'): ?>
         <h2>Add New Zone</h2>
         <form method="post" style="max-width: 600px; background: white; padding: 20px; border-radius: 8px;">
@@ -405,7 +541,7 @@ jQuery(document).ready(function($) {
             </tbody>
         </table>
     
-    <!-- Tab 3: Product Mapping -->
+    <!-- Tab 4: Product Mapping -->
     <?php elseif ($tab === 'mapping'): ?>
         <h2>Product Mapping</h2>
         <p style="margin: 20px 0;">Assign products to cylinder types. When an order contains a mapped product, consumption is automatically tracked for that cylinder type.</p>
@@ -504,7 +640,7 @@ jQuery(document).ready(function($) {
             </div>
         <?php endforeach; ?>
     
-    <!-- Tab 4: Cylinders -->
+    <!-- Tab 5: Cylinders -->
     <?php elseif ($tab === 'cylinders'): ?>
         <h2>Add New Cylinder</h2>
         <form method="post" style="max-width: 700px; background: white; padding: 20px; border-radius: 8px;">
@@ -588,7 +724,7 @@ jQuery(document).ready(function($) {
             </tbody>
         </table>
     
-    <!-- Tab 5: Lifecycle -->
+    <!-- Tab 6: Lifecycle -->
     <?php elseif ($tab === 'lifecycle'): ?>
         <h2>Cylinder Lifecycle History</h2>
         <?php
@@ -640,7 +776,7 @@ jQuery(document).ready(function($) {
             </tbody>
         </table>
     
-    <!-- Tab 6: Consumption -->
+    <!-- Tab 7: Consumption -->
     <?php elseif ($tab === 'consumption'): ?>
         <h2>Consumption Logs</h2>
         <?php
@@ -712,7 +848,7 @@ jQuery(document).ready(function($) {
             </tbody>
         </table>
     
-    <!-- Tab 7: Refill -->
+    <!-- Tab 8: Refill -->
     <?php elseif ($tab === 'refill'): ?>
         <h2>Process Cylinder Refill</h2>
         <?php
@@ -795,7 +931,7 @@ jQuery(document).ready(function($) {
             </tbody>
         </table>
     
-    <!-- Tab 8: Analytics -->
+    <!-- Tab 9: Analytics -->
     <?php elseif ($tab === 'analytics'): ?>
         <h2>Cylinder Performance Analytics</h2>
         
