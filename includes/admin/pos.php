@@ -334,6 +334,10 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                 <span id="rpos-summary-cod"><?php echo esc_html($currency); ?>0.00</span>
             </div>
             <div class="zaikon-summary-row">
+                <span><?php echo esc_html__('Total Online Payments:', 'restaurant-pos'); ?></span>
+                <span id="rpos-summary-online" style="color: var(--zaikon-blue);"><?php echo esc_html($currency); ?>0.00</span>
+            </div>
+            <div class="zaikon-summary-row">
                 <span><?php echo esc_html__('Total Expenses:', 'restaurant-pos'); ?></span>
                 <span id="rpos-summary-expenses" style="color: var(--zaikon-red);"><?php echo esc_html($currency); ?>0.00</span>
             </div>

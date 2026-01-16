@@ -180,6 +180,7 @@
                     $('#rpos-summary-opening').text(rposData.currency + parseFloat(self.currentSession.opening_cash_rs).toFixed(2));
                     $('#rpos-summary-cash-sales').text(rposData.currency + parseFloat(totals.cash_sales).toFixed(2));
                     $('#rpos-summary-cod').text(rposData.currency + parseFloat(totals.cod_collected).toFixed(2));
+                    $('#rpos-summary-online').text(rposData.currency + parseFloat(totals.online_payments || 0).toFixed(2));
                     $('#rpos-summary-expenses').text(rposData.currency + parseFloat(totals.expenses).toFixed(2));
                     $('#rpos-summary-expected').text(rposData.currency + parseFloat(totals.expected_cash).toFixed(2));
                     
