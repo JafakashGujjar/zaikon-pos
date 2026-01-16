@@ -127,6 +127,8 @@
                 this.bindEvents();
                 this.initNotifications();
                 this.initNotificationSound();
+                // Initialize COD option visibility (hide by default since default is "dine-in")
+                this.toggleCODOption(false);
             }
         },
         
@@ -144,6 +146,9 @@
             // Order Type Pills - Changed to dropdown
             $('#rpos-order-type').on('change', function() {
                 var orderType = $(this).val();
+                
+                // Toggle COD option based on order type
+                self.toggleCODOption(orderType === 'delivery');
                 
                 // If delivery is selected, show inline delivery panel
                 if (orderType === 'delivery') {
@@ -1236,6 +1241,28 @@
             this.updateTotals();
             
             ZAIKON_Toast.info('Delivery cancelled');
+        },
+        
+        /**
+         * Toggle COD (Cash on Delivery) payment option visibility
+         * @param {boolean} show - true to show COD option, false to hide it
+         */
+        toggleCODOption: function(show) {
+            var $codOption = $('#rpos-payment-type option[value="cod"]');
+            var $paymentTypeSelect = $('#rpos-payment-type');
+            
+            if (show) {
+                // Show COD option
+                $codOption.show();
+            } else {
+                // Hide COD option
+                $codOption.hide();
+                
+                // If COD is currently selected, switch to cash
+                if ($paymentTypeSelect.val() === 'cod') {
+                    $paymentTypeSelect.val('cash');
+                }
+            }
         }
     };
     
