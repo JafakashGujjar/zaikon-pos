@@ -431,15 +431,23 @@ jQuery(document).ready(function($) {
                     <?php 
                     // Fetch all usage counts in a single query to avoid N+1 problem
                     global $wpdb;
-                    $type_ids = array_map(function($t) { return $t->id; }, $cylinder_types);
-                    $placeholders = implode(',', array_fill(0, count($type_ids), '%d'));
-                    $usage_counts = $wpdb->get_results($wpdb->prepare(
-                        "SELECT cylinder_type_id, COUNT(*) as count 
-                         FROM {$wpdb->prefix}rpos_gas_cylinders 
-                         WHERE cylinder_type_id IN ($placeholders) 
-                         GROUP BY cylinder_type_id",
-                        $type_ids
-                    ), OBJECT_K);
+                    // Extract and validate type IDs (ensure they're integers)
+                    $type_ids = array_map('absint', array_column($cylinder_types, 'id'));
+                    $type_ids = array_filter($type_ids); // Remove any zero/invalid values
+                    
+                    $usage_counts = array();
+                    if (!empty($type_ids)) {
+                        // Note: $placeholders is safe as it only contains '%d' strings from array_fill()
+                        // The actual IDs are sanitized by array_map('absint') and passed via wpdb::prepare()
+                        $placeholders = implode(',', array_fill(0, count($type_ids), '%d'));
+                        $usage_counts = $wpdb->get_results($wpdb->prepare(
+                            "SELECT cylinder_type_id, COUNT(*) as count 
+                             FROM {$wpdb->prefix}rpos_gas_cylinders 
+                             WHERE cylinder_type_id IN ($placeholders) 
+                             GROUP BY cylinder_type_id",
+                            $type_ids
+                        ), OBJECT_K);
+                    }
                     
                     foreach ($cylinder_types as $type): 
                         $in_use = isset($usage_counts[$type->id]) ? $usage_counts[$type->id]->count : 0;
