@@ -428,12 +428,21 @@ jQuery(document).ready(function($) {
                         <td colspan="3" style="text-align: center; padding: 20px;">No cylinder types found. Add a new type using the form above.</td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($cylinder_types as $type): 
-                        global $wpdb;
-                        $in_use = $wpdb->get_var($wpdb->prepare(
-                            "SELECT COUNT(*) FROM {$wpdb->prefix}rpos_gas_cylinders WHERE cylinder_type_id = %d",
-                            $type->id
-                        ));
+                    <?php 
+                    // Fetch all usage counts in a single query to avoid N+1 problem
+                    global $wpdb;
+                    $type_ids = array_map(function($t) { return $t->id; }, $cylinder_types);
+                    $placeholders = implode(',', array_fill(0, count($type_ids), '%d'));
+                    $usage_counts = $wpdb->get_results($wpdb->prepare(
+                        "SELECT cylinder_type_id, COUNT(*) as count 
+                         FROM {$wpdb->prefix}rpos_gas_cylinders 
+                         WHERE cylinder_type_id IN ($placeholders) 
+                         GROUP BY cylinder_type_id",
+                        $type_ids
+                    ), OBJECT_K);
+                    
+                    foreach ($cylinder_types as $type): 
+                        $in_use = isset($usage_counts[$type->id]) ? $usage_counts[$type->id]->count : 0;
                     ?>
                         <tr id="type-row-<?php echo esc_attr($type->id); ?>">
                             <td><strong><?php echo esc_html($type->name); ?></strong></td>
