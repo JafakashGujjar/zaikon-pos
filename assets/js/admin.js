@@ -1235,6 +1235,8 @@
             var currentType = $('#rpos-order-type').val();
             if (currentType === 'delivery') {
                 $('#rpos-order-type').val('dine-in');
+                // Hide COD option when switching away from delivery
+                this.toggleCODOption(false);
             }
             
             // Update totals
