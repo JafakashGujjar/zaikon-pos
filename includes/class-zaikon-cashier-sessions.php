@@ -176,6 +176,37 @@ class Zaikon_Cashier_Sessions {
             }
         }
         
+        // Calculate online payments from both zaikon_orders and rpos_orders
+        $online_payments = 0;
+        
+        // Calculate online payments from zaikon_orders (delivery orders)
+        foreach ($zaikon_orders as $order) {
+            if ($order->payment_type === 'online' && 
+                ($order->payment_status === 'paid' || $order->payment_status === 'completed')) {
+                $online_payments += floatval($order->grand_total_rs);
+            }
+        }
+        
+        // Also check rpos_orders for online payments (if schema supports it)
+        if ($has_payment_type && $has_payment_status) {
+            $online_rpos_orders = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}rpos_orders 
+                 WHERE cashier_id = %d 
+                 AND created_at >= %s 
+                 AND created_at <= %s
+                 AND order_type IN ('dine-in', 'takeaway')
+                 AND payment_type = 'online'
+                 AND payment_status = 'paid'",
+                $session->cashier_id,
+                $session->session_start,
+                $end_time
+            ));
+            
+            foreach ($online_rpos_orders as $order) {
+                $online_payments += floatval($order->total);
+            }
+        }
+        
         // Get total expenses for this session
         $expenses = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(amount_rs), 0) FROM {$wpdb->prefix}zaikon_expenses 
@@ -186,6 +217,7 @@ class Zaikon_Cashier_Sessions {
         return array(
             'cash_sales' => $cash_sales,
             'cod_collected' => $cod_collected,
+            'online_payments' => $online_payments,
             'expenses' => floatval($expenses),
             'expected_cash' => floatval($session->opening_cash_rs) + $cash_sales + $cod_collected - floatval($expenses)
         );

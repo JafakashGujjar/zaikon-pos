@@ -334,6 +334,10 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
                 <span id="rpos-summary-cod"><?php echo esc_html($currency); ?>0.00</span>
             </div>
             <div class="zaikon-summary-row">
+                <span><?php echo esc_html__('Total Online Payments:', 'restaurant-pos'); ?></span>
+                <span id="rpos-summary-online" style="color: var(--zaikon-blue);"><?php echo esc_html($currency); ?>0.00</span>
+            </div>
+            <div class="zaikon-summary-row">
                 <span><?php echo esc_html__('Total Expenses:', 'restaurant-pos'); ?></span>
                 <span id="rpos-summary-expenses" style="color: var(--zaikon-red);"><?php echo esc_html($currency); ?>0.00</span>
             </div>
@@ -509,6 +513,25 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
     <div class="zaikon-notification-list" id="rpos-notification-list">
         <div class="zaikon-notification-empty">
             <?php echo esc_html__('No new notifications', 'restaurant-pos'); ?>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div id="rpos-order-detail-modal" class="zaikon-modal" style="display: none;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 600px;">
+        <div class="zaikon-modal-header">
+            <h3 id="order-detail-title">Order Details</h3>
+            <button class="zaikon-modal-close" id="rpos-order-detail-close">&times;</button>
+        </div>
+        <div class="zaikon-modal-body" id="rpos-order-detail-body">
+            <div class="zaikon-loading">
+                <div class="zaikon-spinner"></div>
+                <p>Loading order details...</p>
+            </div>
+        </div>
+        <div class="zaikon-modal-footer">
+            <button class="zaikon-btn zaikon-btn-secondary" id="rpos-order-detail-close-btn">Close</button>
         </div>
     </div>
 </div>

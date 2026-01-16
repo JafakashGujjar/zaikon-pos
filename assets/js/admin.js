@@ -580,9 +580,8 @@
                 e.stopPropagation();
                 var orderId = $(this).data('order-id');
                 var orderIdNum = parseInt(orderId, 10);
-                // Validate orderId is a positive integer (parseInt returns NaN for invalid input)
                 if (orderIdNum > 0) {
-                    window.location.href = '?page=restaurant-pos-orders&view=' + encodeURIComponent(orderIdNum);
+                    self.showOrderDetailModal(orderIdNum);
                 } else {
                     console.error('Invalid order ID:', orderId);
                 }
@@ -600,6 +599,11 @@
                 if (!$(e.target).closest('#rpos-notification-bell, #rpos-notification-dropdown').length) {
                     $('#rpos-notification-dropdown').hide();
                 }
+            });
+            
+            // Bind order detail modal close buttons
+            $('#rpos-order-detail-close, #rpos-order-detail-close-btn').on('click', function() {
+                $('#rpos-order-detail-modal').fadeOut();
             });
         },
         
@@ -768,6 +772,54 @@
                 },
                 error: function() {
                     ZAIKON_Toast.error('Failed to mark notifications as read');
+                }
+            });
+        },
+        
+        showOrderDetailModal: function(orderId) {
+            var self = this;
+            $('#rpos-order-detail-modal').fadeIn();
+            $('#rpos-order-detail-body').html('<div class="zaikon-loading"><div class="zaikon-spinner"></div><p>Loading...</p></div>');
+            
+            $.ajax({
+                url: rposData.restUrl + 'orders/' + orderId,
+                method: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(order) {
+                    var $content = $('<div class="order-detail-content">');
+                    
+                    $content.append($('<p>').append($('<strong>').text('Order Number: ')).append(document.createTextNode(order.order_number)));
+                    $content.append($('<p>').append($('<strong>').text('Order Type: ')).append(document.createTextNode((order.order_type || 'Dine-in').replace('-', ' ').toUpperCase())));
+                    $content.append($('<p>').append($('<strong>').text('Payment Type: ')).append(document.createTextNode((order.payment_type || 'Cash').toUpperCase())));
+                    $content.append($('<p>').append($('<strong>').text('Status: ')).append(document.createTextNode((order.status || '').toUpperCase())));
+                    
+                    var $itemsSection = $('<div>');
+                    $itemsSection.append($('<h4>').text('Items:'));
+                    var $itemsList = $('<ul>');
+                    if (order.items && order.items.length) {
+                        order.items.forEach(function(item) {
+                            var $li = $('<li>');
+                            $li.text(item.quantity + ' × ' + item.product_name + ' - ' + formatPrice(item.line_total, rposData.currency));
+                            $itemsList.append($li);
+                        });
+                    }
+                    $itemsSection.append($itemsList);
+                    $content.append($itemsSection);
+                    
+                    $content.append($('<p>').append($('<strong>').text('Subtotal: ')).append(document.createTextNode(formatPrice(order.subtotal, rposData.currency))));
+                    if (order.delivery_charge && parseFloat(order.delivery_charge) > 0) {
+                        $content.append($('<p>').append($('<strong>').text('Delivery Charge: ')).append(document.createTextNode(formatPrice(order.delivery_charge, rposData.currency))));
+                    }
+                    $content.append($('<p>').append($('<strong>').text('Discount: ')).append(document.createTextNode(formatPrice(order.discount, rposData.currency))));
+                    $content.append($('<p>').append($('<strong>').text('Total: ')).append(document.createTextNode(formatPrice(order.total, rposData.currency))));
+                    
+                    $('#order-detail-title').text('Order #' + order.order_number);
+                    $('#rpos-order-detail-body').empty().append($content);
+                },
+                error: function() {
+                    $('#rpos-order-detail-body').html('<p style="color: red;">Failed to load order details.</p>');
                 }
             });
         },
