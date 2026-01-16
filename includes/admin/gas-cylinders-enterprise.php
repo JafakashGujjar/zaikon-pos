@@ -29,6 +29,20 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
             $message_type = $zone_id ? 'success' : 'error';
             break;
             
+        case 'add_cylinder':
+            $cylinder_id = RPOS_Gas_Cylinders::create_cylinder(array(
+                'cylinder_type_id' => absint($_POST['cylinder_type_id'] ?? 0),
+                'zone_id' => !empty($_POST['zone_id']) ? absint($_POST['zone_id']) : null,
+                'purchase_date' => !empty($_POST['purchase_date']) ? sanitize_text_field($_POST['purchase_date']) : null,
+                'cost' => isset($_POST['cost']) ? floatval($_POST['cost']) : 0,
+                'start_date' => sanitize_text_field($_POST['start_date'] ?? date('Y-m-d')),
+                'vendor' => !empty($_POST['vendor']) ? sanitize_text_field($_POST['vendor']) : null,
+                'notes' => isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : ''
+            ));
+            $message = $cylinder_id ? 'Cylinder added successfully!' : 'Failed to add cylinder. Ensure no active cylinder exists for this type.';
+            $message_type = $cylinder_id ? 'success' : 'error';
+            break;
+            
         case 'process_refill':
             $refill_id = RPOS_Gas_Cylinders::process_refill(
                 absint($_POST['cylinder_id'] ?? 0),
@@ -51,6 +65,7 @@ $tab = $_GET['tab'] ?? 'dashboard';
 $currency = RPOS_Settings::get('currency_symbol', '$');
 $zones = RPOS_Gas_Cylinders::get_all_zones();
 $cylinders = RPOS_Gas_Cylinders::get_all_cylinders();
+$cylinder_types = RPOS_Gas_Cylinders::get_all_types();
 $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
 ?>
 
@@ -120,6 +135,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
     <h2 class="nav-tab-wrapper">
         <a href="?page=restaurant-pos-gas-cylinders&tab=dashboard" class="nav-tab <?php echo $tab === 'dashboard' ? 'nav-tab-active' : ''; ?>">📊 Dashboard</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=zones" class="nav-tab <?php echo $tab === 'zones' ? 'nav-tab-active' : ''; ?>">🏭 Zones</a>
+        <a href="?page=restaurant-pos-gas-cylinders&tab=cylinders" class="nav-tab <?php echo $tab === 'cylinders' ? 'nav-tab-active' : ''; ?>">⛽ Cylinders</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=lifecycle" class="nav-tab <?php echo $tab === 'lifecycle' ? 'nav-tab-active' : ''; ?>">🔄 Lifecycle</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=consumption" class="nav-tab <?php echo $tab === 'consumption' ? 'nav-tab-active' : ''; ?>">📈 Consumption</a>
         <a href="?page=restaurant-pos-gas-cylinders&tab=refill" class="nav-tab <?php echo $tab === 'refill' ? 'nav-tab-active' : ''; ?>">⛽ Refill</a>
@@ -272,7 +288,91 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
             </tbody>
         </table>
     
-    <!-- Tab 3: Lifecycle -->
+    <!-- Tab 3: Cylinders -->
+    <?php elseif ($tab === 'cylinders'): ?>
+        <h2>Add New Cylinder</h2>
+        <form method="post" style="max-width: 700px; background: white; padding: 20px; border-radius: 8px;">
+            <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
+            <input type="hidden" name="action" value="add_cylinder">
+            <table class="form-table">
+                <tr>
+                    <th><label>Cylinder Type *</label></th>
+                    <td>
+                        <select name="cylinder_type_id" required class="regular-text">
+                            <option value="">-- Select Cylinder Type --</option>
+                            <?php foreach ($cylinder_types as $type): ?>
+                                <option value="<?php echo esc_attr($type->id); ?>"><?php echo esc_html($type->name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label>Zone</label></th>
+                    <td>
+                        <select name="zone_id" class="regular-text">
+                            <option value="">-- Select Zone (Optional) --</option>
+                            <?php foreach ($zones as $zone): ?>
+                                <option value="<?php echo esc_attr($zone->id); ?>"><?php echo esc_html($zone->name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+                <tr><th><label>Purchase Date</label></th><td><input type="date" name="purchase_date" class="regular-text"></td></tr>
+                <tr><th><label>Cost</label></th><td><input type="number" name="cost" step="0.01" min="0" class="regular-text" placeholder="0.00"></td></tr>
+                <tr><th><label>Start Date *</label></th><td><input type="date" name="start_date" required value="<?php echo date('Y-m-d'); ?>" class="regular-text"></td></tr>
+                <tr><th><label>Vendor</label></th><td><input type="text" name="vendor" class="regular-text" placeholder="Vendor name"></td></tr>
+                <tr><th><label>Notes</label></th><td><textarea name="notes" rows="3" class="large-text" placeholder="Optional notes about this cylinder"></textarea></td></tr>
+            </table>
+            <button type="submit" class="button button-primary">Add Cylinder</button>
+        </form>
+        
+        <h2>Cylinder Records</h2>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Zone</th>
+                    <th>Start Date</th>
+                    <th>Status</th>
+                    <th>Orders Served</th>
+                    <th>Remaining</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($cylinders)): ?>
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 20px;">No cylinders found. Add a new cylinder using the form above.</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($cylinders as $cyl): 
+                        $zone = $cyl->zone_id ? RPOS_Gas_Cylinders::get_zone($cyl->zone_id) : null;
+                    ?>
+                        <tr>
+                            <td><strong><?php echo esc_html($cyl->type_name); ?></strong></td>
+                            <td><?php echo $zone ? esc_html($zone->name) : '-'; ?></td>
+                            <td><?php echo esc_html($cyl->start_date); ?></td>
+                            <td>
+                                <span class="rpos-status-badge <?php echo $cyl->status === 'active' ? 'rpos-status-active' : 'rpos-status-completed'; ?>">
+                                    <?php echo esc_html(strtoupper($cyl->status)); ?>
+                                </span>
+                            </td>
+                            <td><?php echo esc_html($cyl->orders_served); ?></td>
+                            <td><?php echo esc_html(number_format($cyl->remaining_percentage, 1)); ?>%</td>
+                            <td>
+                                <?php if ($cyl->status === 'active'): ?>
+                                    <a href="?page=restaurant-pos-gas-cylinders&tab=refill&cyl_id=<?php echo esc_attr($cyl->id); ?>" class="button button-small">Refill</a>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    
+    <!-- Tab 4: Lifecycle -->
     <?php elseif ($tab === 'lifecycle'): ?>
         <h2>Cylinder Lifecycle History</h2>
         <?php
@@ -324,7 +424,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
             </tbody>
         </table>
     
-    <!-- Tab 4: Consumption -->
+    <!-- Tab 5: Consumption -->
     <?php elseif ($tab === 'consumption'): ?>
         <h2>Consumption Logs</h2>
         <?php
@@ -345,6 +445,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
         </form>
         
         <?php
+        global $wpdb;
         $logs_query = "SELECT c.*, p.name as product_name, o.order_number, cyl.cylinder_type_id, t.name as cylinder_type
                        FROM {$wpdb->prefix}zaikon_cylinder_consumption c
                        LEFT JOIN {$wpdb->prefix}rpos_products p ON c.product_id = p.id
@@ -358,6 +459,10 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
         
         $logs_query .= " ORDER BY c.created_at DESC LIMIT 100";
         $logs = $wpdb->get_results($logs_query);
+        
+        if (!is_array($logs)) {
+            $logs = array();
+        }
         ?>
         
         <table class="wp-list-table widefat fixed striped">
@@ -372,20 +477,26 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($logs as $log): ?>
+                <?php if (empty($logs)): ?>
                     <tr>
-                        <td><?php echo esc_html(date('M d, Y H:i', strtotime($log->created_at))); ?></td>
-                        <td><?php echo esc_html($log->order_number); ?></td>
-                        <td><?php echo esc_html($log->product_name); ?></td>
-                        <td><?php echo esc_html($log->cylinder_type); ?></td>
-                        <td><?php echo esc_html($log->quantity); ?></td>
-                        <td><?php echo esc_html(number_format($log->consumption_units, 4)); ?></td>
+                        <td colspan="6" style="text-align: center; padding: 20px;">No consumption logs found.</td>
                     </tr>
-                <?php endforeach; ?>
+                <?php else: ?>
+                    <?php foreach ($logs as $log): ?>
+                        <tr>
+                            <td><?php echo esc_html(date('M d, Y H:i', strtotime($log->created_at))); ?></td>
+                            <td><?php echo esc_html($log->order_number); ?></td>
+                            <td><?php echo esc_html($log->product_name); ?></td>
+                            <td><?php echo esc_html($log->cylinder_type); ?></td>
+                            <td><?php echo esc_html($log->quantity); ?></td>
+                            <td><?php echo esc_html(number_format($log->consumption_units, 4)); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     
-    <!-- Tab 5: Refill -->
+    <!-- Tab 6: Refill -->
     <?php elseif ($tab === 'refill'): ?>
         <h2>Process Cylinder Refill</h2>
         <?php
@@ -420,6 +531,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
         
         <h2>Refill History</h2>
         <?php
+        global $wpdb;
         $refills = $wpdb->get_results(
             "SELECT r.*, c.cylinder_type_id, t.name as type_name, u.display_name as created_by_name
              FROM {$wpdb->prefix}zaikon_cylinder_refill r
@@ -429,6 +541,10 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
              ORDER BY r.refill_date DESC
              LIMIT 50"
         );
+        
+        if (!is_array($refills)) {
+            $refills = array();
+        }
         ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
@@ -443,21 +559,27 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($refills as $refill): ?>
+                <?php if (empty($refills)): ?>
                     <tr>
-                        <td><?php echo esc_html($refill->refill_date); ?></td>
-                        <td><strong><?php echo esc_html($refill->type_name); ?></strong></td>
-                        <td><?php echo esc_html($refill->vendor ?? '-'); ?></td>
-                        <td><?php echo esc_html($currency . number_format($refill->cost, 2)); ?></td>
-                        <td><?php echo esc_html($refill->quantity); ?></td>
-                        <td><?php echo esc_html($refill->notes ?? '-'); ?></td>
-                        <td><?php echo esc_html($refill->created_by_name ?? '-'); ?></td>
+                        <td colspan="7" style="text-align: center; padding: 20px;">No refill history found.</td>
                     </tr>
-                <?php endforeach; ?>
+                <?php else: ?>
+                    <?php foreach ($refills as $refill): ?>
+                        <tr>
+                            <td><?php echo esc_html($refill->refill_date); ?></td>
+                            <td><strong><?php echo esc_html($refill->type_name); ?></strong></td>
+                            <td><?php echo esc_html($refill->vendor ?? '-'); ?></td>
+                            <td><?php echo esc_html($currency . number_format($refill->cost, 2)); ?></td>
+                            <td><?php echo esc_html($refill->quantity); ?></td>
+                            <td><?php echo esc_html($refill->notes ?? '-'); ?></td>
+                            <td><?php echo esc_html($refill->created_by_name ?? '-'); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     
-    <!-- Tab 6: Analytics -->
+    <!-- Tab 7: Analytics -->
     <?php elseif ($tab === 'analytics'): ?>
         <h2>Cylinder Performance Analytics</h2>
         
@@ -500,6 +622,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
         <div class="rpos-chart-container">
             <h3>Monthly Trends</h3>
             <?php
+            global $wpdb;
             $monthly_stats = $wpdb->get_results(
                 "SELECT 
                     DATE_FORMAT(created_at, '%Y-%m') as month,
@@ -510,6 +633,10 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
                  GROUP BY month
                  ORDER BY month DESC"
             );
+            
+            if (!is_array($monthly_stats)) {
+                $monthly_stats = array();
+            }
             ?>
             <table class="wp-list-table widefat fixed striped">
                 <thead>
@@ -521,16 +648,22 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($monthly_stats as $stat): 
-                        $avg_per_cyl = $stat->unique_cylinders > 0 ? $stat->order_count / $stat->unique_cylinders : 0;
-                    ?>
+                    <?php if (empty($monthly_stats)): ?>
                         <tr>
-                            <td><?php echo esc_html(date('F Y', strtotime($stat->month . '-01'))); ?></td>
-                            <td><?php echo esc_html(number_format($stat->order_count)); ?></td>
-                            <td><?php echo esc_html($stat->unique_cylinders); ?></td>
-                            <td><?php echo esc_html(number_format($avg_per_cyl, 1)); ?></td>
+                            <td colspan="4" style="text-align: center; padding: 20px;">No monthly data available.</td>
                         </tr>
-                    <?php endforeach; ?>
+                    <?php else: ?>
+                        <?php foreach ($monthly_stats as $stat): 
+                            $avg_per_cyl = $stat->unique_cylinders > 0 ? $stat->order_count / $stat->unique_cylinders : 0;
+                        ?>
+                            <tr>
+                                <td><?php echo esc_html(date('F Y', strtotime($stat->month . '-01'))); ?></td>
+                                <td><?php echo esc_html(number_format($stat->order_count)); ?></td>
+                                <td><?php echo esc_html($stat->unique_cylinders); ?></td>
+                                <td><?php echo esc_html(number_format($avg_per_cyl, 1)); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -538,6 +671,7 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
         <div class="rpos-chart-container">
             <h3>Cost Analysis</h3>
             <?php
+            global $wpdb;
             $cost_analysis = $wpdb->get_results(
                 "SELECT 
                     l.cylinder_id,
@@ -555,6 +689,10 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
                  ORDER BY total_orders DESC
                  LIMIT 20"
             );
+            
+            if (!is_array($cost_analysis)) {
+                $cost_analysis = array();
+            }
             ?>
             <table class="wp-list-table widefat fixed striped">
                 <thead>
@@ -567,15 +705,21 @@ $analytics = RPOS_Gas_Cylinders::get_dashboard_analytics();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($cost_analysis as $cost): ?>
+                    <?php if (empty($cost_analysis)): ?>
                         <tr>
-                            <td><strong><?php echo esc_html($cost->type_name); ?></strong></td>
-                            <td><?php echo esc_html($cost->lifecycle_count); ?></td>
-                            <td><?php echo esc_html(number_format($cost->total_orders)); ?></td>
-                            <td><?php echo esc_html($currency . number_format($cost->total_cost, 2)); ?></td>
-                            <td><?php echo esc_html($currency . number_format($cost->avg_cost_per_order, 2)); ?></td>
+                            <td colspan="5" style="text-align: center; padding: 20px;">No cost analysis data available.</td>
                         </tr>
-                    <?php endforeach; ?>
+                    <?php else: ?>
+                        <?php foreach ($cost_analysis as $cost): ?>
+                            <tr>
+                                <td><strong><?php echo esc_html($cost->type_name); ?></strong></td>
+                                <td><?php echo esc_html($cost->lifecycle_count); ?></td>
+                                <td><?php echo esc_html(number_format($cost->total_orders)); ?></td>
+                                <td><?php echo esc_html($currency . number_format($cost->total_cost, 2)); ?></td>
+                                <td><?php echo esc_html($currency . number_format($cost->avg_cost_per_order, 2)); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
