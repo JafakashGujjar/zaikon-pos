@@ -160,7 +160,30 @@ class RPOS_Notifications {
                 break;
             case 'ready':
                 $type = 'order_ready';
-                $message = sprintf(__('Order %s is ready for pickup', 'restaurant-pos'), $order->order_number);
+                // Fetch order items to build summary
+                $order_items = $wpdb->get_results($wpdb->prepare(
+                    "SELECT product_name, quantity FROM {$wpdb->prefix}rpos_order_items WHERE order_id = %d",
+                    $order_id
+                ));
+                
+                // Build item summary string
+                $item_parts = array();
+                if ($order_items) {
+                    foreach ($order_items as $item) {
+                        $quantity = intval($item->quantity);
+                        $name = $item->product_name;
+                        
+                        // Basic pluralization: add 's' if quantity > 1 and name doesn't already end with 's'
+                        if ($quantity > 1 && substr($name, -1) !== 's') {
+                            $name .= 's';
+                        }
+                        
+                        $item_parts[] = $quantity . ' ' . $name;
+                    }
+                }
+                
+                $item_summary = !empty($item_parts) ? implode(', ', $item_parts) : __('Your order', 'restaurant-pos');
+                $message = sprintf(__('%s is ready for pickup', 'restaurant-pos'), $item_summary);
                 break;
             case 'completed':
                 $type = 'order_completed';

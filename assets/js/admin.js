@@ -580,9 +580,8 @@
                 e.stopPropagation();
                 var orderId = $(this).data('order-id');
                 var orderIdNum = parseInt(orderId, 10);
-                // Validate orderId is a positive integer (parseInt returns NaN for invalid input)
                 if (orderIdNum > 0) {
-                    window.location.href = '?page=restaurant-pos-orders&view=' + encodeURIComponent(orderIdNum);
+                    self.showOrderDetailModal(orderIdNum);
                 } else {
                     console.error('Invalid order ID:', orderId);
                 }
@@ -600,6 +599,11 @@
                 if (!$(e.target).closest('#rpos-notification-bell, #rpos-notification-dropdown').length) {
                     $('#rpos-notification-dropdown').hide();
                 }
+            });
+            
+            // Bind order detail modal close buttons
+            $('#rpos-order-detail-close, #rpos-order-detail-close-btn').on('click', function() {
+                $('#rpos-order-detail-modal').fadeOut();
             });
         },
         
@@ -768,6 +772,47 @@
                 },
                 error: function() {
                     ZAIKON_Toast.error('Failed to mark notifications as read');
+                }
+            });
+        },
+        
+        showOrderDetailModal: function(orderId) {
+            var self = this;
+            $('#rpos-order-detail-modal').fadeIn();
+            $('#rpos-order-detail-body').html('<div class="zaikon-loading"><div class="zaikon-spinner"></div><p>Loading...</p></div>');
+            
+            $.ajax({
+                url: rposData.restUrl + 'orders/' + orderId,
+                method: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(order) {
+                    var html = '<div class="order-detail-content">';
+                    html += '<p><strong>Order Number:</strong> ' + order.order_number + '</p>';
+                    html += '<p><strong>Order Type:</strong> ' + (order.order_type || 'Dine-in').replace('-', ' ').toUpperCase() + '</p>';
+                    html += '<p><strong>Payment Type:</strong> ' + (order.payment_type || 'Cash').toUpperCase() + '</p>';
+                    html += '<p><strong>Status:</strong> ' + (order.status || '').toUpperCase() + '</p>';
+                    html += '<h4>Items:</h4><ul>';
+                    if (order.items && order.items.length) {
+                        order.items.forEach(function(item) {
+                            html += '<li>' + item.quantity + ' × ' + item.product_name + ' - ' + formatPrice(item.line_total, rposData.currency) + '</li>';
+                        });
+                    }
+                    html += '</ul>';
+                    html += '<p><strong>Subtotal:</strong> ' + formatPrice(order.subtotal, rposData.currency) + '</p>';
+                    if (order.delivery_charge && parseFloat(order.delivery_charge) > 0) {
+                        html += '<p><strong>Delivery Charge:</strong> ' + formatPrice(order.delivery_charge, rposData.currency) + '</p>';
+                    }
+                    html += '<p><strong>Discount:</strong> ' + formatPrice(order.discount, rposData.currency) + '</p>';
+                    html += '<p><strong>Total:</strong> ' + formatPrice(order.total, rposData.currency) + '</p>';
+                    html += '</div>';
+                    
+                    $('#order-detail-title').text('Order #' + order.order_number);
+                    $('#rpos-order-detail-body').html(html);
+                },
+                error: function() {
+                    $('#rpos-order-detail-body').html('<p style="color: red;">Failed to load order details.</p>');
                 }
             });
         },
