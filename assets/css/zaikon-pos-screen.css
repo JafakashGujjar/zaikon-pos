@@ -375,6 +375,10 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     color: var(--zaikon-text-muted);
     font-size: var(--text-base);
     line-height: var(--leading-relaxed);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .zaikon-cart-item {
