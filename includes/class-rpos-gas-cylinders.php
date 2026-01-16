@@ -244,15 +244,17 @@ class RPOS_Gas_Cylinders {
             $wpdb->prefix . 'rpos_gas_cylinders',
             array(
                 'cylinder_type_id' => absint($data['cylinder_type_id']),
+                'zone_id' => !empty($data['zone_id']) ? absint($data['zone_id']) : null,
                 'purchase_date' => !empty($data['purchase_date']) ? sanitize_text_field($data['purchase_date']) : null,
                 'cost' => isset($data['cost']) ? floatval($data['cost']) : 0.00,
                 'start_date' => sanitize_text_field($data['start_date']),
                 'end_date' => null,
                 'status' => 'active',
                 'notes' => isset($data['notes']) ? sanitize_textarea_field($data['notes']) : '',
+                'vendor' => !empty($data['vendor']) ? sanitize_text_field($data['vendor']) : null,
                 'created_by' => get_current_user_id()
             ),
-            array('%d', '%s', '%f', '%s', '%s', '%s', '%s', '%d')
+            array('%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%d')
         );
         
         if ($result) {
