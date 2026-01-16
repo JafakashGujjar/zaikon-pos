@@ -152,7 +152,7 @@ class Zaikon_Cashier_Sessions {
                  AND (
                      (payment_type = 'cash' AND payment_status = 'paid')
                      OR
-                     (status IN ('completed', 'ready') AND (payment_type IS NULL OR payment_type = '' OR payment_type = 'cash') AND (payment_status IS NULL OR payment_status = '' OR payment_status = 'paid'))
+                     (status NOT IN ('cancelled', 'void', 'refunded') AND (payment_type IS NULL OR payment_type = '' OR payment_type = 'cash') AND (payment_status IS NULL OR payment_status = '' OR payment_status = 'paid'))
                  )",
                 $session->cashier_id,
                 $session->session_start,
@@ -170,7 +170,7 @@ class Zaikon_Cashier_Sessions {
                  AND created_at >= %s 
                  AND created_at <= %s
                  AND order_type IN ('dine-in', 'takeaway')
-                 AND status IN ('completed', 'ready')",
+                 AND status NOT IN ('cancelled', 'void', 'refunded')",
                 $session->cashier_id,
                 $session->session_start,
                 $end_time
