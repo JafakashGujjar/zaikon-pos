@@ -152,6 +152,7 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
             
             <div class="zaikon-cart-items" id="rpos-cart-items">
                 <div class="zaikon-cart-empty">
+                    <span class="dashicons dashicons-cart zaikon-cart-empty-icon"></span>
                     <?php echo esc_html__('Cart is empty. Add products to start an order.', 'restaurant-pos'); ?>
                 </div>
             </div>

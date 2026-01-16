@@ -8,7 +8,7 @@
 :root {
     /* ===== LIGHT THEME COLORS ===== */
     /* Backgrounds */
-    --zaikon-bg-primary: #F7F8FA;        /* Main background - soft light grey */
+    --zaikon-bg-primary: #F5F5F7;        /* Main background - very light grey per spec */
     --zaikon-bg-secondary: #FFFFFF;       /* Cards, panels - white */
     --zaikon-bg-tertiary: #F0F2F5;        /* Subtle sections */
     
@@ -17,18 +17,18 @@
     --zaikon-border-medium: #CED0D4;      /* Medium borders */
     
     /* Text */
-    --zaikon-text-primary: #1A1A1A;       /* Main text - dark for readability */
+    --zaikon-text-primary: #2C2C2E;       /* Main text - deep charcoal for readability */
     --zaikon-text-secondary: #65676B;     /* Secondary text */
     --zaikon-text-muted: #8A8D91;         /* Muted text */
     
     /* Brand Accents */
-    --zaikon-orange: #FA8F00;             /* Action buttons, prices, highlights */
+    --zaikon-orange: #FF8A00;             /* Primary brand orange - action buttons, prices, highlights */
     --zaikon-orange-dark: #E07D00;
     --zaikon-orange-light: #FFB347;
     
-    --zaikon-yellow: #F8C715;             /* Category active state */
+    --zaikon-yellow: #FFD700;             /* Zaikon yellow - category active state */
     --zaikon-yellow-dark: #E0B200;
-    --zaikon-yellow-light: #FFD84D;
+    --zaikon-yellow-light: #FFE44D;
     
     /* ===== LEGACY/BACKWARD COMPATIBILITY COLORS ===== */
     /* Primary - ZAIKON Yellow (legacy) */
@@ -40,7 +40,7 @@
     --zaikon-dark-light: #2C2C44;
     
     /* Accent 2 - Red */
-    --zaikon-red: #DC3545;
+    --zaikon-red: #E53935;                /* Destructive/Error color per spec */
     --zaikon-red-dark: #C82333;
     --zaikon-red-light: #FF5C6A;
     
@@ -60,9 +60,9 @@
     /* ===== STATUS COLORS ===== */
     --status-new: #2196F3;
     --status-cooking: #FF9800;
-    --status-ready: #4CAF50;
+    --status-ready: #43A047;              /* Success green per spec */
     --status-completed: #9E9E9E;
-    --status-cancelled: #F44336;
+    --status-cancelled: #E53935;          /* Error red per spec */
     
     /* Order Type Colors */
     --order-dine-in: #3F51B5;
@@ -75,7 +75,7 @@
     --stock-critical: #F44336;
     
     /* ===== TYPOGRAPHY ===== */
-    --font-primary: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-primary: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     --font-mono: "Courier New", Courier, monospace;
     
     /* Font Sizes */

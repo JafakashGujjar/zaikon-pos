@@ -269,15 +269,32 @@
                         self.addToCart(product);
                     });
                 
+                // Add product image with safe attribute insertion
                 if (product.image_url) {
-                    $item.append('<img src="' + product.image_url + '" alt="' + product.name + '" class="zaikon-product-image">');
+                    var $img = $('<img class="zaikon-product-image">')
+                        .attr('src', product.image_url)
+                        .attr('alt', product.name);
+                    $item.append($img);
                 } else {
                     $item.append('<div class="zaikon-product-image"><span class="dashicons dashicons-cart"></span></div>');
                 }
                 
                 var $info = $('<div class="zaikon-product-info">');
-                $info.append('<div class="zaikon-product-name">' + product.name + '</div>');
-                $info.append('<div class="zaikon-product-price">' + rposData.currency + parseFloat(product.selling_price).toFixed(2) + '</div>');
+                
+                // Create product name element with safe text insertion
+                var $name = $('<div class="zaikon-product-name">').text(product.name);
+                $info.append($name);
+                
+                // Add product description if available (safe text insertion)
+                if (product.description && product.description.trim() !== '') {
+                    var $description = $('<div class="zaikon-product-description">').text(product.description);
+                    $info.append($description);
+                }
+                
+                // Create price element with safe content
+                var $price = $('<div class="zaikon-product-price">').text(rposData.currency + parseFloat(product.selling_price).toFixed(2));
+                $info.append($price);
+                
                 $item.append($info);
                 
                 $grid.append($item);

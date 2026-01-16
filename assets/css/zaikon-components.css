@@ -35,7 +35,7 @@
     background: var(--zaikon-orange);
     color: var(--zaikon-white);
     border-color: var(--zaikon-orange);
-    box-shadow: var(--shadow-orange);
+    box-shadow: 0 4px 12px rgba(255, 138, 0, 0.25);
 }
 
 .zaikon-btn-primary:hover:not(:disabled) {
@@ -66,7 +66,7 @@
     background: var(--zaikon-yellow);
     color: var(--zaikon-dark);
     border-color: var(--zaikon-yellow);
-    box-shadow: var(--shadow-yellow);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
 }
 
 .zaikon-btn-yellow:hover:not(:disabled) {
@@ -79,7 +79,7 @@
     background: var(--zaikon-red);
     color: var(--zaikon-white);
     border-color: var(--zaikon-red);
-    box-shadow: var(--shadow-red);
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.25);
 }
 
 .zaikon-btn-danger:hover:not(:disabled) {
