@@ -189,16 +189,16 @@ $tab = $_GET['tab'] ?? 'locations';
     <?php endif; ?>
     
     <h2 class="nav-tab-wrapper">
-        <a href="?page=zaikon-delivery-management&tab=locations" class="nav-tab <?php echo $tab === 'locations' ? 'nav-tab-active' : ''; ?>">
+        <a href="?page=restaurant-pos-zaikon-delivery&tab=locations" class="nav-tab <?php echo $tab === 'locations' ? 'nav-tab-active' : ''; ?>">
             📍 Locations
         </a>
-        <a href="?page=zaikon-delivery-management&tab=slabs" class="nav-tab <?php echo $tab === 'slabs' ? 'nav-tab-active' : ''; ?>">
+        <a href="?page=restaurant-pos-zaikon-delivery&tab=slabs" class="nav-tab <?php echo $tab === 'slabs' ? 'nav-tab-active' : ''; ?>">
             💵 Charge Slabs
         </a>
-        <a href="?page=zaikon-delivery-management&tab=free-rules" class="nav-tab <?php echo $tab === 'free-rules' ? 'nav-tab-active' : ''; ?>">
+        <a href="?page=restaurant-pos-zaikon-delivery&tab=free-rules" class="nav-tab <?php echo $tab === 'free-rules' ? 'nav-tab-active' : ''; ?>">
             🎁 Free Delivery Rules
         </a>
-        <a href="?page=zaikon-delivery-management&tab=riders" class="nav-tab <?php echo $tab === 'riders' ? 'nav-tab-active' : ''; ?>">
+        <a href="?page=restaurant-pos-zaikon-delivery&tab=riders" class="nav-tab <?php echo $tab === 'riders' ? 'nav-tab-active' : ''; ?>">
             🏍️ Riders
         </a>
     </h2>
