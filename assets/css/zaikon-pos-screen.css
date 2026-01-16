@@ -986,6 +986,20 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     color: var(--zaikon-text-primary);
 }
 
+/* Notification Action Buttons */
+.zaikon-notification-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--zaikon-border);
+}
+
+.zaikon-notification-actions .zaikon-btn-sm {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+}
+
 /* ===== PRINT STYLES FOR RECEIPT ===== */
 @media print {
     body * {

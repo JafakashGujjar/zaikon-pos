@@ -122,7 +122,8 @@ class RPOS_Notifications {
     }
     
     /**
-     * Notify cashier about order status change
+     * Notify cashier and admins about order status change
+     * Creates notifications for the cashier who created the order and all restaurant administrators
      */
     public static function notify_order_status_change($order_id, $old_status, $new_status) {
         global $wpdb;
@@ -169,7 +170,35 @@ class RPOS_Notifications {
                 return false;
         }
         
-        // Create notification
-        return self::create($cashier_id, $order_id, $type, $message);
+        // Create notification for cashier
+        $cashier_result = self::create($cashier_id, $order_id, $type, $message);
+        if (!$cashier_result) {
+            error_log('RPOS Notifications: Failed to create notification for cashier #' . $cashier_id . ' for order #' . $order_id);
+        }
+        
+        // Also notify all restaurant admins (fetch only IDs for performance)
+        // Note: If cashier is also an admin, they only get ONE notification (as cashier)
+        // to avoid duplicate notifications for the same order
+        $admin_query_args = array(
+            'role__in' => array('administrator', 'rpos_restaurant_admin'),
+            'number' => 100, // Limit to prevent performance issues with large user bases
+            'fields' => array('ID') // Only fetch user IDs for better performance
+        );
+        
+        // Exclude cashier from admin list if valid (to prevent double-notification)
+        if ($cashier_id) {
+            $admin_query_args['exclude'] = array($cashier_id);
+        }
+        
+        $admin_users = get_users($admin_query_args);
+        
+        foreach ($admin_users as $admin) {
+            $admin_result = self::create($admin->ID, $order_id, $type, $message);
+            if (!$admin_result) {
+                error_log('RPOS Notifications: Failed to create notification for admin #' . $admin->ID . ' for order #' . $order_id);
+            }
+        }
+        
+        return true;
     }
 }

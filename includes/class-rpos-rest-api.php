@@ -692,6 +692,12 @@ class RPOS_REST_API {
             );
             
             error_log('RPOS REST API: Kitchen activity logged for order #' . $id);
+            
+            // Trigger notification for cashier and admins when order is ready
+            if ($new_status === 'ready') {
+                RPOS_Notifications::notify_order_status_change($id, $old_status, $new_status);
+                error_log('RPOS REST API: Notification triggered for order #' . $id . ' ready status');
+            }
         }
         
         return rest_ensure_response(array('success' => true));
