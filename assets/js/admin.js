@@ -580,8 +580,9 @@
                 e.stopPropagation();
                 var orderId = $(this).data('order-id');
                 // Validate orderId is a positive integer before navigating
-                if (orderId && Number.isInteger(Number(orderId)) && Number(orderId) > 0) {
-                    window.location.href = '?page=restaurant-pos-orders&view=' + encodeURIComponent(orderId);
+                var orderIdNum = parseInt(orderId, 10);
+                if (orderIdNum && Number.isInteger(orderIdNum) && orderIdNum > 0) {
+                    window.location.href = '?page=restaurant-pos-orders&view=' + encodeURIComponent(orderIdNum);
                 } else {
                     console.error('Invalid order ID:', orderId);
                 }

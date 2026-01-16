@@ -177,12 +177,18 @@ class RPOS_Notifications {
         }
         
         // Also notify all restaurant admins (fetch only IDs for performance)
-        $admin_users = get_users(array(
+        $admin_query_args = array(
             'role__in' => array('administrator', 'rpos_restaurant_admin'),
-            'exclude' => array($cashier_id), // Don't double-notify if cashier is admin
             'number' => 100, // Limit to prevent performance issues with large user bases
             'fields' => array('ID') // Only fetch user IDs for better performance
-        ));
+        );
+        
+        // Exclude cashier from admin list if valid (to prevent double-notification)
+        if ($cashier_id) {
+            $admin_query_args['exclude'] = array($cashier_id);
+        }
+        
+        $admin_users = get_users($admin_query_args);
         
         foreach ($admin_users as $admin) {
             $admin_result = self::create($admin->ID, $order_id, $type, $message);
