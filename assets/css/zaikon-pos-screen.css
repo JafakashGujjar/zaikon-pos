@@ -1592,27 +1592,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     color: white;
 }
 
-/* Modal Content - Centered positioning for all POS modals */
-.zaikon-modal .zaikon-modal-content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-/* My Orders Modal - Keep existing specific override if needed */
-#rpos-orders-modal .zaikon-modal-content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-/* Modal Background Overlay */
+/* Modal Background Overlay - Full screen backdrop with flex centering */
 .zaikon-modal {
     position: fixed;
     top: 0;
@@ -1624,4 +1604,14 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Modal Content - Uses flex centering from parent */
+.zaikon-modal .zaikon-modal-content {
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--zaikon-white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2xl);
 }
