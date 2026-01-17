@@ -1268,7 +1268,7 @@ class RPOS_REST_API {
             $wpdb->prefix . 'zaikon_orders',
             array(
                 'payment_status' => $payment_status,
-                'updated_at' => current_time('mysql')
+                'updated_at' => RPOS_Timezone::current_utc_mysql()
             ),
             array('id' => $order_id),
             array('%s', '%s'),
@@ -1304,7 +1304,7 @@ class RPOS_REST_API {
             $wpdb->prefix . 'zaikon_orders',
             array(
                 'order_status' => $order_status,
-                'updated_at' => current_time('mysql')
+                'updated_at' => RPOS_Timezone::current_utc_mysql()
             ),
             array('id' => $order_id),
             array('%s', '%s'),
@@ -1334,7 +1334,7 @@ class RPOS_REST_API {
             $wpdb->prefix . 'zaikon_orders',
             array(
                 'order_status' => 'delivered',
-                'updated_at' => current_time('mysql')
+                'updated_at' => RPOS_Timezone::current_utc_mysql()
             ),
             array('id' => $order_id),
             array('%s', '%s'),
@@ -1350,8 +1350,8 @@ class RPOS_REST_API {
             $wpdb->prefix . 'zaikon_deliveries',
             array(
                 'delivery_status' => 'delivered',
-                'delivered_at' => current_time('mysql'),
-                'updated_at' => current_time('mysql')
+                'delivered_at' => RPOS_Timezone::current_utc_mysql(),
+                'updated_at' => RPOS_Timezone::current_utc_mysql()
             ),
             array('order_id' => $order_id),
             array('%s', '%s', '%s'),
@@ -1368,8 +1368,8 @@ class RPOS_REST_API {
             $wpdb->prefix . 'zaikon_rider_orders',
             array(
                 'status' => 'delivered',
-                'delivered_at' => current_time('mysql'),
-                'updated_at' => current_time('mysql')
+                'delivered_at' => RPOS_Timezone::current_utc_mysql(),
+                'updated_at' => RPOS_Timezone::current_utc_mysql()
             ),
             array('order_id' => $order_id),
             array('%s', '%s', '%s'),
@@ -1415,7 +1415,7 @@ class RPOS_REST_API {
             array(
                 'payment_status' => 'cod_received',
                 'order_status' => 'completed',
-                'updated_at' => current_time('mysql')
+                'updated_at' => RPOS_Timezone::current_utc_mysql()
             ),
             array('id' => $order_id),
             array('%s', '%s', '%s'),

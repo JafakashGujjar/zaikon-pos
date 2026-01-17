@@ -20,7 +20,7 @@ class Zaikon_Rider_Orders {
             'order_id' => absint($data['order_id']),
             'rider_id' => absint($data['rider_id']),
             'status' => sanitize_text_field($data['status'] ?? 'assigned'),
-            'created_at' => current_time('mysql')
+            'created_at' => RPOS_Timezone::current_utc_mysql()
         );
         
         $formats = array('%d', '%d', '%s', '%s');
@@ -34,7 +34,7 @@ class Zaikon_Rider_Orders {
             $insert_data['assigned_at'] = sanitize_text_field($data['assigned_at']);
             $formats[] = '%s';
         } else {
-            $insert_data['assigned_at'] = current_time('mysql');
+            $insert_data['assigned_at'] = RPOS_Timezone::current_utc_mysql();
             $formats[] = '%s';
         }
         if (isset($data['notes'])) {
@@ -129,22 +129,22 @@ class Zaikon_Rider_Orders {
         
         $update_data = array(
             'status' => sanitize_text_field($status),
-            'updated_at' => current_time('mysql')
+            'updated_at' => RPOS_Timezone::current_utc_mysql()
         );
         
         // Set appropriate timestamp based on status
         switch ($status) {
             case 'assigned':
-                $update_data['assigned_at'] = current_time('mysql');
+                $update_data['assigned_at'] = RPOS_Timezone::current_utc_mysql();
                 break;
             case 'picked':
-                $update_data['picked_at'] = current_time('mysql');
+                $update_data['picked_at'] = RPOS_Timezone::current_utc_mysql();
                 break;
             case 'delivered':
-                $update_data['delivered_at'] = current_time('mysql');
+                $update_data['delivered_at'] = RPOS_Timezone::current_utc_mysql();
                 break;
             case 'failed':
-                $update_data['failed_at'] = current_time('mysql');
+                $update_data['failed_at'] = RPOS_Timezone::current_utc_mysql();
                 break;
         }
         
