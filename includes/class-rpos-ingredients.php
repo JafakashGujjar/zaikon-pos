@@ -705,7 +705,7 @@ class RPOS_Ingredients {
         $batch_data = array(
             'ingredient_id' => $ingredient_id,
             'supplier_id' => isset($data['supplier_id']) ? $data['supplier_id'] : null,
-            'purchase_date' => isset($data['purchase_date']) ? $data['purchase_date'] : date('Y-m-d'),
+            'purchase_date' => isset($data['purchase_date']) ? $data['purchase_date'] : RPOS_Timezone::now()->format('Y-m-d'),
             'manufacturing_date' => isset($data['manufacturing_date']) ? $data['manufacturing_date'] : null,
             'expiry_date' => isset($data['expiry_date']) ? $data['expiry_date'] : null,
             'cost_per_unit' => isset($data['cost_per_unit']) ? $data['cost_per_unit'] : 0,

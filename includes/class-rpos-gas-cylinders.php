@@ -325,7 +325,7 @@ class RPOS_Gas_Cylinders {
         
         // Build date range
         $date_from = $cylinder->start_date . ' 00:00:00';
-        $date_to = $cylinder->end_date ? ($cylinder->end_date . ' 23:59:59') : date('Y-m-d H:i:s');
+        $date_to = $cylinder->end_date ? ($cylinder->end_date . ' 23:59:59') : RPOS_Timezone::now()->format('Y-m-d H:i:s');
         
         error_log('RPOS Gas Cylinders: Date range: ' . $date_from . ' to ' . $date_to);
         
@@ -553,7 +553,7 @@ class RPOS_Gas_Cylinders {
         }
         
         // Calculate start date once at method start for consistency
-        $start_date = isset($data['start_date']) ? sanitize_text_field($data['start_date']) : date('Y-m-d');
+        $start_date = isset($data['start_date']) ? sanitize_text_field($data['start_date']) : RPOS_Timezone::now()->format('Y-m-d');
         
         // Create lifecycle record
         $result = $wpdb->insert(
@@ -583,7 +583,7 @@ class RPOS_Gas_Cylinders {
         global $wpdb;
         
         if (!$end_date) {
-            $end_date = date('Y-m-d');
+            $end_date = RPOS_Timezone::now()->format('Y-m-d');
         }
         
         $lifecycle = $wpdb->get_row($wpdb->prepare(
@@ -778,7 +778,7 @@ class RPOS_Gas_Cylinders {
         // Get active lifecycle and close it
         $active_lifecycle = self::get_active_lifecycle($cylinder_id);
         if ($active_lifecycle) {
-            self::close_lifecycle($active_lifecycle->id, $data['refill_date'] ?? date('Y-m-d'));
+            self::close_lifecycle($active_lifecycle->id, $data['refill_date'] ?? RPOS_Timezone::now()->format('Y-m-d'));
         }
         
         // Record refill
@@ -787,7 +787,7 @@ class RPOS_Gas_Cylinders {
             array(
                 'cylinder_id' => $cylinder_id,
                 'lifecycle_id' => $active_lifecycle ? $active_lifecycle->id : null,
-                'refill_date' => sanitize_text_field($data['refill_date'] ?? date('Y-m-d')),
+                'refill_date' => sanitize_text_field($data['refill_date'] ?? RPOS_Timezone::now()->format('Y-m-d')),
                 'vendor' => isset($data['vendor']) ? sanitize_text_field($data['vendor']) : null,
                 'cost' => floatval($data['cost'] ?? 0),
                 'quantity' => floatval($data['quantity'] ?? 1),
@@ -805,7 +805,7 @@ class RPOS_Gas_Cylinders {
         
         // Start new lifecycle
         $lifecycle_id = self::start_lifecycle($cylinder_id, array(
-            'start_date' => $data['refill_date'] ?? date('Y-m-d'),
+            'start_date' => $data['refill_date'] ?? RPOS_Timezone::now()->format('Y-m-d'),
             'refill_cost' => $data['cost'] ?? 0,
             'vendor' => $data['vendor'] ?? null,
             'notes' => 'Refilled: ' . ($data['notes'] ?? '')
