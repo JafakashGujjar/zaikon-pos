@@ -57,16 +57,21 @@ class RPOS_Timezone {
     /**
      * Convert a timestamp or datetime string to plugin timezone
      * 
+     * IMPORTANT: This method assumes datetime strings from the database are in UTC.
+     * If your database stores timestamps in a different timezone, the display will be incorrect.
+     * 
      * @param mixed $datetime Unix timestamp, datetime string, or DateTime object
-     * @return DateTime
+     * @return DateTime DateTime object in the plugin's configured timezone
      */
     public static function convert($datetime) {
         if ($datetime instanceof DateTime) {
             $dt = clone $datetime;
         } elseif (is_numeric($datetime)) {
+            // Unix timestamp - timezone-agnostic
             $dt = new DateTime('@' . $datetime);
         } else {
-            // Assume it's a MySQL datetime string (stored in UTC or server time)
+            // MySQL datetime string - ASSUMES UTC storage
+            // This is the standard for WordPress and most web applications
             $dt = new DateTime($datetime, new DateTimeZone('UTC'));
         }
         

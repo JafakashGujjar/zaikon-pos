@@ -1361,6 +1361,8 @@
             var created = new Date(createdAt);
             
             // Adjust for timezone offset if provided
+            // NOTE: This logic is duplicated in session-management.js formatOrderTime()
+            // Keep both implementations in sync if modifications are needed
             if (typeof rposAdmin !== 'undefined' && rposAdmin.timezoneOffset) {
                 var serverOffset = parseInt(rposAdmin.timezoneOffset) || 0;
                 var localOffset = now.getTimezoneOffset(); // in minutes, inverted sign

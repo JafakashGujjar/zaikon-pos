@@ -8,6 +8,8 @@
     
     /**
      * Format order time with timezone adjustment
+     * NOTE: This logic is duplicated in admin.js getElapsedMinutes()
+     * Keep both implementations in sync if modifications are needed
      */
     function formatOrderTime(dateString) {
         var date = new Date(dateString);
