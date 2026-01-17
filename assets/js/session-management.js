@@ -12,19 +12,20 @@
      * Keep both implementations in sync if modifications are needed
      */
     function formatOrderTime(dateString) {
-        var date = new Date(dateString);
-        
-        // Adjust for timezone offset if provided
+        // Get timezone offset from plugin settings
+        var timezoneOffset = 0;
         if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
-            // Parse the offset; if NaN, default to 0 (UTC)
-            var serverOffset = parseInt(rposAdmin.timezoneOffset);
-            if (isNaN(serverOffset)) {
-                serverOffset = 0;
+            timezoneOffset = parseInt(rposAdmin.timezoneOffset);
+            if (isNaN(timezoneOffset)) {
+                timezoneOffset = 0;
             }
-            var localOffset = date.getTimezoneOffset(); // in minutes, inverted sign
-            var totalAdjustment = (serverOffset + localOffset) * 60 * 1000;
-            date = new Date(date.getTime() + totalAdjustment);
         }
+        
+        // WordPress current_time('mysql') returns datetime in plugin's configured timezone
+        // We need to parse it correctly by treating it as UTC, then adding the plugin offset
+        // This converts the plugin timezone datetime to actual UTC timestamp
+        var date = new Date(dateString.replace(' ', 'T') + 'Z');
+        date = new Date(date.getTime() + (timezoneOffset * 60 * 1000));
         
         return date.toLocaleTimeString();
     }

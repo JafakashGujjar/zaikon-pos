@@ -1358,31 +1358,28 @@
         
         getElapsedMinutes: function(createdAt) {
             var now = new Date();
-            var created = new Date(createdAt);
             
-            // Adjust for timezone offset if provided
+            // Get timezone offset from plugin settings
             // NOTE: This logic is duplicated in session-management.js formatOrderTime()
             // Keep both implementations in sync if modifications are needed
-            var timezoneOffset = null;
+            var timezoneOffset = 0;
             if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
-                // Parse the offset; if NaN, default to 0 (UTC)
                 timezoneOffset = parseInt(rposAdmin.timezoneOffset);
                 if (isNaN(timezoneOffset)) {
                     timezoneOffset = 0;
                 }
             } else if (typeof rposKdsData !== 'undefined' && typeof rposKdsData.timezoneOffset !== 'undefined') {
-                // Parse the offset; if NaN, default to 0 (UTC)
                 timezoneOffset = parseInt(rposKdsData.timezoneOffset);
                 if (isNaN(timezoneOffset)) {
                     timezoneOffset = 0;
                 }
             }
             
-            if (timezoneOffset !== null) {
-                var localOffset = now.getTimezoneOffset(); // in minutes, inverted sign
-                var totalAdjustment = (timezoneOffset + localOffset) * 60 * 1000;
-                created = new Date(created.getTime() + totalAdjustment);
-            }
+            // WordPress current_time('mysql') returns datetime in plugin's configured timezone
+            // We need to parse it correctly by treating it as UTC, then adding the plugin offset
+            // This converts the plugin timezone datetime to actual UTC timestamp
+            var created = new Date(createdAt.replace(' ', 'T') + 'Z');
+            created = new Date(created.getTime() + (timezoneOffset * 60 * 1000));
             
             var diff = (now - created) / 1000 / 60; // minutes
             return diff;
