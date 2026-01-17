@@ -7,10 +7,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get date range
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d', strtotime('-30 days'));
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
-$kitchen_report_date = isset($_GET['kitchen_date']) ? sanitize_text_field($_GET['kitchen_date']) : date('Y-m-d');
+// Get date range using plugin timezone
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('-30 days')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
+$kitchen_report_date = isset($_GET['kitchen_date']) ? sanitize_text_field($_GET['kitchen_date']) : RPOS_Timezone::now()->format('Y-m-d');
 $tab = $_GET['tab'] ?? 'sales';
 
 $date_from_full = $date_from . ' 00:00:00';

@@ -130,10 +130,10 @@ class Zaikon_Reports {
      */
     public static function get_dashboard_data($date_from = null, $date_to = null) {
         if (!$date_from) {
-            $date_from = date('Y-m-d 00:00:00');
+            $date_from = RPOS_Timezone::now()->setTime(0, 0, 0)->format('Y-m-d H:i:s');
         }
         if (!$date_to) {
-            $date_to = date('Y-m-d 23:59:59');
+            $date_to = RPOS_Timezone::now()->setTime(23, 59, 59)->format('Y-m-d H:i:s');
         }
         
         $sales_summary = self::get_sales_summary($date_from, $date_to);
@@ -270,7 +270,7 @@ class Zaikon_Reports {
                        FROM {$wpdb->prefix}zaikon_rider_fuel_logs
                        WHERE date >= %s AND date <= %s";
         
-        $fuel = $wpdb->get_row($wpdb->prepare($fuel_query, date('Y-m-d', strtotime($date_from)), date('Y-m-d', strtotime($date_to))));
+        $fuel = $wpdb->get_row($wpdb->prepare($fuel_query, RPOS_Timezone::convert($date_from)->format('Y-m-d'), RPOS_Timezone::convert($date_to)->format('Y-m-d')));
         
         $total_revenue = floatval($revenue->total_delivery_revenue ?? 0);
         $total_rider_costs = floatval($payouts->total_rider_costs ?? 0);

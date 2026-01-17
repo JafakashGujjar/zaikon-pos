@@ -105,7 +105,7 @@ class RPOS_Batches {
             'batch_number' => self::generate_batch_number(),
             'ingredient_id' => 0,
             'supplier_id' => null,
-            'purchase_date' => date('Y-m-d'),
+            'purchase_date' => RPOS_Timezone::now()->format('Y-m-d'),
             'manufacturing_date' => null,
             'expiry_date' => null,
             'cost_per_unit' => 0,
@@ -219,7 +219,7 @@ class RPOS_Batches {
      * Generate unique batch number
      */
     public static function generate_batch_number() {
-        return 'BATCH-' . date('YmdHis') . '-' . wp_rand(1000, 9999);
+        return 'BATCH-' . RPOS_Timezone::now()->format('YmdHis') . '-' . wp_rand(1000, 9999);
     }
     
     /**

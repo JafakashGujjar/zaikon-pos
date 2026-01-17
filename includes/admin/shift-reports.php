@@ -8,9 +8,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get filters
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d', strtotime('-7 days'));
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+// Get filters using plugin timezone
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('-7 days')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
 $cashier_filter = isset($_GET['cashier_id']) ? absint($_GET['cashier_id']) : 0;
 $status_filter = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
 $variance_filter = isset($_GET['variance']) ? sanitize_text_field($_GET['variance']) : '';
