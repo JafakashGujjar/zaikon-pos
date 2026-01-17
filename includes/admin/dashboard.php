@@ -11,14 +11,15 @@ if (!defined('ABSPATH')) {
 // Get currency symbol
 $currency = RPOS_Settings::get('currency_symbol', '$');
 
-// Get today's data
-$today_start = date('Y-m-d 00:00:00');
-$today_end = date('Y-m-d 23:59:59');
+// Get today's data using plugin timezone
+$today_start = RPOS_Timezone::now()->setTime(0, 0, 0)->format('Y-m-d H:i:s');
+$today_end = RPOS_Timezone::now()->setTime(23, 59, 59)->format('Y-m-d H:i:s');
 $today_sales = RPOS_Reports::get_sales_summary($today_start, $today_end);
 
-// Get this week's data for chart
-$week_start = date('Y-m-d 00:00:00', strtotime('-6 days'));
-$week_end = date('Y-m-d 23:59:59');
+// Get this week's data for chart using plugin timezone
+$week_start_dt = RPOS_Timezone::now()->modify('-6 days')->setTime(0, 0, 0);
+$week_start = $week_start_dt->format('Y-m-d H:i:s');
+$week_end = RPOS_Timezone::now()->setTime(23, 59, 59)->format('Y-m-d H:i:s');
 
 // Get daily sales for the past 7 days
 global $wpdb;
@@ -37,10 +38,11 @@ $daily_sales = $wpdb->get_results($wpdb->prepare(
     $week_end
 ));
 
-// Fill in missing dates with zero values
+// Fill in missing dates with zero values using plugin timezone
 $sales_by_date = array();
 for ($i = 6; $i >= 0; $i--) {
-    $date = date('Y-m-d', strtotime("-{$i} days"));
+    $date_obj = RPOS_Timezone::now()->modify("-{$i} days");
+    $date = $date_obj->format('Y-m-d');
     $sales_by_date[$date] = array('order_count' => 0, 'total_sales' => 0);
 }
 
@@ -354,7 +356,9 @@ document.addEventListener('DOMContentLoaded', function() {
         labels: [
             <?php 
             foreach ($sales_by_date as $date => $data) {
-                echo "'" . date('M j', strtotime($date)) . "',";
+                // Use RPOS_Timezone to format the date for display
+                $dt = RPOS_Timezone::convert($date);
+                echo "'" . $dt->format('M j') . "',";
             }
             ?>
         ],

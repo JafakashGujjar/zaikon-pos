@@ -486,7 +486,7 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
         </div>
         <div class="zaikon-modal-body">
             <div class="zaikon-orders-filters" style="margin-bottom: 20px;">
-                <input type="date" id="rpos-orders-date" value="<?php echo date('Y-m-d'); ?>" style="padding: 8px;">
+                <input type="date" id="rpos-orders-date" value="<?php echo RPOS_Timezone::now()->format('Y-m-d'); ?>" style="padding: 8px;">
                 <button class="zaikon-btn zaikon-btn-primary" id="rpos-refresh-orders">
                     <span class="dashicons dashicons-update"></span>
                     <?php echo esc_html__('Refresh', 'restaurant-pos'); ?>

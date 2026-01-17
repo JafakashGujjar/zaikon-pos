@@ -8,10 +8,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get filters
+// Get filters using plugin timezone
 $rider_id = isset($_GET['rider_id']) ? absint($_GET['rider_id']) : 0;
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d', strtotime('-7 days'));
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('-7 days')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
 $status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
 $tab = $_GET['tab'] ?? 'deliveries';
 
@@ -271,8 +271,8 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                                         -
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo $ro->assigned_at ? date('Y-m-d H:i', strtotime($ro->assigned_at)) : '-'; ?></td>
-                                <td><?php echo $ro->delivered_at ? date('Y-m-d H:i', strtotime($ro->delivered_at)) : '-'; ?></td>
+                                <td><?php echo $ro->assigned_at ? RPOS_Timezone::format($ro->assigned_at, 'Y-m-d H:i') : '-'; ?></td>
+                                <td><?php echo $ro->delivered_at ? RPOS_Timezone::format($ro->delivered_at, 'Y-m-d H:i') : '-'; ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

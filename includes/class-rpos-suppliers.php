@@ -223,7 +223,7 @@ class RPOS_Suppliers {
     public static function get_performance_metrics($supplier_id, $days = 90) {
         global $wpdb;
         
-        $date_from = date('Y-m-d', strtotime("-{$days} days"));
+        $date_from = RPOS_Timezone::now()->modify("-{$days} days")->format('Y-m-d');
         
         // Get total batches from this supplier
         $total_batches = $wpdb->get_var($wpdb->prepare(

@@ -8,9 +8,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get filter parameters
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-01');
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+// Get filter parameters using plugin timezone
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('first day of this month')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
 $kitchen_user_id = isset($_GET['kitchen_user_id']) ? absint($_GET['kitchen_user_id']) : '';
 
 // Get kitchen staff users

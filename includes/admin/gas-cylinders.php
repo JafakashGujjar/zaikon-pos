@@ -43,7 +43,7 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
                 'cylinder_type_id' => absint($_POST['cyl_type_id'] ?? 0),
                 'purchase_date' => sanitize_text_field($_POST['purchase_date'] ?? ''),
                 'cost' => floatval($_POST['cost'] ?? 0),
-                'start_date' => sanitize_text_field($_POST['start_date'] ?? date('Y-m-d')),
+                'start_date' => sanitize_text_field($_POST['start_date'] ?? RPOS_Timezone::now()->format('Y-m-d')),
                 'notes' => sanitize_textarea_field($_POST['notes'] ?? '')
             ));
             $message = $cylinder_id ? 'Cylinder added successfully!' : 'Failed to add cylinder. Ensure no active cylinder exists for this type.';
@@ -53,7 +53,7 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
         case 'finish_cylinder':
             $result = RPOS_Gas_Cylinders::finish_cylinder(
                 absint($_POST['cyl_id'] ?? 0),
-                sanitize_text_field($_POST['end_date'] ?? date('Y-m-d'))
+                sanitize_text_field($_POST['end_date'] ?? RPOS_Timezone::now()->format('Y-m-d'))
             );
             $message = 'Cylinder marked as finished!';
             $message_type = 'success';
@@ -158,7 +158,7 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                 </td></tr>
                 <tr><th><label>Purchase Date</label></th><td><input type="date" name="purchase_date" class="regular-text"></td></tr>
                 <tr><th><label>Cost</label></th><td><input type="number" name="cost" step="0.01" min="0" value="0" class="regular-text"></td></tr>
-                <tr><th><label>Start Date *</label></th><td><input type="date" name="start_date" required value="<?php echo date('Y-m-d'); ?>" class="regular-text"></td></tr>
+                <tr><th><label>Start Date *</label></th><td><input type="date" name="start_date" required value="<?php echo RPOS_Timezone::now()->format('Y-m-d'); ?>" class="regular-text"></td></tr>
                 <tr><th><label>Notes</label></th><td><textarea name="notes" rows="2" class="large-text"></textarea></td></tr>
             </table>
             <button type="submit" class="button button-primary">Add Cylinder</button>
@@ -182,7 +182,7 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                                     <?php wp_nonce_field('rpos_gas_action', 'rpos_gas_nonce'); ?>
                                     <input type="hidden" name="action" value="finish_cylinder">
                                     <input type="hidden" name="cyl_id" value="<?php echo esc_attr($cyl->id); ?>">
-                                    <input type="hidden" name="end_date" value="<?php echo date('Y-m-d'); ?>">
+                                    <input type="hidden" name="end_date" value="<?php echo RPOS_Timezone::now()->format('Y-m-d'); ?>">
                                     <button type="submit" class="button button-small">Finish</button>
                                 </form>
                             <?php endif; ?>

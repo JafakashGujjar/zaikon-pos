@@ -62,7 +62,7 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
                 'zone_id' => !empty($_POST['zone_id']) ? absint($_POST['zone_id']) : null,
                 'purchase_date' => !empty($_POST['purchase_date']) ? sanitize_text_field($_POST['purchase_date']) : null,
                 'cost' => isset($_POST['cost']) ? floatval($_POST['cost']) : 0,
-                'start_date' => sanitize_text_field($_POST['start_date'] ?? current_time('Y-m-d')),
+                'start_date' => sanitize_text_field($_POST['start_date'] ?? RPOS_Timezone::now()->format('Y-m-d')),
                 'vendor' => !empty($_POST['vendor']) ? sanitize_text_field($_POST['vendor']) : null,
                 'notes' => isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : ''
             ));
@@ -74,7 +74,7 @@ if (isset($_POST['rpos_gas_nonce']) && check_admin_referer('rpos_gas_action', 'r
             $refill_id = RPOS_Gas_Cylinders::process_refill(
                 absint($_POST['cylinder_id'] ?? 0),
                 array(
-                    'refill_date' => sanitize_text_field($_POST['refill_date'] ?? date('Y-m-d')),
+                    'refill_date' => sanitize_text_field($_POST['refill_date'] ?? RPOS_Timezone::now()->format('Y-m-d')),
                     'vendor' => sanitize_text_field($_POST['vendor'] ?? ''),
                     'cost' => floatval($_POST['cost'] ?? 0),
                     'quantity' => floatval($_POST['quantity'] ?? 1),
@@ -681,7 +681,7 @@ jQuery(document).ready(function($) {
                 </tr>
                 <tr><th><label>Purchase Date</label></th><td><input type="date" name="purchase_date" class="regular-text"></td></tr>
                 <tr><th><label>Cost</label></th><td><input type="number" name="cost" step="0.01" min="0" class="regular-text" placeholder="0.00"></td></tr>
-                <tr><th><label>Start Date *</label></th><td><input type="date" name="start_date" required value="<?php echo esc_attr(current_time('Y-m-d')); ?>" class="regular-text"></td></tr>
+                <tr><th><label>Start Date *</label></th><td><input type="date" name="start_date" required value="<?php echo esc_attr(RPOS_Timezone::now()->format('Y-m-d')); ?>" class="regular-text"></td></tr>
                 <tr><th><label>Vendor</label></th><td><input type="text" name="vendor" class="regular-text" placeholder="Vendor name"></td></tr>
                 <tr><th><label>Notes</label></th><td><textarea name="notes" rows="3" class="large-text" placeholder="Optional notes about this cylinder"></textarea></td></tr>
             </table>
@@ -882,7 +882,7 @@ jQuery(document).ready(function($) {
                         </select>
                     </td>
                 </tr>
-                <tr><th><label>Refill Date *</label></th><td><input type="date" name="refill_date" required value="<?php echo date('Y-m-d'); ?>" class="regular-text"></td></tr>
+                <tr><th><label>Refill Date *</label></th><td><input type="date" name="refill_date" required value="<?php echo RPOS_Timezone::now()->format('Y-m-d'); ?>" class="regular-text"></td></tr>
                 <tr><th><label>Vendor</label></th><td><input type="text" name="vendor" class="regular-text" placeholder="Vendor name"></td></tr>
                 <tr><th><label>Cost *</label></th><td><input type="number" name="cost" step="0.01" min="0" required class="regular-text"></td></tr>
                 <tr><th><label>Quantity</label></th><td><input type="number" name="quantity" step="0.01" min="0" value="1" class="regular-text"></td></tr>

@@ -78,15 +78,18 @@ $total_valuation = RPOS_Batches::get_inventory_valuation();
 // Section F: Current consumption strategy
 $consumption_strategy = RPOS_Inventory_Settings::get('consumption_strategy', 'FEFO');
 
-// Section G: Waste Cost Analysis (Last 30 Days)
+// Section G: Waste Cost Analysis (Last 30 Days) - Using plugin timezone
+$waste_start = RPOS_Timezone::now()->modify('-30 days')->setTime(0, 0, 0)->format('Y-m-d H:i:s');
+$waste_end = RPOS_Timezone::now()->setTime(23, 59, 59)->format('Y-m-d H:i:s');
+
 $waste_summary = RPOS_Ingredients::get_waste_cost_summary(
-    date('Y-m-d H:i:s', strtotime('-30 days')),
-    date('Y-m-d H:i:s')
+    $waste_start,
+    $waste_end
 );
 
 $top_wasted = RPOS_Ingredients::get_top_wasted_by_cost(
-    date('Y-m-d H:i:s', strtotime('-30 days')),
-    date('Y-m-d H:i:s'),
+    $waste_start,
+    $waste_end,
     10
 );
 

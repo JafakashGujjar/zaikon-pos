@@ -30,7 +30,9 @@ foreach ($batches as $batch) {
     $total_value += ($batch->quantity_remaining * $batch->cost_per_unit);
     
     if ($batch->expiry_date) {
-        $days_until_expiry = floor((strtotime($batch->expiry_date) - time()) / (60 * 60 * 24));
+        $now_timestamp = RPOS_Timezone::now()->getTimestamp();
+        $expiry_timestamp = RPOS_Timezone::convert($batch->expiry_date)->getTimestamp();
+        $days_until_expiry = floor(($expiry_timestamp - $now_timestamp) / (60 * 60 * 24));
         if ($days_until_expiry <= 7 && $days_until_expiry >= 0) {
             $expiring_soon++;
         }
@@ -115,7 +117,9 @@ foreach ($batches as $batch) {
                         $days_left = null;
                         
                         if ($batch->expiry_date) {
-                            $days_left = floor((strtotime($batch->expiry_date) - time()) / (60 * 60 * 24));
+                            $now_timestamp = RPOS_Timezone::now()->getTimestamp();
+                            $expiry_timestamp = RPOS_Timezone::convert($batch->expiry_date)->getTimestamp();
+                            $days_left = floor(($expiry_timestamp - $now_timestamp) / (60 * 60 * 24));
                             if ($days_left < 0) {
                                 $expiry_status = 'expired';
                             } elseif ($days_left <= 3) {

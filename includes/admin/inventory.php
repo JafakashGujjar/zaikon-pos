@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_inventory_nonce'
         $unit = sanitize_text_field($_POST['unit'] ?? 'pcs');
         $cost_per_unit = floatval($_POST['cost_per_unit'] ?? 0);
         $supplier = sanitize_text_field($_POST['supplier'] ?? '');
-        $date_purchased = sanitize_text_field($_POST['date_purchased'] ?? date('Y-m-d'));
+        $date_purchased = sanitize_text_field($_POST['date_purchased'] ?? RPOS_Timezone::now()->format('Y-m-d'));
         
         // Check if user selected "+ Add New Ingredient"
         if ($ingredient_id === '__add_new__') {
@@ -230,7 +230,7 @@ $ingredients = RPOS_Ingredients::get_all();
             <tbody>
                 <?php foreach ($stock_movements as $movement): ?>
                 <tr>
-                    <td><?php echo esc_html(date('Y-m-d H:i', strtotime($movement->created_at))); ?></td>
+                    <td><?php echo esc_html(RPOS_Timezone::format($movement->created_at, 'Y-m-d H:i')); ?></td>
                     <td><?php echo esc_html($movement->product_name); ?></td>
                     <td>
                         <span class="rpos-stock-change <?php echo $movement->change_amount > 0 ? 'rpos-stock-increase' : 'rpos-stock-decrease'; ?>">
@@ -371,7 +371,7 @@ $ingredients = RPOS_Ingredients::get_all();
             
             <p>
                 <label for="purchase_date"><?php echo esc_html__('Date Purchased:', 'restaurant-pos'); ?></label><br>
-                <input type="date" id="purchase_date" name="date_purchased" value="<?php echo date('Y-m-d'); ?>" class="regular-text">
+                <input type="date" id="purchase_date" name="date_purchased" value="<?php echo RPOS_Timezone::now()->format('Y-m-d'); ?>" class="regular-text">
             </p>
             
             <p>
@@ -456,7 +456,7 @@ jQuery(document).ready(function($) {
         $('#purchase_unit').val('pcs');
         $('#purchase_cost').val('');
         $('#purchase_supplier').val('');
-        $('#purchase_date').val('<?php echo date('Y-m-d'); ?>');
+        $('#purchase_date').val('<?php echo RPOS_Timezone::now()->format('Y-m-d'); ?>');
         $('#new_ingredient_name').val('');
         $('#new_ingredient_name_field').hide();
         

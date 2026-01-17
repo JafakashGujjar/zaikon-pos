@@ -10,9 +10,9 @@ if (!defined('ABSPATH')) {
 
 global $wpdb;
 
-// Get filters from request with validation
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-01');
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+// Get filters from request with validation using plugin timezone
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('first day of this month')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
 $min_deliveries = isset($_GET['min_deliveries']) ? absint($_GET['min_deliveries']) : 0;
 
 // Validate sort_by against whitelist
