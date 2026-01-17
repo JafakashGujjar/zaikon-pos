@@ -143,7 +143,7 @@ class Zaikon_Cashier_Sessions {
             // Include cash orders from dine-in/takeaway that are paid/completed:
             // 1. Orders with payment_type='cash' AND payment_status='paid'
             // 2. Orders with payment_type='cash' AND status IN ('completed', 'ready') - these are completed transactions
-            // 3. Legacy fallback: Orders where payment_type is NULL/empty AND status is completed/ready (legacy paid orders)
+            // 3. Legacy fallback: Orders where payment_type is NULL/empty/cash AND status is completed/ready (legacy paid orders assumed cash)
             $rpos_orders = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}rpos_orders 
                  WHERE cashier_id = %d 
@@ -154,7 +154,7 @@ class Zaikon_Cashier_Sessions {
                  AND (
                      (payment_type = 'cash' AND (payment_status = 'paid' OR status IN ('completed', 'ready')))
                      OR
-                     ((payment_type IS NULL OR payment_type = '') AND status IN ('completed', 'ready'))
+                     ((payment_type IS NULL OR payment_type = '' OR payment_type = 'cash') AND status IN ('completed', 'ready'))
                  )",
                 $session->cashier_id,
                 $session->session_start,
@@ -208,7 +208,7 @@ class Zaikon_Cashier_Sessions {
                  AND (
                      payment_status = 'paid'
                      OR
-                     (payment_status = 'cod_received' AND payment_type = 'cod')
+                     payment_status = 'cod_received'
                      OR
                      status IN ('completed', 'ready')
                  )",
