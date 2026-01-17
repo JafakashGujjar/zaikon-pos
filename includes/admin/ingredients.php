@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_ingredient_nonce
             'quantity' => floatval($_POST['quantity'] ?? 0),
             'cost_per_unit' => floatval($_POST['cost_per_unit'] ?? 0),
             'supplier_id' => !empty($_POST['supplier_id']) ? absint($_POST['supplier_id']) : null,
-            'purchase_date' => !empty($_POST['purchase_date']) ? sanitize_text_field($_POST['purchase_date']) : date('Y-m-d'),
+            'purchase_date' => !empty($_POST['purchase_date']) ? sanitize_text_field($_POST['purchase_date']) : RPOS_Timezone::now()->format('Y-m-d'),
             'manufacturing_date' => !empty($_POST['manufacturing_date']) ? sanitize_text_field($_POST['manufacturing_date']) : null,
             'expiry_date' => !empty($_POST['expiry_date']) ? sanitize_text_field($_POST['expiry_date']) : null,
             'invoice_url' => !empty($_POST['invoice_url']) ? esc_url_raw($_POST['invoice_url']) : '',
@@ -130,7 +130,9 @@ foreach ($ingredients as $ing) {
     }
     
     if (!empty($ing->expiry_date)) {
-        $days_until_expiry = (strtotime($ing->expiry_date) - time()) / (60 * 60 * 24);
+        $now_timestamp = RPOS_Timezone::now()->getTimestamp();
+        $expiry_timestamp = RPOS_Timezone::convert($ing->expiry_date)->getTimestamp();
+        $days_until_expiry = ($expiry_timestamp - $now_timestamp) / (60 * 60 * 24);
         if ($days_until_expiry < 0) {
             $expired_count++;
         } elseif ($days_until_expiry <= 7) {
@@ -267,7 +269,9 @@ foreach ($ingredients as $ing) {
                         
                         // Check if expired
                         if (!empty($ing->expiry_date)) {
-                            $days_until_expiry = (strtotime($ing->expiry_date) - time()) / (60 * 60 * 24);
+                            $now_timestamp = RPOS_Timezone::now()->getTimestamp();
+                            $expiry_timestamp = RPOS_Timezone::convert($ing->expiry_date)->getTimestamp();
+                            $days_until_expiry = ($expiry_timestamp - $now_timestamp) / (60 * 60 * 24);
                             if ($days_until_expiry < 0) {
                                 $row_class = 'rpos-status-expired';
                                 $status_text = '⚠️ Expired';
@@ -653,7 +657,7 @@ foreach ($ingredients as $ing) {
                         <label for="purchase_date"><?php esc_html_e('Purchase Date', 'restaurant-pos'); ?></label>
                     </th>
                     <td>
-                        <input type="date" name="purchase_date" id="purchase_date" value="<?php echo date('Y-m-d'); ?>" class="regular-text">
+                        <input type="date" name="purchase_date" id="purchase_date" value="<?php echo RPOS_Timezone::now()->format('Y-m-d'); ?>" class="regular-text">
                     </td>
                 </tr>
                 
@@ -731,8 +735,8 @@ foreach ($ingredients as $ing) {
                     <?php foreach ($recent_batches as $batch): ?>
                         <tr>
                             <td><?php echo esc_html($batch->batch_number); ?></td>
-                            <td><?php echo esc_html(date('M d, Y', strtotime($batch->purchase_date))); ?></td>
-                            <td><?php echo $batch->expiry_date ? esc_html(date('M d, Y', strtotime($batch->expiry_date))) : '-'; ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($batch->purchase_date, 'M d, Y')); ?></td>
+                            <td><?php echo $batch->expiry_date ? esc_html(RPOS_Timezone::format($batch->expiry_date, 'M d, Y')) : '-'; ?></td>
                             <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($batch->quantity_remaining, $ingredient->unit)); ?></td>
                             <td><?php echo esc_html(ucfirst($batch->status)); ?></td>
                         </tr>

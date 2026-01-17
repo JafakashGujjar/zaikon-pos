@@ -8,10 +8,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get filters
+// Get filters using plugin timezone
 $cashier_id = isset($_GET['cashier_id']) ? absint($_GET['cashier_id']) : 0;
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d', strtotime('-30 days'));
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('-30 days')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
 $category = isset($_GET['category']) ? sanitize_text_field($_GET['category']) : '';
 $rider_id = isset($_GET['rider_id']) ? absint($_GET['rider_id']) : 0;
 

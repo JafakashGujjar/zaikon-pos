@@ -7,9 +7,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get date range from request
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d');
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+// Get date range from request using plugin timezone
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
 
 // Validate and sanitize dates
 function validate_date($date) {
@@ -22,8 +22,8 @@ function validate_date($date) {
     return checkdate($month, $day, $year) ? $date : false;
 }
 
-$date_from = validate_date($date_from) ?: date('Y-m-d');
-$date_to = validate_date($date_to) ?: date('Y-m-d');
+$date_from = validate_date($date_from) ?: RPOS_Timezone::now()->format('Y-m-d');
+$date_to = validate_date($date_to) ?: RPOS_Timezone::now()->format('Y-m-d');
 
 // Get usage report with waste information
 $report_data = RPOS_Ingredients::get_usage_report_with_waste($date_from . ' 00:00:00', $date_to . ' 23:59:59');

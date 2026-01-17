@@ -8,9 +8,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get date range from query params or default to current month
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-01');
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-t');
+// Get date range from query params or default to current month using plugin timezone
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('first day of this month')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->modify('last day of this month')->format('Y-m-d');
 
 // Add time components for proper querying
 $date_from_dt = $date_from . ' 00:00:00';
