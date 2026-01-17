@@ -62,8 +62,8 @@ class RPOS_Riders {
     public static function get_today_orders($rider_id) {
         global $wpdb;
         
-        $today_start = date('Y-m-d 00:00:00');
-        $today_end = date('Y-m-d 23:59:59');
+        $today_start = RPOS_Timezone::now()->setTime(0, 0, 0)->format('Y-m-d H:i:s');
+        $today_end = RPOS_Timezone::now()->setTime(23, 59, 59)->format('Y-m-d H:i:s');
         
         $query = "SELECT o.*, 
                   da.name as area_name,
@@ -158,10 +158,10 @@ class RPOS_Riders {
         global $wpdb;
         
         if (!$date_from) {
-            $date_from = date('Y-m-d 00:00:00');
+            $date_from = RPOS_Timezone::now()->setTime(0, 0, 0)->format('Y-m-d H:i:s');
         }
         if (!$date_to) {
-            $date_to = date('Y-m-d 23:59:59');
+            $date_to = RPOS_Timezone::now()->setTime(23, 59, 59)->format('Y-m-d H:i:s');
         }
         
         $stats = array(
