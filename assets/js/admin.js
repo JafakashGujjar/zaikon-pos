@@ -1363,10 +1363,24 @@
             // Adjust for timezone offset if provided
             // NOTE: This logic is duplicated in session-management.js formatOrderTime()
             // Keep both implementations in sync if modifications are needed
-            if (typeof rposAdmin !== 'undefined' && rposAdmin.timezoneOffset) {
-                var serverOffset = parseInt(rposAdmin.timezoneOffset) || 0;
+            var timezoneOffset = null;
+            if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
+                // Parse the offset; if NaN, default to 0 (UTC)
+                timezoneOffset = parseInt(rposAdmin.timezoneOffset);
+                if (isNaN(timezoneOffset)) {
+                    timezoneOffset = 0;
+                }
+            } else if (typeof rposKdsData !== 'undefined' && typeof rposKdsData.timezoneOffset !== 'undefined') {
+                // Parse the offset; if NaN, default to 0 (UTC)
+                timezoneOffset = parseInt(rposKdsData.timezoneOffset);
+                if (isNaN(timezoneOffset)) {
+                    timezoneOffset = 0;
+                }
+            }
+            
+            if (timezoneOffset !== null) {
                 var localOffset = now.getTimezoneOffset(); // in minutes, inverted sign
-                var totalAdjustment = (serverOffset + localOffset) * 60 * 1000;
+                var totalAdjustment = (timezoneOffset + localOffset) * 60 * 1000;
                 created = new Date(created.getTime() + totalAdjustment);
             }
             
