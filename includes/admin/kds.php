@@ -55,6 +55,8 @@ if (!defined('ABSPATH')) {
 var rposKdsData = {
     restUrl: '<?php echo esc_js(rest_url('restaurant-pos/v1/')); ?>',
     nonce: '<?php echo wp_create_nonce('wp_rest'); ?>',
+    timezoneOffset: <?php echo RPOS_Timezone::get_offset_minutes(); ?>,
+    timezoneString: '<?php echo esc_js(RPOS_Timezone::get_timezone_string()); ?>',
     translations: {
         new: '<?php echo esc_js(__('New', 'restaurant-pos')); ?>',
         cooking: '<?php echo esc_js(__('Cooking', 'restaurant-pos')); ?>',
