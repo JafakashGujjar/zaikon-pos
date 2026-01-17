@@ -442,7 +442,7 @@ class RPOS_Install {
         );
         
         foreach ($ingredients as $ingredient) {
-            $batch_number = 'LEGACY-' . $ingredient->id . '-' . date('YmdHis');
+            $batch_number = 'LEGACY-' . $ingredient->id . '-' . RPOS_Timezone::now()->format('YmdHis');
             $supplier_id = null;
             
             // Map to new supplier if exists
@@ -466,7 +466,7 @@ class RPOS_Install {
                     'batch_number' => $batch_number,
                     'ingredient_id' => $ingredient->id,
                     'supplier_id' => $supplier_id,
-                    'purchase_date' => !empty($ingredient->purchasing_date) ? $ingredient->purchasing_date : date('Y-m-d'),
+                    'purchase_date' => !empty($ingredient->purchasing_date) ? $ingredient->purchasing_date : RPOS_Timezone::now()->format('Y-m-d'),
                     'expiry_date' => $ingredient->expiry_date,
                     'cost_per_unit' => $ingredient->cost_per_unit,
                     'quantity_purchased' => $ingredient->current_stock_quantity,
@@ -1171,9 +1171,10 @@ class RPOS_Install {
         
         $default_settings = array(
             'restaurant_name' => get_bloginfo('name'),
-            'currency_symbol' => '$',
+            'currency_symbol' => 'Rs',
             'low_stock_threshold' => '10',
             'date_format' => 'Y-m-d H:i:s',
+            'pos_timezone' => 'Asia/Karachi',
             'tax_rate' => '0',
             'enable_tax' => '0',
             'restaurant_phone' => '',

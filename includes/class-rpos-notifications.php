@@ -112,7 +112,7 @@ class RPOS_Notifications {
     public static function cleanup_old_notifications() {
         global $wpdb;
         
-        $seven_days_ago = date('Y-m-d H:i:s', strtotime('-7 days'));
+        $seven_days_ago = RPOS_Timezone::now()->modify('-7 days')->format('Y-m-d H:i:s');
         
         return $wpdb->query($wpdb->prepare(
             "DELETE FROM {$wpdb->prefix}rpos_notifications 

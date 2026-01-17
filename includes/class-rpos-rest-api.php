@@ -1227,7 +1227,7 @@ class RPOS_REST_API {
         
         $params = $request->get_params();
         $cashier_id = isset($params['cashier_id']) ? absint($params['cashier_id']) : get_current_user_id();
-        $date = $params['date'] ?? date('Y-m-d');
+        $date = $params['date'] ?? RPOS_Timezone::now()->format('Y-m-d');
         
         // Get orders for cashier on specified date
         // SECURITY: Exclude customer_name and customer_phone from cashier view
@@ -1518,7 +1518,7 @@ class RPOS_REST_API {
         }
         
         $refill_data = array(
-            'refill_date' => isset($params['refill_date']) ? sanitize_text_field($params['refill_date']) : date('Y-m-d'),
+            'refill_date' => isset($params['refill_date']) ? sanitize_text_field($params['refill_date']) : RPOS_Timezone::now()->format('Y-m-d'),
             'vendor' => isset($params['vendor']) ? sanitize_text_field($params['vendor']) : null,
             'cost' => isset($params['cost']) ? floatval($params['cost']) : 0,
             'quantity' => isset($params['quantity']) ? floatval($params['quantity']) : 1,

@@ -212,7 +212,7 @@ class RPOS_Reports {
         global $wpdb;
         
         if (!$date) {
-            $date = date('Y-m-d');
+            $date = RPOS_Timezone::now()->format('Y-m-d');
         }
         
         $date_from = $date . ' 00:00:00';

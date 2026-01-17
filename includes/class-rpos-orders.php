@@ -13,7 +13,7 @@ class RPOS_Orders {
      * Generate unique order number
      */
     public static function generate_order_number() {
-        return 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+        return 'ORD-' . RPOS_Timezone::now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
     }
     
     /**
