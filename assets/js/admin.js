@@ -469,8 +469,10 @@
             // Determine payment status based on payment type
             // - Cash/Online: Paid immediately at POS
             // - COD: Unpaid until delivery rider collects payment
-            var paymentStatus = 'paid';  // Default for cash and online
-            if (paymentType === 'cod') {
+            var paymentStatus = 'paid';  // Default
+            if (paymentType === 'cash' || paymentType === 'online') {
+                paymentStatus = 'paid';
+            } else if (paymentType === 'cod') {
                 paymentStatus = 'unpaid';
             }
             
