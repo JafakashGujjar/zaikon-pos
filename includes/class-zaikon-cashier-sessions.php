@@ -194,7 +194,7 @@ class Zaikon_Cashier_Sessions {
             }
         }
         
-        // Also check rpos_orders for online/card payments (if schema supports it)
+        // Also check rpos_orders for online/COD payments (if schema supports it)
         if ($has_payment_type && $has_payment_status) {
             $online_rpos_orders = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}rpos_orders 
@@ -204,7 +204,7 @@ class Zaikon_Cashier_Sessions {
                  AND order_type IN ('dine-in', 'takeaway')
                  AND status NOT IN ('cancelled', 'void', 'refunded')
                  AND (
-                     (payment_type IN ('online', 'card') AND payment_status = 'paid')
+                     (payment_type = 'online' AND payment_status = 'paid')
                      OR
                      (payment_type = 'cod' AND payment_status IN ('paid', 'cod_received'))
                  )",
