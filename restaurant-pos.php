@@ -129,8 +129,9 @@ class Restaurant_POS {
         
         // If version has changed, run migrations
         if (version_compare($stored_version, RPOS_VERSION, '<')) {
-            // Run the rider system migration
-            RPOS_Install::migrate_rider_system();
+            // Run all database migrations
+            require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-install.php';
+            RPOS_Install::run_migrations();
             
             // Update the stored version
             update_option('rpos_version', RPOS_VERSION);
