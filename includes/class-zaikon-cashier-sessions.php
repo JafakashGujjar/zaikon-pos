@@ -203,8 +203,11 @@ class Zaikon_Cashier_Sessions {
                  AND created_at <= %s
                  AND order_type IN ('dine-in', 'takeaway')
                  AND status NOT IN ('cancelled', 'void', 'refunded')
-                 AND payment_type IN ('online', 'card', 'cod')
-                 AND payment_status = 'paid'",
+                 AND (
+                     (payment_type IN ('online', 'card') AND payment_status = 'paid')
+                     OR
+                     (payment_type = 'cod' AND payment_status IN ('paid', 'cod_received'))
+                 )",
                 $session->cashier_id,
                 $session->session_start,
                 $end_time
