@@ -12,9 +12,9 @@ if (!defined('ABSPATH')) {
 $current_user = wp_get_current_user();
 $rider_id = $current_user->ID;
 
-// Get today's date range
-$today_start = date('Y-m-d 00:00:00');
-$today_end = date('Y-m-d 23:59:59');
+// Get today's date range using plugin timezone
+$today_start = RPOS_Timezone::now()->setTime(0, 0, 0)->format('Y-m-d H:i:s');
+$today_end = RPOS_Timezone::now()->setTime(23, 59, 59)->format('Y-m-d H:i:s');
 
 // Get pending orders (includes today's and any undelivered)
 $orders = RPOS_Riders::get_pending_orders($rider_id);

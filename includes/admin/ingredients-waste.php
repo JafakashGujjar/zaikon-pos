@@ -208,7 +208,7 @@ $waste_history = RPOS_Ingredients::get_waste_history(null, null, null, 50);
                     }
                     ?>
                     <tr>
-                        <td><?php echo esc_html(date('Y-m-d H:i', strtotime($record->created_at))); ?></td>
+                        <td><?php echo esc_html(RPOS_Timezone::format($record->created_at)); ?></td>
                         <td><strong><?php echo esc_html($record->ingredient_name); ?></strong></td>
                         <td>
                             <?php if ($batch_info): ?>

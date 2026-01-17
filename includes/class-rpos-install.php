@@ -1171,9 +1171,10 @@ class RPOS_Install {
         
         $default_settings = array(
             'restaurant_name' => get_bloginfo('name'),
-            'currency_symbol' => '$',
+            'currency_symbol' => 'Rs',
             'low_stock_threshold' => '10',
             'date_format' => 'Y-m-d H:i:s',
+            'pos_timezone' => 'Asia/Karachi',
             'tax_rate' => '0',
             'enable_tax' => '0',
             'restaurant_phone' => '',

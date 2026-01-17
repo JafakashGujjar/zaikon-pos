@@ -19,10 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_settings_nonce']
     
     // Update settings
     RPOS_Settings::update('restaurant_name', sanitize_text_field($_POST['restaurant_name'] ?? ''));
-    RPOS_Settings::update('currency_symbol', sanitize_text_field($_POST['currency_symbol'] ?? '$'));
+    // Currency symbol and timezone are now enforced at system level, not user-configurable
     RPOS_Settings::update('low_stock_threshold', absint($_POST['low_stock_threshold'] ?? 10));
     RPOS_Settings::update('date_format', sanitize_text_field($_POST['date_format'] ?? 'Y-m-d H:i:s'));
-    RPOS_Settings::update('pos_timezone', sanitize_text_field($_POST['pos_timezone'] ?? ''));
     RPOS_Settings::update('restaurant_phone', sanitize_text_field($_POST['restaurant_phone'] ?? ''));
     RPOS_Settings::update('restaurant_address', sanitize_textarea_field($_POST['restaurant_address'] ?? ''));
     RPOS_Settings::update('receipt_footer_message', sanitize_textarea_field($_POST['receipt_footer_message'] ?? 'Thank you for your order!'));
@@ -103,9 +102,9 @@ $tab = $_GET['tab'] ?? 'general';
                         </th>
                         <td>
                             <input type="text" id="currency_symbol" name="currency_symbol" class="small-text" 
-                                   value="<?php echo esc_attr($settings['currency_symbol'] ?? '$'); ?>" required>
+                                   value="Rs" readonly disabled>
                             <p class="description">
-                                <?php echo esc_html__('Currency symbol to display (e.g., $, €, £)', 'restaurant-pos'); ?>
+                                <?php echo esc_html__('Currency is locked to Rs (Pakistani Rupees) for system consistency.', 'restaurant-pos'); ?>
                             </p>
                         </td>
                     </tr>
@@ -179,45 +178,10 @@ $tab = $_GET['tab'] ?? 'general';
                             <label for="pos_timezone"><?php echo esc_html__('Time Zone', 'restaurant-pos'); ?></label>
                         </th>
                         <td>
-                            <select id="pos_timezone" name="pos_timezone" class="regular-text">
-                                <?php
-                                $current_timezone = $settings['pos_timezone'] ?? get_option('timezone_string', 'UTC');
-                                $timezones = timezone_identifiers_list();
-                                
-                                // Add default option
-                                echo '<option value=""' . selected($current_timezone, '', false) . '>';
-                                echo esc_html__('Use WordPress Site Timezone', 'restaurant-pos');
-                                echo ' (' . esc_html(get_option('timezone_string') ?: 'UTC') . ')';
-                                echo '</option>';
-                                
-                                // Group timezones by continent for better UX
-                                $timezone_continents = array();
-                                foreach ($timezones as $timezone) {
-                                    $parts = explode('/', $timezone);
-                                    if (count($parts) > 1) {
-                                        $continent = $parts[0];
-                                        if (!isset($timezone_continents[$continent])) {
-                                            $timezone_continents[$continent] = array();
-                                        }
-                                        $timezone_continents[$continent][] = $timezone;
-                                    }
-                                }
-                                
-                                // Output grouped timezones
-                                foreach ($timezone_continents as $continent => $continent_timezones) {
-                                    echo '<optgroup label="' . esc_attr($continent) . '">';
-                                    foreach ($continent_timezones as $timezone) {
-                                        $selected = selected($current_timezone, $timezone, false);
-                                        echo '<option value="' . esc_attr($timezone) . '"' . $selected . '>';
-                                        echo esc_html(str_replace('_', ' ', $timezone));
-                                        echo '</option>';
-                                    }
-                                    echo '</optgroup>';
-                                }
-                                ?>
-                            </select>
+                            <input type="text" id="pos_timezone" name="pos_timezone" class="regular-text" 
+                                   value="Asia/Karachi" readonly disabled>
                             <p class="description">
-                                <?php echo esc_html__('Select the timezone for displaying all dates and times in the plugin. This fixes the kitchen display time discrepancy.', 'restaurant-pos'); ?>
+                                <?php echo esc_html__('Timezone is locked to Asia/Karachi (Pakistan Standard Time) for system-wide time consistency.', 'restaurant-pos'); ?>
                             </p>
                         </td>
                     </tr>

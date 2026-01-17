@@ -13,6 +13,14 @@ class RPOS_Settings {
      * Get setting value
      */
     public static function get($key, $default = '') {
+        // Enforce mandatory defaults for currency and timezone
+        if ($key === 'currency_symbol') {
+            return 'Rs';
+        }
+        if ($key === 'pos_timezone') {
+            return 'Asia/Karachi';
+        }
+        
         global $wpdb;
         
         $value = $wpdb->get_var($wpdb->prepare(
