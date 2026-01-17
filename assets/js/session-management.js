@@ -23,8 +23,9 @@
         
         // WordPress current_time('mysql') returns datetime in plugin's configured timezone
         // Parse it as UTC first, then subtract the plugin offset to get actual UTC timestamp
-        // For example: if datetime is "14:30" in UTC+5, parse as UTC gives "14:30Z",
-        // then subtract 5 hours to get actual UTC time "09:30Z"
+        // For example: MySQL datetime "2024-01-17 14:30:00" in UTC+5 timezone
+        // → parse as UTC gives "2024-01-17T14:30:00Z"
+        // → subtract 5 hours offset → "2024-01-17T09:30:00Z" (actual UTC)
         var date = new Date(dateString.replace(' ', 'T') + 'Z');
         date = new Date(date.getTime() - (timezoneOffset * 60 * 1000));
         
