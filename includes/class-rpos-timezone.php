@@ -13,8 +13,8 @@ class RPOS_Timezone {
      * Get the configured timezone string
      */
     public static function get_timezone_string() {
-        // 1) Get plugin timezone setting
-        $tz = RPOS_Settings::get('pos_timezone', '');
+        // 1) Get plugin timezone setting (defaults to Asia/Karachi)
+        $tz = RPOS_Settings::get('pos_timezone', 'Asia/Karachi');
         
         // 2) If empty, fall back to WordPress site timezone
         if (empty($tz)) {
@@ -32,9 +32,9 @@ class RPOS_Timezone {
             }
         }
         
-        // 4) Final fallback to UTC
+        // 4) Final fallback to Asia/Karachi (default timezone for the system)
         if (empty($tz)) {
-            $tz = 'UTC';
+            $tz = 'Asia/Karachi';
         }
         
         return $tz;

@@ -19,7 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_settings_nonce']
     
     // Update settings
     RPOS_Settings::update('restaurant_name', sanitize_text_field($_POST['restaurant_name'] ?? ''));
-    // Currency symbol and timezone are now enforced at system level, not user-configurable
+    // Currency symbol is enforced at system level, not user-configurable
+    // Timezone is user-configurable to support different locations
+    RPOS_Settings::update('pos_timezone', sanitize_text_field($_POST['pos_timezone'] ?? 'Asia/Karachi'));
     RPOS_Settings::update('low_stock_threshold', absint($_POST['low_stock_threshold'] ?? 10));
     RPOS_Settings::update('date_format', sanitize_text_field($_POST['date_format'] ?? 'Y-m-d H:i:s'));
     RPOS_Settings::update('restaurant_phone', sanitize_text_field($_POST['restaurant_phone'] ?? ''));
@@ -178,10 +180,33 @@ $tab = $_GET['tab'] ?? 'general';
                             <label for="pos_timezone"><?php echo esc_html__('Time Zone', 'restaurant-pos'); ?></label>
                         </th>
                         <td>
-                            <input type="text" id="pos_timezone" name="pos_timezone" class="regular-text" 
-                                   value="Asia/Karachi" readonly disabled>
+                            <select id="pos_timezone" name="pos_timezone" class="regular-text">
+                                <?php
+                                $current_timezone = $settings['pos_timezone'] ?? 'Asia/Karachi';
+                                $timezones = array(
+                                    'Asia/Karachi' => 'Asia/Karachi (Pakistan Standard Time - PKT, UTC+5)',
+                                    'Asia/Dubai' => 'Asia/Dubai (Gulf Standard Time - GST, UTC+4)',
+                                    'Asia/Kolkata' => 'Asia/Kolkata (India Standard Time - IST, UTC+5:30)',
+                                    'Asia/Dhaka' => 'Asia/Dhaka (Bangladesh Standard Time - BST, UTC+6)',
+                                    'Asia/Singapore' => 'Asia/Singapore (Singapore Time - SGT, UTC+8)',
+                                    'Asia/Tokyo' => 'Asia/Tokyo (Japan Standard Time - JST, UTC+9)',
+                                    'Asia/Shanghai' => 'Asia/Shanghai (China Standard Time - CST, UTC+8)',
+                                    'Europe/London' => 'Europe/London (GMT/BST, UTC+0/+1)',
+                                    'Europe/Paris' => 'Europe/Paris (CET/CEST, UTC+1/+2)',
+                                    'America/New_York' => 'America/New_York (EST/EDT, UTC-5/-4)',
+                                    'America/Chicago' => 'America/Chicago (CST/CDT, UTC-6/-5)',
+                                    'America/Los_Angeles' => 'America/Los_Angeles (PST/PDT, UTC-8/-7)',
+                                    'Australia/Sydney' => 'Australia/Sydney (AEDT/AEST, UTC+11/+10)',
+                                    'UTC' => 'UTC (Coordinated Universal Time, UTC+0)'
+                                );
+                                foreach ($timezones as $tz_value => $tz_label): ?>
+                                    <option value="<?php echo esc_attr($tz_value); ?>" <?php selected($current_timezone, $tz_value); ?>>
+                                        <?php echo esc_html($tz_label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                             <p class="description">
-                                <?php echo esc_html__('Timezone is locked to Asia/Karachi (Pakistan Standard Time) for system-wide time consistency.', 'restaurant-pos'); ?>
+                                <?php echo esc_html__('Select your timezone for accurate time display across all sections. Default: Asia/Karachi (Pakistan Standard Time).', 'restaurant-pos'); ?>
                             </p>
                         </td>
                     </tr>
