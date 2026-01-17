@@ -1364,9 +1364,9 @@
             // NOTE: This logic is duplicated in session-management.js formatOrderTime()
             // Keep both implementations in sync if modifications are needed
             var timezoneOffset = null;
-            if (typeof rposAdmin !== 'undefined' && rposAdmin.timezoneOffset) {
+            if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
                 timezoneOffset = parseInt(rposAdmin.timezoneOffset) || 0;
-            } else if (typeof rposKdsData !== 'undefined' && rposKdsData.timezoneOffset) {
+            } else if (typeof rposKdsData !== 'undefined' && typeof rposKdsData.timezoneOffset !== 'undefined') {
                 timezoneOffset = parseInt(rposKdsData.timezoneOffset) || 0;
             }
             

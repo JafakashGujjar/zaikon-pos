@@ -15,7 +15,7 @@
         var date = new Date(dateString);
         
         // Adjust for timezone offset if provided
-        if (typeof rposAdmin !== 'undefined' && rposAdmin.timezoneOffset) {
+        if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
             var serverOffset = parseInt(rposAdmin.timezoneOffset) || 0;
             var localOffset = date.getTimezoneOffset(); // in minutes, inverted sign
             var totalAdjustment = (serverOffset + localOffset) * 60 * 1000;
