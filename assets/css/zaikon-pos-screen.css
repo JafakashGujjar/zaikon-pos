@@ -55,6 +55,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     background: var(--zaikon-bg-primary);
     min-height: 100vh;
     font-family: var(--font-primary);
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .zaikon-pos-container {
@@ -68,7 +70,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 .zaikon-pos-left {
     display: flex;
     flex-direction: column;
-    background: #f8f9fa;
+    background: var(--zaikon-bg-primary);
     overflow: hidden;
 }
 
