@@ -139,10 +139,11 @@ class Zaikon_Cashier_Sessions {
         $has_payment_status = in_array('payment_status', $columns);
         
         if ($has_payment_type && $has_payment_status) {
-            // New schema with payment_type and payment_status columns
-            // Include cash orders from dine-in/takeaway that are paid/completed:
-            // Cash orders are included if they are explicitly paid OR if they have completed/ready status
-            // Legacy fallback: NULL/empty payment_type with completed/ready status are assumed cash
+            // Get all cash/paid dine-in and takeaway orders
+            // Include orders that are:
+            // 1. Explicitly marked as cash AND paid
+            // 2. Any non-cancelled order (status != cancelled/void/refunded) with cash payment type
+            // 3. Legacy orders with NULL/empty payment fields
             $rpos_orders = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}rpos_orders 
                  WHERE cashier_id = %d 
@@ -150,11 +151,10 @@ class Zaikon_Cashier_Sessions {
                  AND created_at <= %s
                  AND order_type IN ('dine-in', 'takeaway')
                  AND status NOT IN ('cancelled', 'void', 'refunded')
-                 AND (payment_type IS NULL OR payment_type = '' OR payment_type = 'cash')
                  AND (
-                     payment_status = 'paid'
-                     OR
-                     status IN ('completed', 'ready')
+                     payment_type IS NULL 
+                     OR payment_type = '' 
+                     OR payment_type = 'cash'
                  )",
                 $session->cashier_id,
                 $session->session_start,
@@ -204,14 +204,7 @@ class Zaikon_Cashier_Sessions {
                  AND created_at <= %s
                  AND order_type IN ('dine-in', 'takeaway')
                  AND status NOT IN ('cancelled', 'void', 'refunded')
-                 AND payment_type IN ('online', 'cod')
-                 AND (
-                     payment_status = 'paid'
-                     OR
-                     payment_status = 'cod_received'
-                     OR
-                     status IN ('completed', 'ready')
-                 )",
+                 AND payment_type IN ('online', 'card')",
                 $session->cashier_id,
                 $session->session_start,
                 $end_time

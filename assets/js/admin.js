@@ -475,6 +475,7 @@
                 status: 'new',
                 order_type: orderType,
                 payment_type: paymentType,
+                payment_status: 'paid',
                 special_instructions: kitchenInstructions,
                 items: this.cart.map(function(item) {
                     return {
