@@ -1365,9 +1365,17 @@
             // Keep both implementations in sync if modifications are needed
             var timezoneOffset = null;
             if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
-                timezoneOffset = parseInt(rposAdmin.timezoneOffset) || 0;
+                // Parse the offset; if NaN, default to 0 (UTC)
+                timezoneOffset = parseInt(rposAdmin.timezoneOffset);
+                if (isNaN(timezoneOffset)) {
+                    timezoneOffset = 0;
+                }
             } else if (typeof rposKdsData !== 'undefined' && typeof rposKdsData.timezoneOffset !== 'undefined') {
-                timezoneOffset = parseInt(rposKdsData.timezoneOffset) || 0;
+                // Parse the offset; if NaN, default to 0 (UTC)
+                timezoneOffset = parseInt(rposKdsData.timezoneOffset);
+                if (isNaN(timezoneOffset)) {
+                    timezoneOffset = 0;
+                }
             }
             
             if (timezoneOffset !== null) {

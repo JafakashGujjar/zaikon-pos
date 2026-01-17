@@ -16,7 +16,11 @@
         
         // Adjust for timezone offset if provided
         if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
-            var serverOffset = parseInt(rposAdmin.timezoneOffset) || 0;
+            // Parse the offset; if NaN, default to 0 (UTC)
+            var serverOffset = parseInt(rposAdmin.timezoneOffset);
+            if (isNaN(serverOffset)) {
+                serverOffset = 0;
+            }
             var localOffset = date.getTimezoneOffset(); // in minutes, inverted sign
             var totalAdjustment = (serverOffset + localOffset) * 60 * 1000;
             date = new Date(date.getTime() + totalAdjustment);
