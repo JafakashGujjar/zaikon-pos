@@ -188,7 +188,7 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                     ?>
                     <tr>
                         <td><?php echo $expense->id; ?></td>
-                        <td><?php echo date('Y-m-d H:i', strtotime($expense->expense_date)); ?></td>
+                        <td><?php echo RPOS_Timezone::format($expense->expense_date, 'Y-m-d H:i'); ?></td>
                         <td><?php echo esc_html($expense->cashier_name); ?></td>
                         <td>
                             <span style="background: #f0f0f0; padding: 3px 8px; border-radius: 3px; font-size: 11px;">

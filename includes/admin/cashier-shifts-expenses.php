@@ -133,8 +133,8 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                     <tr class="session-row" data-session-id="<?php echo $session->id; ?>">
                         <td><?php echo $session->id; ?></td>
                         <td><?php echo esc_html($cashier_name); ?></td>
-                        <td><?php echo date('Y-m-d H:i', strtotime($session->session_start)); ?></td>
-                        <td><?php echo $session->session_end ? date('Y-m-d H:i', strtotime($session->session_end)) : '-'; ?></td>
+                        <td><?php echo RPOS_Timezone::format($session->session_start, 'Y-m-d H:i'); ?></td>
+                        <td><?php echo $session->session_end ? RPOS_Timezone::format($session->session_end, 'Y-m-d H:i') : '-'; ?></td>
                         <td><?php echo number_format($session->opening_cash_rs, 2); ?></td>
                         <td><?php echo number_format($totals['cash_sales'], 2); ?></td>
                         <td><?php echo number_format($totals['cod_collected'], 2); ?></td>
@@ -186,7 +186,7 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                                     <tbody>
                                         <?php foreach ($expenses as $expense): ?>
                                             <tr>
-                                                <td><?php echo date('Y-m-d H:i', strtotime($expense->expense_date)); ?></td>
+                                                <td><?php echo RPOS_Timezone::format($expense->expense_date, 'Y-m-d H:i'); ?></td>
                                                 <td><?php echo esc_html($expense->category); ?></td>
                                                 <td><?php echo number_format($expense->amount_rs, 2); ?></td>
                                                 <td><?php echo esc_html($expense->description); ?></td>

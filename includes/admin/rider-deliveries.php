@@ -74,7 +74,7 @@ $stats = RPOS_Riders::get_rider_stats($rider_id, $today_start, $today_end);
                     <?php foreach ($orders as $order): ?>
                         <tr data-order-id="<?php echo esc_attr($order->id); ?>">
                             <td><strong><?php echo esc_html($order->order_number); ?></strong></td>
-                            <td><?php echo esc_html(date('H:i', strtotime($order->created_at))); ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($order->created_at, 'H:i')); ?></td>
                             <td><?php echo esc_html($order->customer_name); ?></td>
                             <td><?php echo esc_html($order->customer_phone); ?></td>
                             <td>
@@ -97,7 +97,7 @@ $stats = RPOS_Riders::get_rider_stats($rider_id, $today_start, $today_end);
                                     <span style="color: #00a32a;">✓ On Time</span>
                                 <?php endif; ?>
                                 <?php if ($order->ready_at): ?>
-                                    <br><small>Ready: <?php echo esc_html(date('H:i', strtotime($order->ready_at))); ?></small>
+                                    <br><small>Ready: <?php echo esc_html(RPOS_Timezone::format($order->ready_at, 'H:i')); ?></small>
                                 <?php endif; ?>
                             </td>
                             <td>

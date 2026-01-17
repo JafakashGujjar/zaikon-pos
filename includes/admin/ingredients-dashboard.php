@@ -228,7 +228,7 @@ $top_wasted = RPOS_Ingredients::get_top_wasted_by_cost(
                             <td><code><?php echo esc_html($batch->batch_number); ?></code></td>
                             <td><?php echo esc_html($batch->supplier_name ?: '-'); ?></td>
                             <td><?php echo esc_html(RPOS_Inventory_Settings::format_quantity($batch->quantity_remaining, $batch->unit)); ?></td>
-                            <td><?php echo esc_html(date('M d, Y', strtotime($batch->expiry_date))); ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($batch->expiry_date, 'M d, Y')); ?></td>
                             <td>
                                 <?php if ($days_left < 0): ?>
                                     <strong style="color: #d63638;"><?php echo abs($days_left); ?> days ago</strong>

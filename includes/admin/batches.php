@@ -138,13 +138,13 @@ foreach ($batches as $batch) {
                             <td><strong><?php echo esc_html($batch->batch_number); ?></strong></td>
                             <td><?php echo esc_html($batch->ingredient_name); ?></td>
                             <td><?php echo esc_html($batch->supplier_name ?: '-'); ?></td>
-                            <td><?php echo esc_html(date('M d, Y', strtotime($batch->purchase_date))); ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($batch->purchase_date, 'M d, Y')); ?></td>
                             <td>
                                 <?php if ($batch->expiry_date): ?>
                                     <span style="padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
                                           background-color: <?php echo $expiry_status === 'expired' ? '#ffebee' : ($expiry_status === 'critical' ? '#fff3e0' : ($expiry_status === 'warning' ? '#fff8e1' : '#e8f5e9')); ?>;
                                           color: <?php echo $expiry_status === 'expired' ? '#c62828' : ($expiry_status === 'critical' ? '#e65100' : ($expiry_status === 'warning' ? '#f57c00' : '#2e7d32')); ?>;">
-                                        <?php echo esc_html(date('M d, Y', strtotime($batch->expiry_date))); ?>
+                                        <?php echo esc_html(RPOS_Timezone::format($batch->expiry_date, 'M d, Y')); ?>
                                         <?php if ($days_left !== null && $days_left >= 0): ?>
                                             (<?php echo esc_html($days_left); ?> days)
                                         <?php elseif ($days_left !== null && $days_left < 0): ?>

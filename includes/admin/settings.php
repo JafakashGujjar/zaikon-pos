@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_settings_nonce']
     RPOS_Settings::update('currency_symbol', sanitize_text_field($_POST['currency_symbol'] ?? '$'));
     RPOS_Settings::update('low_stock_threshold', absint($_POST['low_stock_threshold'] ?? 10));
     RPOS_Settings::update('date_format', sanitize_text_field($_POST['date_format'] ?? 'Y-m-d H:i:s'));
+    RPOS_Settings::update('pos_timezone', sanitize_text_field($_POST['pos_timezone'] ?? ''));
     RPOS_Settings::update('restaurant_phone', sanitize_text_field($_POST['restaurant_phone'] ?? ''));
     RPOS_Settings::update('restaurant_address', sanitize_textarea_field($_POST['restaurant_address'] ?? ''));
     RPOS_Settings::update('receipt_footer_message', sanitize_textarea_field($_POST['receipt_footer_message'] ?? 'Thank you for your order!'));
@@ -175,6 +176,54 @@ $tab = $_GET['tab'] ?? 'general';
                     
                     <tr>
                         <th scope="row">
+                            <label for="pos_timezone"><?php echo esc_html__('Time Zone', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <select id="pos_timezone" name="pos_timezone" class="regular-text">
+                                <?php
+                                $current_timezone = $settings['pos_timezone'] ?? get_option('timezone_string', 'UTC');
+                                $timezones = timezone_identifiers_list();
+                                
+                                // Add default option
+                                echo '<option value=""' . selected($current_timezone, '', false) . '>';
+                                echo esc_html__('Use WordPress Site Timezone', 'restaurant-pos');
+                                echo ' (' . esc_html(get_option('timezone_string') ?: 'UTC') . ')';
+                                echo '</option>';
+                                
+                                // Group timezones by continent for better UX
+                                $timezone_continents = array();
+                                foreach ($timezones as $timezone) {
+                                    $parts = explode('/', $timezone);
+                                    if (count($parts) > 1) {
+                                        $continent = $parts[0];
+                                        if (!isset($timezone_continents[$continent])) {
+                                            $timezone_continents[$continent] = array();
+                                        }
+                                        $timezone_continents[$continent][] = $timezone;
+                                    }
+                                }
+                                
+                                // Output grouped timezones
+                                foreach ($timezone_continents as $continent => $continent_timezones) {
+                                    echo '<optgroup label="' . esc_attr($continent) . '">';
+                                    foreach ($continent_timezones as $timezone) {
+                                        $selected = selected($current_timezone, $timezone, false);
+                                        echo '<option value="' . esc_attr($timezone) . '"' . $selected . '>';
+                                        echo esc_html(str_replace('_', ' ', $timezone));
+                                        echo '</option>';
+                                    }
+                                    echo '</optgroup>';
+                                }
+                                ?>
+                            </select>
+                            <p class="description">
+                                <?php echo esc_html__('Select the timezone for displaying all dates and times in the plugin. This fixes the kitchen display time discrepancy.', 'restaurant-pos'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
                             <label for="receipt_footer_message"><?php echo esc_html__('Receipt Footer Message', 'restaurant-pos'); ?></label>
                         </th>
                         <td>
@@ -242,7 +291,7 @@ $tab = $_GET['tab'] ?? 'general';
                     <td>
                         <?php 
                         $installed_time = get_option('rpos_installed');
-                        echo $installed_time ? esc_html(date('Y-m-d H:i:s', $installed_time)) : esc_html__('Unknown', 'restaurant-pos');
+                        echo $installed_time ? esc_html(RPOS_Timezone::format($installed_time)) : esc_html__('Unknown', 'restaurant-pos');
                         ?>
                     </td>
                 </tr>

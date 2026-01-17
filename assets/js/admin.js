@@ -1359,6 +1359,15 @@
         getElapsedMinutes: function(createdAt) {
             var now = new Date();
             var created = new Date(createdAt);
+            
+            // Adjust for timezone offset if provided
+            if (typeof rposAdmin !== 'undefined' && rposAdmin.timezoneOffset) {
+                var serverOffset = parseInt(rposAdmin.timezoneOffset) || 0;
+                var localOffset = now.getTimezoneOffset(); // in minutes, inverted sign
+                var totalAdjustment = (serverOffset + localOffset) * 60 * 1000;
+                created = new Date(created.getTime() + totalAdjustment);
+            }
+            
             var diff = (now - created) / 1000 / 60; // minutes
             return diff;
         },

@@ -98,12 +98,12 @@ class Zaikon_Shift_Reports_Ajax {
                         </tr>
                         <tr>
                             <td style="padding: 8px 0; font-weight: 600;"><?php echo esc_html__('Start Time:', 'restaurant-pos'); ?></td>
-                            <td style="padding: 8px 0;"><?php echo esc_html(date('Y-m-d H:i:s', strtotime($shift->session_start))); ?></td>
+                            <td style="padding: 8px 0;"><?php echo esc_html(RPOS_Timezone::format($shift->session_start)); ?></td>
                         </tr>
                         <tr>
                             <td style="padding: 8px 0; font-weight: 600;"><?php echo esc_html__('End Time:', 'restaurant-pos'); ?></td>
                             <td style="padding: 8px 0;">
-                                <?php echo $shift->session_end ? esc_html(date('Y-m-d H:i:s', strtotime($shift->session_end))) : '<span style="color: #46b450;">Active</span>'; ?>
+                                <?php echo $shift->session_end ? esc_html(RPOS_Timezone::format($shift->session_end)) : '<span style="color: #46b450;">Active</span>'; ?>
                             </td>
                         </tr>
                         <tr>
@@ -195,7 +195,7 @@ class Zaikon_Shift_Reports_Ajax {
                                 <td><?php echo esc_html(strtoupper($order->payment_type)); ?></td>
                                 <td><?php echo esc_html(ucfirst($order->payment_status)); ?></td>
                                 <td><?php echo esc_html($currency . number_format($order->grand_total_rs, 2)); ?></td>
-                                <td><?php echo esc_html(date('H:i', strtotime($order->created_at))); ?></td>
+                                <td><?php echo esc_html(RPOS_Timezone::format($order->created_at, 'H:i')); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -225,7 +225,7 @@ class Zaikon_Shift_Reports_Ajax {
                                 <td><?php echo esc_html(ucfirst(str_replace('_', ' ', $expense->category))); ?></td>
                                 <td><?php echo esc_html($expense->description ?: '-'); ?></td>
                                 <td style="color: #dc3232; font-weight: 600;"><?php echo esc_html($currency . number_format($expense->amount_rs, 2)); ?></td>
-                                <td><?php echo esc_html(date('H:i', strtotime($expense->expense_date))); ?></td>
+                                <td><?php echo esc_html(RPOS_Timezone::format($expense->expense_date, 'H:i')); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>

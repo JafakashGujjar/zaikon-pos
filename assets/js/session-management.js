@@ -6,6 +6,23 @@
 (function($) {
     'use strict';
     
+    /**
+     * Format order time with timezone adjustment
+     */
+    function formatOrderTime(dateString) {
+        var date = new Date(dateString);
+        
+        // Adjust for timezone offset if provided
+        if (typeof rposAdmin !== 'undefined' && rposAdmin.timezoneOffset) {
+            var serverOffset = parseInt(rposAdmin.timezoneOffset) || 0;
+            var localOffset = date.getTimezoneOffset(); // in minutes, inverted sign
+            var totalAdjustment = (serverOffset + localOffset) * 60 * 1000;
+            date = new Date(date.getTime() + totalAdjustment);
+        }
+        
+        return date.toLocaleTimeString();
+    }
+    
     var SessionManager = {
         currentSession: null,
         
@@ -453,7 +470,7 @@
                         html += '<td><strong>' + rposData.currency + parseFloat(order.grand_total_rs).toFixed(2) + '</strong></td>';
                         html += '<td><span class="zaikon-payment-status-badge ' + (order.payment_status || 'paid') + '">' + (order.payment_status || 'paid').toUpperCase() + '</span></td>';
                         html += '<td><span class="zaikon-order-status-badge ' + (order.order_status || 'active') + '">' + (order.order_status || 'active').toUpperCase() + '</span></td>';
-                        html += '<td>' + new Date(order.created_at).toLocaleTimeString() + '</td>';
+                        html += '<td>' + formatOrderTime(order.created_at) + '</td>';
                         html += '<td>' + (order.rider_name || '-') + '</td>';
                         html += '<td><div class="zaikon-order-actions">';
                         
