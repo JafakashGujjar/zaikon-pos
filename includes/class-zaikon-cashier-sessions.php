@@ -198,6 +198,8 @@ class Zaikon_Cashier_Sessions {
         }
         
         // Also check rpos_orders for online payments (if schema supports it)
+        // Note: COD is tracked separately in zaikon_orders for delivery orders,
+        // not included in this online payments query
         if ($has_payment_type && $has_payment_status) {
             $online_rpos_orders = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}rpos_orders 
