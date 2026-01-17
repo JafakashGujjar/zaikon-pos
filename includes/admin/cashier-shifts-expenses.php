@@ -8,10 +8,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get filters
+// Get filters using plugin timezone
 $cashier_id = isset($_GET['cashier_id']) ? absint($_GET['cashier_id']) : 0;
-$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d', strtotime('-30 days'));
-$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
+$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : RPOS_Timezone::now()->modify('-30 days')->format('Y-m-d');
+$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : RPOS_Timezone::now()->format('Y-m-d');
 $status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
 
 // Get all cashiers for dropdown
@@ -23,7 +23,7 @@ $sessions = Zaikon_Cashier_Sessions::get_sessions($cashier_id > 0 ? $cashier_id 
 // Filter by date range and status
 $filtered_sessions = array();
 foreach ($sessions as $session) {
-    $session_date = date('Y-m-d', strtotime($session->session_start));
+    $session_date = RPOS_Timezone::convert($session->session_start)->format('Y-m-d');
     
     // Date filter
     if ($session_date < $date_from || $session_date > $date_to) {

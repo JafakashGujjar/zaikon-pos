@@ -79,7 +79,7 @@ $restaurant_address = RPOS_Settings::get('restaurant_address', '');
             </div>
             <div class="info-row">
                 <span class="label">Date:</span>
-                <span class="value"><?php echo esc_html(date('M d, Y h:i A', strtotime($order->created_at))); ?></span>
+                <span class="value"><?php echo esc_html(RPOS_Timezone::format($order->created_at, 'M d, Y h:i A')); ?></span>
             </div>
         </div>
         
