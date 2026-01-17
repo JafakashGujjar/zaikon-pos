@@ -8,26 +8,13 @@
     
     /**
      * Format order time with timezone adjustment
-     * NOTE: This logic is duplicated in admin.js getElapsedMinutes()
-     * Keep both implementations in sync if modifications are needed
+     * Converts UTC timestamp from database to local display time
      */
     function formatOrderTime(dateString) {
-        // Get timezone offset from plugin settings
-        var timezoneOffset = 0;
-        if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
-            timezoneOffset = parseInt(rposAdmin.timezoneOffset);
-            if (isNaN(timezoneOffset)) {
-                timezoneOffset = 0;
-            }
-        }
-        
-        // WordPress current_time('mysql') returns datetime in plugin's configured timezone
-        // Parse it as UTC first, then subtract the plugin offset to get actual UTC timestamp
-        // For example: MySQL datetime "2024-01-17 14:30:00" in UTC+5 timezone
-        // → parse as UTC gives "2024-01-17T14:30:00Z"
-        // → subtract 5 hours offset → "2024-01-17T09:30:00Z" (actual UTC)
+        // Database now stores timestamps in UTC format (after fix)
+        // Parse the MySQL datetime string as UTC, then JavaScript will
+        // display it in the user's local timezone automatically
         var date = new Date(dateString.replace(' ', 'T') + 'Z');
-        date = new Date(date.getTime() - (timezoneOffset * 60 * 1000));
         
         return date.toLocaleTimeString();
     }

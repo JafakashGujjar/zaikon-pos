@@ -55,6 +55,27 @@ class RPOS_Timezone {
     }
     
     /**
+     * Get current UTC DateTime for database storage
+     * 
+     * Returns current time in UTC timezone as DateTime object.
+     * Use this when storing timestamps in the database to ensure consistency.
+     * 
+     * @return DateTime DateTime object in UTC timezone
+     */
+    public static function now_utc() {
+        return new DateTime('now', new DateTimeZone('UTC'));
+    }
+    
+    /**
+     * Get current UTC time as MySQL datetime string for database storage
+     * 
+     * @return string MySQL datetime string in UTC (e.g., '2024-01-17 14:30:00')
+     */
+    public static function current_utc_mysql() {
+        return self::now_utc()->format('Y-m-d H:i:s');
+    }
+    
+    /**
      * Convert a timestamp or datetime string to plugin timezone
      * 
      * IMPORTANT: This method assumes datetime strings from the database are in UTC.
