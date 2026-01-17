@@ -35,6 +35,13 @@ class RPOS_Install {
     }
     
     /**
+     * Run database migrations (public wrapper for maybe_upgrade)
+     */
+    public static function run_migrations() {
+        self::maybe_upgrade();
+    }
+    
+    /**
      * Check and run upgrades if needed
      */
     private static function maybe_upgrade() {
