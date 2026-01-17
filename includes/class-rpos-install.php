@@ -134,9 +134,20 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `reorder_level` decimal(10,3) DEFAULT 0.000 AFTER `supplier_location`");
         }
         
-        // Check if new columns exist in orders table for KDS tracking
+        // Check if payment_type column exists in rpos_orders table
         $table_name = $wpdb->prefix . 'rpos_orders';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'payment_type'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payment_type` enum('cash','cod','online') DEFAULT 'cash' AFTER `status`");
+        }
         
+        // Check if payment_status column exists in rpos_orders table
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'payment_status'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payment_status` enum('unpaid','paid','refunded','void') DEFAULT 'paid' AFTER `payment_type`");
+        }
+        
+        // Check if new columns exist in orders table for KDS tracking
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'target_prep_time'");
         if (empty($column_exists)) {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `target_prep_time` int(11) DEFAULT NULL AFTER `ingredients_deducted`");
