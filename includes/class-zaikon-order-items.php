@@ -22,7 +22,7 @@ class Zaikon_Order_Items {
             'qty' => intval($data['qty']),
             'unit_price_rs' => floatval($data['unit_price_rs']),
             'line_total_rs' => floatval($data['line_total_rs']),
-            'created_at' => current_time('mysql')
+            'created_at' => RPOS_Timezone::current_utc_mysql()
         );
         
         $result = $wpdb->insert(

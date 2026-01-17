@@ -38,8 +38,8 @@ class Zaikon_Deliveries {
             'payout_type' => isset($data['payout_type']) ? sanitize_text_field($data['payout_type']) : null,
             'fuel_multiplier' => isset($data['fuel_multiplier']) ? floatval($data['fuel_multiplier']) : 1.00,
             'payout_per_km_rate' => isset($data['payout_per_km_rate']) ? floatval($data['payout_per_km_rate']) : null,
-            'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql')
+            'created_at' => RPOS_Timezone::current_utc_mysql(),
+            'updated_at' => RPOS_Timezone::current_utc_mysql()
         );
         
         // Optional columns that may not exist in older schemas
@@ -202,7 +202,7 @@ class Zaikon_Deliveries {
             return false;
         }
         
-        $update_data['updated_at'] = current_time('mysql');
+        $update_data['updated_at'] = RPOS_Timezone::current_utc_mysql();
         $formats[] = '%s';
         
         return $wpdb->update(
