@@ -47,6 +47,7 @@ class RPOS_Orders {
             'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
         );
         
+        // Build formats array dynamically
         $formats = array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d');
         
         // Add delivery fields if it's a delivery order
@@ -56,7 +57,7 @@ class RPOS_Orders {
             $order_data['area_id'] = isset($data['area_id']) ? absint($data['area_id']) : null;
             $order_data['customer_name'] = sanitize_text_field($data['customer_name'] ?? '');
             $order_data['customer_phone'] = sanitize_text_field($data['customer_phone'] ?? '');
-            $formats = array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%f', '%d', '%s', '%s');
+            $formats = array_merge($formats, array('%d', '%f', '%d', '%s', '%s'));
         }
         
         // Insert order

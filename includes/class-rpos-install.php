@@ -145,13 +145,19 @@ class RPOS_Install {
         $table_name = $wpdb->prefix . 'rpos_orders';
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'payment_type'");
         if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payment_type` enum('cash','cod','online') DEFAULT 'cash' AFTER `status`");
+            $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payment_type` enum('cash','cod','online') DEFAULT 'cash' AFTER `status`");
+            if ($result === false) {
+                error_log('RPOS Migration: Failed to add payment_type column to rpos_orders table: ' . $wpdb->last_error);
+            }
         }
         
         // Check if payment_status column exists in rpos_orders table
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'payment_status'");
         if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payment_status` enum('unpaid','paid','refunded','void') DEFAULT 'paid' AFTER `payment_type`");
+            $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `payment_status` enum('unpaid','paid','refunded','void') DEFAULT 'paid' AFTER `payment_type`");
+            if ($result === false) {
+                error_log('RPOS Migration: Failed to add payment_status column to rpos_orders table: ' . $wpdb->last_error);
+            }
         }
         
         // Check if new columns exist in orders table for KDS tracking
