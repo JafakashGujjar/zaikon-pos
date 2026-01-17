@@ -141,8 +141,11 @@ class Zaikon_Cashier_Sessions {
         if ($has_payment_type && $has_payment_status) {
             // Get all cash/paid dine-in and takeaway orders
             // Include orders that are:
-            // 1. Cash payment type with paid status
-            // 2. NULL/empty payment type (legacy orders) that are not cancelled
+            // 1. Cash payment type with paid status (new orders)
+            // 2. NULL/empty payment type (legacy orders from before payment_type column existed)
+            //    - Safe assumption: All dine-in/takeaway orders are paid at counter before being created
+            //    - These legacy orders would never have been created without payment
+            //    - Additional safety: status filter excludes cancelled/void/refunded
             $rpos_orders = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}rpos_orders 
                  WHERE cashier_id = %d 

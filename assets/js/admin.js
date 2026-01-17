@@ -466,6 +466,11 @@
             // Kitchen special instructions from the right sidebar
             var kitchenInstructions = $('#rpos-special-instructions').val().trim();
             
+            // Determine payment status based on payment type
+            // - Cash/Online: Paid immediately at POS
+            // - COD: Unpaid until delivery rider collects payment
+            var paymentStatus = (paymentType === 'cod') ? 'unpaid' : 'paid';
+            
             var orderData = {
                 subtotal: subtotal,
                 discount: discount,
@@ -475,7 +480,7 @@
                 status: 'new',
                 order_type: orderType,
                 payment_type: paymentType,
-                payment_status: 'paid',
+                payment_status: paymentStatus,
                 special_instructions: kitchenInstructions,
                 items: this.cart.map(function(item) {
                     return {
