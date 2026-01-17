@@ -169,8 +169,8 @@ $currency = RPOS_Settings::get('currency_symbol', '$');
                                     <?php echo esc_html($customer->deliveries_count); ?>
                                 </span>
                             </td>
-                            <td><?php echo esc_html(date('Y-m-d', strtotime($customer->first_delivery_date))); ?></td>
-                            <td><?php echo esc_html(date('Y-m-d', strtotime($customer->last_delivery_date))); ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($customer->first_delivery_date, 'Y-m-d')); ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($customer->last_delivery_date, 'Y-m-d')); ?></td>
                             <td class="text-right"><?php echo esc_html($currency . number_format($customer->total_delivery_charges, 2)); ?></td>
                             <td class="text-right"><strong><?php echo esc_html($currency . number_format($customer->total_amount_spent, 2)); ?></strong></td>
                             <td class="text-right"><?php echo esc_html($currency . number_format($customer->avg_order_amount, 2)); ?></td>

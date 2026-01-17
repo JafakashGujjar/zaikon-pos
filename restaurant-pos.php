@@ -70,6 +70,7 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-recipes.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-orders.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-settings.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-timezone.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-rest-api.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-pos.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-kds.php';
@@ -198,7 +199,9 @@ class Restaurant_POS {
             'nonce' => wp_create_nonce('rpos-admin-nonce'),
             'restUrl' => rest_url('restaurant-pos/v1/'),
             'restNonce' => wp_create_nonce('wp_rest'),
-            'currencySymbol' => RPOS_Settings::get('currency_symbol', '$')
+            'currencySymbol' => RPOS_Settings::get('currency_symbol', '$'),
+            'timezoneOffset' => RPOS_Timezone::get_offset_minutes(),
+            'timezoneString' => RPOS_Timezone::get_timezone_string()
         ));
     }
     

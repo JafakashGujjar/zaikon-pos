@@ -389,7 +389,7 @@ jQuery(document).ready(function($) {
                 <tbody>
                     <?php foreach ($recent_consumption as $log): ?>
                         <tr>
-                            <td><?php echo esc_html(date('M d, Y H:i', strtotime($log->created_at))); ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($log->created_at, 'M d, Y H:i')); ?></td>
                             <td><?php echo esc_html($log->order_number); ?></td>
                             <td><?php echo esc_html($log->product_name); ?></td>
                             <td><?php echo esc_html($log->cylinder_type); ?></td>
@@ -846,7 +846,7 @@ jQuery(document).ready(function($) {
                 <?php else: ?>
                     <?php foreach ($logs as $log): ?>
                         <tr>
-                            <td><?php echo esc_html(date('M d, Y H:i', strtotime($log->created_at))); ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($log->created_at, 'M d, Y H:i')); ?></td>
                             <td><?php echo esc_html($log->order_number); ?></td>
                             <td><?php echo esc_html($log->product_name); ?></td>
                             <td><?php echo esc_html($log->cylinder_type); ?></td>
@@ -1019,7 +1019,7 @@ jQuery(document).ready(function($) {
                             $avg_per_cyl = $stat->unique_cylinders > 0 ? $stat->order_count / $stat->unique_cylinders : 0;
                         ?>
                             <tr>
-                                <td><?php echo esc_html(date('F Y', strtotime($stat->month . '-01'))); ?></td>
+                                <td><?php echo esc_html(RPOS_Timezone::format($stat->month . '-01', 'F Y')); ?></td>
                                 <td><?php echo esc_html(number_format($stat->order_count)); ?></td>
                                 <td><?php echo esc_html($stat->unique_cylinders); ?></td>
                                 <td><?php echo esc_html(number_format($avg_per_cyl, 1)); ?></td>

@@ -58,7 +58,7 @@ if (isset($_GET['view']) && absint($_GET['view'])) {
                     </tr>
                     <tr>
                         <th><?php echo esc_html__('Date:', 'restaurant-pos'); ?></th>
-                        <td><?php echo esc_html(date('Y-m-d H:i:s', strtotime($viewing_order->created_at))); ?></td>
+                        <td><?php echo esc_html(RPOS_Timezone::format($viewing_order->created_at)); ?></td>
                     </tr>
                     <tr>
                         <th><?php echo esc_html__('Status:', 'restaurant-pos'); ?></th>
@@ -205,7 +205,7 @@ if (isset($_GET['view']) && absint($_GET['view'])) {
             <?php foreach ($orders as $order): ?>
             <tr>
                 <td><strong><?php echo esc_html($order->order_number); ?></strong></td>
-                <td><?php echo esc_html(date('Y-m-d H:i', strtotime($order->created_at))); ?></td>
+                <td><?php echo esc_html(RPOS_Timezone::format($order->created_at, 'Y-m-d H:i')); ?></td>
                 <td><?php echo esc_html(ucfirst(str_replace('-', ' ', $order->order_type ?? 'dine-in'))); ?></td>
                 <td>
                     <?php echo esc_html(RPOS_Settings::get('currency_symbol', '$')); ?>

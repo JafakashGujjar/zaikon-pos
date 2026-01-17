@@ -311,7 +311,7 @@ wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/
                             </div>
                             <div class="zaikon-recent-order-footer">
                                 <span class="zaikon-recent-order-time">
-                                    <?php echo esc_html(date_i18n('g:i A', strtotime($order->created_at))); ?>
+                                    <?php echo esc_html(RPOS_Timezone::format($order->created_at, 'g:i A')); ?>
                                 </span>
                                 <span class="zaikon-recent-order-amount">
                                     <?php echo esc_html($currency . number_format($order->total, 2)); ?>

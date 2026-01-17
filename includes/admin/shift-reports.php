@@ -194,8 +194,8 @@ $currency = RPOS_Settings::get('currency_symbol', 'Rs');
                         <tr>
                             <td><strong>#<?php echo esc_html($shift->id); ?></strong></td>
                             <td><?php echo esc_html($shift->cashier_name); ?></td>
-                            <td><?php echo esc_html(date('Y-m-d H:i', strtotime($shift->session_start))); ?></td>
-                            <td><?php echo $shift->session_end ? esc_html(date('Y-m-d H:i', strtotime($shift->session_end))) : '<span style="color: #46b450;">Active</span>'; ?></td>
+                            <td><?php echo esc_html(RPOS_Timezone::format($shift->session_start, 'Y-m-d H:i')); ?></td>
+                            <td><?php echo $shift->session_end ? esc_html(RPOS_Timezone::format($shift->session_end, 'Y-m-d H:i')) : '<span style="color: #46b450;">Active</span>'; ?></td>
                             <td><?php echo esc_html($currency . number_format($shift->opening_cash_rs, 2)); ?></td>
                             <td><?php echo $shift->status === 'closed' ? esc_html($currency . number_format($shift->total_cash_sales_rs, 2)) : '-'; ?></td>
                             <td><?php echo $shift->status === 'closed' ? esc_html($currency . number_format($shift->total_cod_collected_rs, 2)) : '-'; ?></td>

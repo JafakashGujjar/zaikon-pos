@@ -93,7 +93,7 @@ foreach ($riders as $rider) {
     <!-- Rider Payroll Table -->
     <div class="rpos-payroll-table" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <h2><?php echo esc_html__('Rider Breakdown', 'restaurant-pos'); ?></h2>
-        <p><strong><?php echo esc_html__('Period:', 'restaurant-pos'); ?></strong> <?php echo esc_html(date('M d, Y', strtotime($date_from)) . ' - ' . date('M d, Y', strtotime($date_to))); ?></p>
+        <p><strong><?php echo esc_html__('Period:', 'restaurant-pos'); ?></strong> <?php echo esc_html(RPOS_Timezone::format($date_from, 'M d, Y') . ' - ' . RPOS_Timezone::format($date_to, 'M d, Y')); ?></p>
         
         <?php if (empty($payroll_data)): ?>
             <p style="text-align: center; padding: 40px; color: #666;">
