@@ -44,11 +44,12 @@ class RPOS_Orders {
             'payment_status' => sanitize_text_field($data['payment_status'] ?? 'paid'),
             'order_type' => sanitize_text_field($data['order_type'] ?? 'dine-in'),
             'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
-            'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
+            'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id()),
+            'created_at' => current_time('mysql')
         );
         
         // Build formats array dynamically
-        $formats = array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d');
+        $formats = array('%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%s');
         
         // Add delivery fields if it's a delivery order
         if (isset($data['is_delivery']) && $data['is_delivery']) {
