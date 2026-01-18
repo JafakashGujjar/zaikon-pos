@@ -76,20 +76,38 @@ class RPOS_Fryer_Reports {
         $stats = $wpdb->get_row($query);
         
         // Get product distribution
-        $product_stats = $wpdb->get_results(
-            "SELECT 
-                product_name,
-                SUM(quantity) as total_quantity,
-                SUM(units_consumed) as total_units,
-                COUNT(DISTINCT batch_id) as batches_count
-             FROM {$wpdb->prefix}rpos_fryer_oil_usage
-             WHERE batch_id IN (
-                 SELECT id FROM {$wpdb->prefix}rpos_fryer_oil_batches
-                 WHERE {$where_clause}
-             )
-             GROUP BY product_name
-             ORDER BY total_units DESC"
-        );
+        if (!empty($params)) {
+            $product_query = $wpdb->prepare(
+                "SELECT 
+                    product_name,
+                    SUM(quantity) as total_quantity,
+                    SUM(units_consumed) as total_units,
+                    COUNT(DISTINCT batch_id) as batches_count
+                 FROM {$wpdb->prefix}rpos_fryer_oil_usage
+                 WHERE batch_id IN (
+                     SELECT id FROM {$wpdb->prefix}rpos_fryer_oil_batches
+                     WHERE {$where_clause}
+                 )
+                 GROUP BY product_name
+                 ORDER BY total_units DESC",
+                $params
+            );
+        } else {
+            $product_query = "SELECT 
+                    product_name,
+                    SUM(quantity) as total_quantity,
+                    SUM(units_consumed) as total_units,
+                    COUNT(DISTINCT batch_id) as batches_count
+                 FROM {$wpdb->prefix}rpos_fryer_oil_usage
+                 WHERE batch_id IN (
+                     SELECT id FROM {$wpdb->prefix}rpos_fryer_oil_batches
+                     WHERE {$where_clause}
+                 )
+                 GROUP BY product_name
+                 ORDER BY total_units DESC";
+        }
+        
+        $product_stats = $wpdb->get_results($product_query);
         
         return array(
             'lifecycle' => $stats,

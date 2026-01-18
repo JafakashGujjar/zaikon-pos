@@ -127,28 +127,37 @@ class RPOS_Fryer_Usage {
     public static function get_usage_by_date_range($date_from, $date_to, $batch_id = null) {
         global $wpdb;
         
-        $query = "SELECT * FROM {$wpdb->prefix}rpos_fryer_oil_usage WHERE 1=1";
+        $where = array('1=1');
         $params = array();
         
         if ($date_from) {
-            $query .= " AND created_at >= %s";
+            $where[] = "created_at >= %s";
             $params[] = $date_from;
         }
         
         if ($date_to) {
-            $query .= " AND created_at <= %s";
+            $where[] = "created_at <= %s";
             $params[] = $date_to;
         }
         
         if ($batch_id !== null) {
-            $query .= " AND batch_id = %d";
+            $where[] = "batch_id = %d";
             $params[] = $batch_id;
         }
         
-        $query .= " ORDER BY created_at DESC";
+        $where_clause = implode(' AND ', $where);
         
         if (!empty($params)) {
-            return $wpdb->get_results($wpdb->prepare($query, $params));
+            $query = $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}rpos_fryer_oil_usage 
+                 WHERE {$where_clause} 
+                 ORDER BY created_at DESC",
+                $params
+            );
+        } else {
+            $query = "SELECT * FROM {$wpdb->prefix}rpos_fryer_oil_usage 
+                      WHERE {$where_clause} 
+                      ORDER BY created_at DESC";
         }
         
         return $wpdb->get_results($query);

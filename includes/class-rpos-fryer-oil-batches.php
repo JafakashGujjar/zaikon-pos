@@ -27,9 +27,7 @@ class RPOS_Fryer_Oil_Batches {
         
         $insert_data = array(
             'batch_name' => sanitize_text_field($data['batch_name']),
-            'fryer_id' => isset($data['fryer_id']) ? absint($data['fryer_id']) : null,
             'oil_added_at' => isset($data['oil_added_at']) ? sanitize_text_field($data['oil_added_at']) : RPOS_Timezone::current_utc_mysql(),
-            'oil_capacity' => isset($data['oil_capacity']) ? floatval($data['oil_capacity']) : null,
             'target_usage_units' => floatval($data['target_usage_units'] ?? 120),
             'current_usage_units' => 0,
             'time_threshold_hours' => absint($data['time_threshold_hours'] ?? 24),
@@ -38,7 +36,18 @@ class RPOS_Fryer_Oil_Batches {
             'created_by' => absint($data['created_by'] ?? get_current_user_id())
         );
         
-        $formats = array('%s', '%d', '%s', '%f', '%f', '%f', '%d', '%s', '%s', '%d');
+        $formats = array('%s', '%s', '%f', '%f', '%d', '%s', '%s', '%d');
+        
+        // Add optional fields
+        if (isset($data['fryer_id'])) {
+            $insert_data['fryer_id'] = absint($data['fryer_id']);
+            $formats[] = '%d';
+        }
+        
+        if (isset($data['oil_capacity'])) {
+            $insert_data['oil_capacity'] = floatval($data['oil_capacity']);
+            $formats[] = '%f';
+        }
         
         $result = $wpdb->insert(
             $wpdb->prefix . 'rpos_fryer_oil_batches',
@@ -102,6 +111,18 @@ class RPOS_Fryer_Oil_Batches {
         
         $args = wp_parse_args($args, $defaults);
         
+        // Whitelist allowed orderby columns for security
+        $allowed_orderby = array('id', 'batch_name', 'oil_added_at', 'closed_at', 'created_at', 'current_usage_units', 'status');
+        if (!in_array($args['orderby'], $allowed_orderby)) {
+            $args['orderby'] = 'created_at';
+        }
+        
+        // Sanitize order direction
+        $order = strtoupper($args['order']);
+        if (!in_array($order, array('ASC', 'DESC'))) {
+            $order = 'DESC';
+        }
+        
         $where = array('1=1');
         $where_values = array();
         
@@ -117,10 +138,7 @@ class RPOS_Fryer_Oil_Batches {
         
         $where_clause = implode(' AND ', $where);
         
-        $orderby = sanitize_sql_orderby('b.' . $args['orderby'] . ' ' . $args['order']);
-        if (!$orderby) {
-            $orderby = 'b.created_at DESC';
-        }
+        $orderby = 'b.' . $args['orderby'] . ' ' . $order;
         
         $limit_clause = $wpdb->prepare(' LIMIT %d OFFSET %d', $args['limit'], $args['offset']);
         

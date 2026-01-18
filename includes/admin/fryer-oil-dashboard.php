@@ -152,9 +152,26 @@ $fryers = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}rpos_fryers WHERE is_
     </div>
     
     <script>
-    // Auto-refresh alerts every 60 seconds
-    setInterval(function() {
-        location.reload();
-    }, 60000);
+    // Auto-refresh alerts every 60 seconds using AJAX
+    jQuery(document).ready(function($) {
+        function refreshAlerts() {
+            $.ajax({
+                url: ajaxurl,
+                method: 'POST',
+                data: {
+                    action: 'rpos_check_fryer_alerts',
+                    nonce: '<?php echo wp_create_nonce('rpos_pos_nonce'); ?>'
+                },
+                success: function(response) {
+                    if (response.success && response.data.has_alerts) {
+                        // Reload page if there are new alerts
+                        location.reload();
+                    }
+                }
+            });
+        }
+        
+        setInterval(refreshAlerts, 60000);
+    });
     </script>
 </div>
