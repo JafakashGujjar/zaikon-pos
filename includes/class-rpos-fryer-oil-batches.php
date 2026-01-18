@@ -99,8 +99,8 @@ class RPOS_Fryer_Oil_Batches {
         
         $batch = $wpdb->get_row($query);
         
-        // Fallback: if no batch found for null/0 fryer_id, try to get ANY active batch
-        if (!$batch && ($fryer_id === null || $fryer_id === 0)) {
+        // Fallback: if no batch found, try to get ANY active batch
+        if (!$batch) {
             $query = "SELECT b.*, u.display_name as created_by_name, f.name as fryer_name
                       FROM {$wpdb->prefix}rpos_fryer_oil_batches b
                       LEFT JOIN {$wpdb->users} u ON b.created_by = u.ID

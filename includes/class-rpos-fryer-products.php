@@ -118,6 +118,7 @@ class RPOS_Fryer_Products {
     public static function get_oil_units($product_id, $fryer_id = null) {
         global $wpdb;
         
+        // First try exact match (product_id AND fryer_id)
         $result = $wpdb->get_var($wpdb->prepare(
             "SELECT oil_units FROM {$wpdb->prefix}rpos_fryer_product_map
              WHERE product_id = %d AND (fryer_id = %d OR (fryer_id IS NULL AND %d IS NULL))",
@@ -125,6 +126,17 @@ class RPOS_Fryer_Products {
             $fryer_id,
             $fryer_id
         ));
+        
+        // If no match found, fall back to matching by product_id only (regardless of fryer_id)
+        if ($result === null) {
+            $result = $wpdb->get_var($wpdb->prepare(
+                "SELECT oil_units FROM {$wpdb->prefix}rpos_fryer_product_map
+                 WHERE product_id = %d
+                 ORDER BY id ASC
+                 LIMIT 1",
+                $product_id
+            ));
+        }
         
         return $result ? floatval($result) : null;
     }
