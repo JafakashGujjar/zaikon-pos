@@ -1156,6 +1156,84 @@ class RPOS_Install {
             KEY expense_date_idx (expense_date)
         ) $charset_collate;";
         
+        // ========== FRYER OIL TRACKING SYSTEM ==========
+        
+        // Fryers table - Multi-fryer support
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_fryers (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            description text,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) $charset_collate;";
+        
+        // Fryer Oil Batches table - Oil batch registration
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_fryer_oil_batches (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            batch_name varchar(255) NOT NULL,
+            fryer_id bigint(20) unsigned DEFAULT NULL,
+            oil_added_at datetime NOT NULL,
+            oil_capacity decimal(10,3) DEFAULT NULL,
+            target_usage_units decimal(10,3) NOT NULL DEFAULT 120.000,
+            current_usage_units decimal(10,3) NOT NULL DEFAULT 0.000,
+            time_threshold_hours int DEFAULT 24,
+            status enum('active','closed') DEFAULT 'active',
+            closed_at datetime DEFAULT NULL,
+            closed_by bigint(20) unsigned DEFAULT NULL,
+            notes text,
+            created_by bigint(20) unsigned NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY fryer_id (fryer_id),
+            KEY status (status),
+            KEY oil_added_at (oil_added_at)
+        ) $charset_collate;";
+        
+        // Fryer Product Map table - Product oil consumption mapping
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_fryer_product_map (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            product_id bigint(20) unsigned NOT NULL,
+            oil_units decimal(10,3) NOT NULL DEFAULT 1.000,
+            fryer_id bigint(20) unsigned DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY product_fryer (product_id, fryer_id),
+            KEY product_id (product_id),
+            KEY fryer_id (fryer_id)
+        ) $charset_collate;";
+        
+        // Fryer Oil Usage table - Usage log (automatic tracking)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_fryer_oil_usage (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            batch_id bigint(20) unsigned NOT NULL,
+            order_id bigint(20) unsigned NOT NULL,
+            order_item_id bigint(20) unsigned DEFAULT NULL,
+            product_id bigint(20) unsigned NOT NULL,
+            product_name varchar(255) NOT NULL,
+            quantity int NOT NULL,
+            units_consumed decimal(10,3) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY batch_id (batch_id),
+            KEY order_id (order_id),
+            KEY product_id (product_id),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+        
+        // Fryer Oil Settings table - Module settings
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_fryer_oil_settings (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            setting_key varchar(100) NOT NULL,
+            setting_value text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY setting_key (setting_key)
+        ) $charset_collate;";
+        
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         foreach ($tables as $table) {
