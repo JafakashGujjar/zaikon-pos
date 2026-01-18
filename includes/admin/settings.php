@@ -344,7 +344,7 @@ if ($tab === 'display') {
                     text: '<?php echo esc_js(__('Use this sound', 'restaurant-pos')); ?>'
                 },
                 library: {
-                    type: ['audio/mpeg', 'audio/wav']
+                    type: 'audio'
                 },
                 multiple: false
             });
