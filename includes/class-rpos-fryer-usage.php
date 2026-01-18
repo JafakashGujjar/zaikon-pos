@@ -73,9 +73,10 @@ class RPOS_Fryer_Usage {
                     'product_id' => absint($product_id),
                     'product_name' => sanitize_text_field($product_name),
                     'quantity' => absint($quantity),
-                    'units_consumed' => $units_consumed
+                    'units_consumed' => $units_consumed,
+                    'created_at' => RPOS_Timezone::current_utc_mysql()
                 ),
-                array('%d', '%d', '%d', '%d', '%s', '%d', '%f')
+                array('%d', '%d', '%d', '%d', '%s', '%d', '%f', '%s')
             );
             
             if ($result) {
