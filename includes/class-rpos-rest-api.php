@@ -1229,7 +1229,20 @@ class RPOS_REST_API {
         $cashier_id = isset($params['cashier_id']) ? absint($params['cashier_id']) : get_current_user_id();
         $date = $params['date'] ?? RPOS_Timezone::now()->format('Y-m-d');
         
-        // Get orders for cashier on specified date
+        // Convert local date to UTC date range for proper timezone handling
+        // The database stores timestamps in UTC, so we need to convert local date boundaries to UTC
+        $local_start = new DateTime($date . ' 00:00:00', RPOS_Timezone::get_timezone());
+        $local_end = new DateTime($date . ' 23:59:59', RPOS_Timezone::get_timezone());
+        
+        // Convert to UTC for database query
+        $utc_timezone = new DateTimeZone('UTC');
+        $local_start->setTimezone($utc_timezone);
+        $local_end->setTimezone($utc_timezone);
+        
+        $utc_start = $local_start->format('Y-m-d H:i:s');
+        $utc_end = $local_end->format('Y-m-d H:i:s');
+        
+        // Get orders for cashier on specified date (using UTC range)
         // SECURITY: Exclude customer_name and customer_phone from cashier view
         $orders = $wpdb->get_results($wpdb->prepare(
             "SELECT o.id, o.order_number, o.order_type, o.payment_type, o.payment_status, 
@@ -1240,10 +1253,12 @@ class RPOS_REST_API {
              LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
              LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
              WHERE o.cashier_id = %d 
-             AND DATE(o.created_at) = %s
+             AND o.created_at >= %s
+             AND o.created_at <= %s
              ORDER BY o.created_at DESC",
             $cashier_id,
-            $date
+            $utc_start,
+            $utc_end
         ));
         
         return rest_ensure_response($orders);
