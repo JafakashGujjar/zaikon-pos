@@ -169,11 +169,22 @@ $products = RPOS_Products::get_all();
                         </td>
                     </tr>
                     <tr>
-                        <th><label for="image_url"><?php echo esc_html__('Image URL', 'restaurant-pos'); ?></label></th>
+                        <th><label for="image_url"><?php echo esc_html__('Product Image', 'restaurant-pos'); ?></label></th>
                         <td>
                             <input type="url" id="image_url" name="image_url" class="regular-text" 
-                                   value="<?php echo esc_attr($editing_product->image_url ?? ''); ?>">
-                            <p class="description"><?php echo esc_html__('Enter the full URL of the product image', 'restaurant-pos'); ?></p>
+                                   value="<?php echo esc_attr($editing_product->image_url ?? ''); ?>" placeholder="https://...">
+                            <button type="button" class="button" id="upload_product_image_button">
+                                <?php echo esc_html__('Upload Image', 'restaurant-pos'); ?>
+                            </button>
+                            <button type="button" class="button" id="clear_product_image_button">
+                                <?php echo esc_html__('Clear', 'restaurant-pos'); ?>
+                            </button>
+                            <p class="description"><?php echo esc_html__('Upload an image or enter the full URL of the product image', 'restaurant-pos'); ?></p>
+                            <div id="product_image_preview" style="margin-top: 10px;">
+                                <?php if (!empty($editing_product->image_url ?? '')): ?>
+                                <img src="<?php echo esc_url($editing_product->image_url); ?>" style="max-width: 200px; max-height: 200px; display: block;">
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -553,5 +564,65 @@ jQuery(document).ready(function($) {
     
     // Initial calculation on page load
     recalculateTotals();
+    
+    // Product image upload functionality
+    var mediaUploader;
+    $('#upload_product_image_button').on('click', function(e) {
+        e.preventDefault();
+        
+        if (mediaUploader) {
+            mediaUploader.open();
+            return;
+        }
+        
+        mediaUploader = wp.media({
+            title: '<?php echo esc_js(__('Choose Product Image', 'restaurant-pos')); ?>',
+            button: {
+                text: '<?php echo esc_js(__('Use this image', 'restaurant-pos')); ?>'
+            },
+            library: {
+                type: 'image'
+            },
+            multiple: false
+        });
+        
+        mediaUploader.on('select', function() {
+            var attachment = mediaUploader.state().get('selection').first().toJSON();
+            $('#image_url').val(attachment.url);
+            updateImagePreview(attachment.url);
+        });
+        
+        mediaUploader.open();
+    });
+    
+    // Clear product image
+    $('#clear_product_image_button').on('click', function(e) {
+        e.preventDefault();
+        $('#image_url').val('');
+        $('#product_image_preview').html('');
+    });
+    
+    // Update preview when URL is manually entered
+    $('#image_url').on('change blur', function() {
+        var url = $(this).val();
+        if (url) {
+            updateImagePreview(url);
+        } else {
+            $('#product_image_preview').html('');
+        }
+    });
+    
+    function updateImagePreview(url) {
+        var $img = $('<img>').attr({
+            'src': url,
+            'style': 'max-width: 200px; max-height: 200px; display: block;'
+        });
+        $('#product_image_preview').empty().append($img);
+    }
 });
 </script>
+
+<?php
+// Enqueue WordPress media scripts for product image upload
+wp_enqueue_media();
+?>

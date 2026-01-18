@@ -210,7 +210,8 @@ class Restaurant_POS {
             'restNonce' => wp_create_nonce('wp_rest'),
             'currencySymbol' => RPOS_Settings::get('currency_symbol', '$'),
             'timezoneOffset' => RPOS_Timezone::get_offset_minutes(),
-            'timezoneString' => RPOS_Timezone::get_timezone_string()
+            'timezoneString' => RPOS_Timezone::get_timezone_string(),
+            'notificationSoundUrl' => RPOS_Settings::get('notification_sound_url', '')
         ));
     }
     

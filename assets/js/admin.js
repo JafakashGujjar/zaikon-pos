@@ -573,7 +573,23 @@
             if (!document.getElementById('pos-notification-sound')) {
                 var audio = document.createElement('audio');
                 audio.id = 'pos-notification-sound';
-                audio.innerHTML = '<source src="' + NOTIFICATION_SOUND_DATA + '" type="audio/wav" />';
+                
+                // Use custom notification sound if configured, otherwise use default
+                var soundUrl = (typeof rposAdmin !== 'undefined' && rposAdmin.notificationSoundUrl) 
+                    ? rposAdmin.notificationSoundUrl 
+                    : NOTIFICATION_SOUND_DATA;
+                    
+                // Detect sound type based on URL pattern
+                var soundType = 'audio/wav'; // default
+                if (soundUrl.indexOf('data:audio/wav') === 0) {
+                    soundType = 'audio/wav';
+                } else if (soundUrl.match(/\.(mp3|mpeg)$/i) || soundUrl.indexOf('audio/mpeg') !== -1) {
+                    soundType = 'audio/mpeg';
+                } else if (soundUrl.match(/\.wav$/i) || soundUrl.indexOf('audio/wav') !== -1) {
+                    soundType = 'audio/wav';
+                }
+                
+                audio.innerHTML = '<source src="' + soundUrl + '" type="' + soundType + '" />';
                 document.body.appendChild(audio);
             }
         },
@@ -1308,7 +1324,23 @@
             if (!document.getElementById('kds-notification-sound')) {
                 var audio = document.createElement('audio');
                 audio.id = 'kds-notification-sound';
-                audio.innerHTML = '<source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSyBzvLZiTYIGWi78OShTwsNUrDm77BZFApIoemMvGojAwAA" type="audio/wav" />';
+                
+                // Use custom notification sound if configured, otherwise use default
+                var soundUrl = (typeof rposAdmin !== 'undefined' && rposAdmin.notificationSoundUrl) 
+                    ? rposAdmin.notificationSoundUrl 
+                    : NOTIFICATION_SOUND_DATA;
+                    
+                // Detect sound type based on URL pattern
+                var soundType = 'audio/wav'; // default
+                if (soundUrl.indexOf('data:audio/wav') === 0) {
+                    soundType = 'audio/wav';
+                } else if (soundUrl.match(/\.(mp3|mpeg)$/i) || soundUrl.indexOf('audio/mpeg') !== -1) {
+                    soundType = 'audio/mpeg';
+                } else if (soundUrl.match(/\.wav$/i) || soundUrl.indexOf('audio/wav') !== -1) {
+                    soundType = 'audio/wav';
+                }
+                
+                audio.innerHTML = '<source src="' + soundUrl + '" type="' + soundType + '" />';
                 document.body.appendChild(audio);
             }
         },
@@ -1676,9 +1708,11 @@
         startAutoRefresh: function() {
             var self = this;
             this.stopAutoRefresh();
+            // Note: 5-second polling is a significant improvement over 30 seconds for restaurant operations
+            // Future enhancement: Consider WebSocket/Server-Sent Events for true real-time updates
             this.autoRefreshInterval = setInterval(function() {
                 self.loadOrders();
-            }, 30000); // 30 seconds
+            }, 5000); // 5 seconds - Real-time updates for KDS
         },
         
         stopAutoRefresh: function() {
