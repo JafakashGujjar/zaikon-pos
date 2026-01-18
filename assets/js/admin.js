@@ -573,7 +573,16 @@
             if (!document.getElementById('pos-notification-sound')) {
                 var audio = document.createElement('audio');
                 audio.id = 'pos-notification-sound';
-                audio.innerHTML = '<source src="' + NOTIFICATION_SOUND_DATA + '" type="audio/wav" />';
+                
+                // Use custom notification sound if configured, otherwise use default
+                var soundUrl = (typeof rposAdmin !== 'undefined' && rposAdmin.notificationSoundUrl) 
+                    ? rposAdmin.notificationSoundUrl 
+                    : NOTIFICATION_SOUND_DATA;
+                    
+                var soundType = soundUrl.indexOf('data:audio/wav') === 0 ? 'audio/wav' : 
+                               soundUrl.indexOf('.mp3') !== -1 ? 'audio/mpeg' : 'audio/wav';
+                
+                audio.innerHTML = '<source src="' + soundUrl + '" type="' + soundType + '" />';
                 document.body.appendChild(audio);
             }
         },
@@ -1678,7 +1687,7 @@
             this.stopAutoRefresh();
             this.autoRefreshInterval = setInterval(function() {
                 self.loadOrders();
-            }, 30000); // 30 seconds
+            }, 5000); // 5 seconds - Real-time updates for KDS
         },
         
         stopAutoRefresh: function() {

@@ -15,6 +15,7 @@ class RPOS_Fryer_Usage {
      */
     public static function record_usage_from_order($order_id, $items) {
         if (empty($items)) {
+            error_log("RPOS Fryer: No items provided for order #" . $order_id);
             return false;
         }
         
@@ -23,8 +24,11 @@ class RPOS_Fryer_Usage {
         error_log("RPOS Fryer: Processing order #" . $order_id . " with " . count($items) . " items");
         
         $recorded = false;
+        $items_processed = 0;
+        $items_skipped = 0;
         
         foreach ($items as $item) {
+            $items_processed++;
             $product_id = is_object($item) ? $item->product_id : $item['product_id'];
             $quantity = is_object($item) ? $item->quantity : $item['quantity'];
             $product_name = is_object($item) ? $item->product_name : $item['product_name'];
@@ -33,6 +37,7 @@ class RPOS_Fryer_Usage {
             // Check if this product uses fryer oil
             if (!RPOS_Fryer_Products::is_fryer_product($product_id)) {
                 error_log("RPOS Fryer: Product #" . $product_id . " (" . $product_name . ") is not a fryer product");
+                $items_skipped++;
                 continue;
             }
             
@@ -46,7 +51,8 @@ class RPOS_Fryer_Usage {
             $batch = RPOS_Fryer_Oil_Batches::get_active($fryer_id);
             
             if (!$batch) {
-                error_log("RPOS Fryer: No active batch found for fryer #" . ($fryer_id ?: 'default') . ", skipping product #" . $product_id);
+                error_log("RPOS Fryer: WARNING - No active batch found for fryer #" . ($fryer_id ?: 'default') . " for product #" . $product_id . " (" . $product_name . "). Please create an active oil batch to track usage.");
+                $items_skipped++;
                 continue;
             }
             
@@ -55,10 +61,13 @@ class RPOS_Fryer_Usage {
             // Get oil units for this product
             $oil_units = RPOS_Fryer_Products::get_oil_units($product_id, $fryer_id);
             
-            if ($oil_units === null) {
-                error_log("RPOS Fryer: No oil units configured for product #" . $product_id);
+            if ($oil_units === null || $oil_units <= 0) {
+                error_log("RPOS Fryer: WARNING - No oil units configured for product #" . $product_id . " (" . $product_name . "). Please configure oil consumption units in Fryer Oil Settings.");
+                $items_skipped++;
                 continue;
             }
+            
+            error_log("RPOS Fryer: Oil units for product #" . $product_id . ": " . $oil_units . " units per item");
             
             // Calculate total units consumed
             $units_consumed = floatval($oil_units) * intval($quantity);
@@ -83,11 +92,13 @@ class RPOS_Fryer_Usage {
                 // Increment batch usage
                 RPOS_Fryer_Oil_Batches::increment_usage($batch->id, $units_consumed);
                 $recorded = true;
-                error_log("RPOS Fryer: Recorded usage for product #" . $product_id . " (" . $quantity . " x " . $oil_units . " = " . $units_consumed . " units) in batch #" . $batch->id);
+                error_log("RPOS Fryer: SUCCESS - Recorded usage for product #" . $product_id . " (" . $quantity . " x " . $oil_units . " = " . $units_consumed . " units) in batch #" . $batch->id . " (" . $batch->batch_name . ")");
             } else {
-                error_log("RPOS Fryer: Failed to record usage for product #" . $product_id . " - DB error: " . $wpdb->last_error);
+                error_log("RPOS Fryer: ERROR - Failed to record usage for product #" . $product_id . " - DB error: " . $wpdb->last_error);
             }
         }
+        
+        error_log("RPOS Fryer: Summary for order #" . $order_id . " - Processed: " . $items_processed . " items, Recorded: " . ($recorded ? 'YES' : 'NO') . ", Skipped: " . $items_skipped);
         
         return $recorded;
     }

@@ -28,6 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_settings_nonce']
     RPOS_Settings::update('restaurant_address', sanitize_textarea_field($_POST['restaurant_address'] ?? ''));
     RPOS_Settings::update('receipt_footer_message', sanitize_textarea_field($_POST['receipt_footer_message'] ?? 'Thank you for your order!'));
     
+    // Handle notification sound upload
+    if (isset($_POST['notification_sound_url'])) {
+        RPOS_Settings::update('notification_sound_url', esc_url_raw($_POST['notification_sound_url']));
+    }
+    
     echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully!', 'restaurant-pos') . '</p></div>';
 }
 
@@ -224,6 +229,33 @@ $tab = $_GET['tab'] ?? 'general';
                     </tr>
                 </table>
                 
+                <h3><?php echo esc_html__('Notification Settings', 'restaurant-pos'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="notification_sound_url"><?php echo esc_html__('KDS Notification Sound', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="url" id="notification_sound_url" name="notification_sound_url" class="regular-text" 
+                                   value="<?php echo esc_attr($settings['notification_sound_url'] ?? ''); ?>" readonly>
+                            <button type="button" class="button" id="upload_notification_sound_button">
+                                <?php echo esc_html__('Upload Sound', 'restaurant-pos'); ?>
+                            </button>
+                            <button type="button" class="button" id="clear_notification_sound_button">
+                                <?php echo esc_html__('Clear', 'restaurant-pos'); ?>
+                            </button>
+                            <?php if (!empty($settings['notification_sound_url'])): ?>
+                            <button type="button" class="button" id="test_notification_sound_button">
+                                <?php echo esc_html__('Test Sound', 'restaurant-pos'); ?>
+                            </button>
+                            <?php endif; ?>
+                            <p class="description">
+                                <?php echo esc_html__('Upload a custom notification sound (.mp3 or .wav) for Kitchen Display orders. Leave empty to use the default sound.', 'restaurant-pos'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
                 <p class="submit">
                     <button type="submit" class="button button-primary button-large">
                         <?php echo esc_html__('Save Settings', 'restaurant-pos'); ?>
@@ -288,3 +320,62 @@ $tab = $_GET['tab'] ?? 'general';
         </div>
     <?php endif; ?>
 </div>
+
+<?php
+// Enqueue WordPress media scripts for notification sound upload
+if ($tab === 'display') {
+    wp_enqueue_media();
+    ?>
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
+        // Notification sound upload
+        var mediaUploader;
+        $('#upload_notification_sound_button').on('click', function(e) {
+            e.preventDefault();
+            
+            if (mediaUploader) {
+                mediaUploader.open();
+                return;
+            }
+            
+            mediaUploader = wp.media({
+                title: '<?php echo esc_js(__('Choose Notification Sound', 'restaurant-pos')); ?>',
+                button: {
+                    text: '<?php echo esc_js(__('Use this sound', 'restaurant-pos')); ?>'
+                },
+                library: {
+                    type: ['audio/mpeg', 'audio/wav', 'audio/mp3']
+                },
+                multiple: false
+            });
+            
+            mediaUploader.on('select', function() {
+                var attachment = mediaUploader.state().get('selection').first().toJSON();
+                $('#notification_sound_url').val(attachment.url);
+            });
+            
+            mediaUploader.open();
+        });
+        
+        // Clear notification sound
+        $('#clear_notification_sound_button').on('click', function(e) {
+            e.preventDefault();
+            $('#notification_sound_url').val('');
+        });
+        
+        // Test notification sound
+        $('#test_notification_sound_button').on('click', function(e) {
+            e.preventDefault();
+            var soundUrl = $('#notification_sound_url').val();
+            if (soundUrl) {
+                var audio = new Audio(soundUrl);
+                audio.play().catch(function(error) {
+                    alert('<?php echo esc_js(__('Could not play sound. Please check the file format.', 'restaurant-pos')); ?>');
+                });
+            }
+        });
+    });
+    </script>
+    <?php
+}
+?>
