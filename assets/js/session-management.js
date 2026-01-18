@@ -553,9 +553,9 @@
                 if (paymentType === 'cash') {
                     // Cash: Keep payment_type as 'cod', set status to 'cod_received'
                     // This maps to "Total COD Collected" in shift summary
+                    // Do NOT send payment_type - keep it as 'cod' in the database
                     requestData = {
-                        payment_status: 'cod_received',
-                        payment_type: 'cod'
+                        payment_status: 'cod_received'
                     };
                 } else if (paymentType === 'online') {
                     // Online: Change payment_type to 'online', set status to 'paid'
