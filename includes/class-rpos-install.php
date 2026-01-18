@@ -366,6 +366,13 @@ class RPOS_Install {
             self::migrate_cashier_session_system();
             update_option('rpos_cashier_session_migration_done', true);
         }
+        
+        // Run kitchen staff capability upgrade if not already done
+        $kitchen_staff_upgrade_done = get_option('rpos_kitchen_staff_capability_upgrade_done', false);
+        if (!$kitchen_staff_upgrade_done) {
+            self::upgrade_kitchen_staff_capabilities();
+            update_option('rpos_kitchen_staff_capability_upgrade_done', true);
+        }
     }
     
     /**
@@ -1514,6 +1521,21 @@ class RPOS_Install {
         if ($column_info && strpos($column_info->Type, 'delivered') === false) {
             $safe_table = esc_sql($table_name);
             $wpdb->query("ALTER TABLE `{$safe_table}` MODIFY `order_status` ENUM('active','delivered','completed','cancelled','replacement') DEFAULT 'active'");
+        }
+    }
+    
+    /**
+     * Upgrade kitchen staff role to include rpos_view_orders capability
+     * This ensures existing kitchen_staff users can view orders in KDS
+     */
+    public static function upgrade_kitchen_staff_capabilities() {
+        // Get the kitchen_staff role
+        $kitchen_staff = get_role('kitchen_staff');
+        
+        // If role exists and doesn't have the capability, add it
+        if ($kitchen_staff && !$kitchen_staff->has_cap('rpos_view_orders')) {
+            $kitchen_staff->add_cap('rpos_view_orders');
+            error_log('RPOS: Added rpos_view_orders capability to kitchen_staff role');
         }
     }
 }
