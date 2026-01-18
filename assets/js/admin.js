@@ -1317,7 +1317,16 @@
             if (!document.getElementById('kds-notification-sound')) {
                 var audio = document.createElement('audio');
                 audio.id = 'kds-notification-sound';
-                audio.innerHTML = '<source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSyBzvLZiTYIGWi78OShTwsNUrDm77BZFApIoemMvGojAwAA" type="audio/wav" />';
+                
+                // Use custom notification sound if configured, otherwise use default
+                var soundUrl = (typeof rposAdmin !== 'undefined' && rposAdmin.notificationSoundUrl) 
+                    ? rposAdmin.notificationSoundUrl 
+                    : NOTIFICATION_SOUND_DATA;
+                    
+                var soundType = soundUrl.indexOf('data:audio/wav') === 0 ? 'audio/wav' : 
+                               soundUrl.indexOf('.mp3') !== -1 ? 'audio/mpeg' : 'audio/wav';
+                
+                audio.innerHTML = '<source src="' + soundUrl + '" type="' + soundType + '" />';
                 document.body.appendChild(audio);
             }
         },
