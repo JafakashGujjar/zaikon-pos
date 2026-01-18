@@ -46,6 +46,7 @@ class RPOS_Roles {
         add_role('kitchen_staff', __('Kitchen Staff', 'restaurant-pos'), array(
             'read' => true,
             'rpos_view_kds' => true,
+            'rpos_view_orders' => true,
         ));
         
         // Inventory Manager - Products and inventory only
