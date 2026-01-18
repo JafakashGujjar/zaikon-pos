@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
             </button>
             <label class="zaikon-kds-auto-refresh-label">
                 <input type="checkbox" id="rpos-kds-auto-refresh" checked>
-                <?php echo esc_html__('Live Updates', 'restaurant-pos'); ?>
+                <?php echo esc_html__('Auto-refresh (30s)', 'restaurant-pos'); ?>
             </label>
         </div>
     </div>
