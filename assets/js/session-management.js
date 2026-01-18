@@ -557,13 +557,17 @@
                         payment_status: 'cod_received'
                         // payment_type stays as 'cod' - no need to send it
                     };
-                } else {
+                } else if (paymentType === 'online') {
                     // Online: Change payment_type to 'online', set status to 'paid'
                     // This maps to "Total Online Payments" in shift summary
                     requestData = {
                         payment_status: 'paid',
                         payment_type: 'online'
                     };
+                } else {
+                    console.error('Invalid payment type:', paymentType);
+                    window.ZaikonToast.error('Invalid payment type');
+                    return;
                 }
                 
                 $.ajax({
