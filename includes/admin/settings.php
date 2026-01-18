@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_settings_nonce']
     RPOS_Settings::update('restaurant_address', sanitize_textarea_field($_POST['restaurant_address'] ?? ''));
     RPOS_Settings::update('receipt_footer_message', sanitize_textarea_field($_POST['receipt_footer_message'] ?? 'Thank you for your order!'));
     
-    // Handle notification sound upload
+    // Handle notification sound upload (within nonce check)
     if (isset($_POST['notification_sound_url'])) {
         RPOS_Settings::update('notification_sound_url', esc_url_raw($_POST['notification_sound_url']));
     }
@@ -344,7 +344,7 @@ if ($tab === 'display') {
                     text: '<?php echo esc_js(__('Use this sound', 'restaurant-pos')); ?>'
                 },
                 library: {
-                    type: ['audio/mpeg', 'audio/wav', 'audio/mp3']
+                    type: ['audio/mpeg', 'audio/wav']
                 },
                 multiple: false
             });

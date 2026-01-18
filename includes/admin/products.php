@@ -613,7 +613,11 @@ jQuery(document).ready(function($) {
     });
     
     function updateImagePreview(url) {
-        $('#product_image_preview').html('<img src="' + url + '" style="max-width: 200px; max-height: 200px; display: block;">');
+        var $img = $('<img>').attr({
+            'src': url,
+            'style': 'max-width: 200px; max-height: 200px; display: block;'
+        });
+        $('#product_image_preview').empty().append($img);
     }
 });
 </script>

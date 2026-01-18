@@ -14,6 +14,8 @@ class RPOS_Fryer_Usage {
      * Record usage from order items
      */
     public static function record_usage_from_order($order_id, $items) {
+        $order_id = absint($order_id);
+        
         if (empty($items)) {
             error_log("RPOS Fryer: No items provided for order #" . $order_id);
             return false;

@@ -579,8 +579,15 @@
                     ? rposAdmin.notificationSoundUrl 
                     : NOTIFICATION_SOUND_DATA;
                     
-                var soundType = soundUrl.indexOf('data:audio/wav') === 0 ? 'audio/wav' : 
-                               soundUrl.indexOf('.mp3') !== -1 ? 'audio/mpeg' : 'audio/wav';
+                // Detect sound type based on URL pattern
+                var soundType = 'audio/wav'; // default
+                if (soundUrl.indexOf('data:audio/wav') === 0) {
+                    soundType = 'audio/wav';
+                } else if (soundUrl.match(/\.(mp3|mpeg)$/i) || soundUrl.indexOf('audio/mpeg') !== -1) {
+                    soundType = 'audio/mpeg';
+                } else if (soundUrl.match(/\.wav$/i) || soundUrl.indexOf('audio/wav') !== -1) {
+                    soundType = 'audio/wav';
+                }
                 
                 audio.innerHTML = '<source src="' + soundUrl + '" type="' + soundType + '" />';
                 document.body.appendChild(audio);
@@ -1323,8 +1330,15 @@
                     ? rposAdmin.notificationSoundUrl 
                     : NOTIFICATION_SOUND_DATA;
                     
-                var soundType = soundUrl.indexOf('data:audio/wav') === 0 ? 'audio/wav' : 
-                               soundUrl.indexOf('.mp3') !== -1 ? 'audio/mpeg' : 'audio/wav';
+                // Detect sound type based on URL pattern
+                var soundType = 'audio/wav'; // default
+                if (soundUrl.indexOf('data:audio/wav') === 0) {
+                    soundType = 'audio/wav';
+                } else if (soundUrl.match(/\.(mp3|mpeg)$/i) || soundUrl.indexOf('audio/mpeg') !== -1) {
+                    soundType = 'audio/mpeg';
+                } else if (soundUrl.match(/\.wav$/i) || soundUrl.indexOf('audio/wav') !== -1) {
+                    soundType = 'audio/wav';
+                }
                 
                 audio.innerHTML = '<source src="' + soundUrl + '" type="' + soundType + '" />';
                 document.body.appendChild(audio);
@@ -1694,6 +1708,8 @@
         startAutoRefresh: function() {
             var self = this;
             this.stopAutoRefresh();
+            // Note: 5-second polling is a significant improvement over 30 seconds for restaurant operations
+            // Future enhancement: Consider WebSocket/Server-Sent Events for true real-time updates
             this.autoRefreshInterval = setInterval(function() {
                 self.loadOrders();
             }, 5000); // 5 seconds - Real-time updates for KDS
