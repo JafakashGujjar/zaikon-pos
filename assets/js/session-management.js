@@ -548,6 +548,24 @@
                 $('#zaikon-payment-type-modal').remove();
                 cleanupModalEvents();
                 
+                // Determine payment_type and payment_status based on selection
+                var requestData;
+                if (paymentType === 'cash') {
+                    // Cash: Keep payment_type as 'cod', set status to 'cod_received'
+                    // This maps to "Total COD Collected" in shift summary
+                    requestData = {
+                        payment_status: 'cod_received'
+                        // payment_type stays as 'cod' - no need to send it
+                    };
+                } else {
+                    // Online: Change payment_type to 'online', set status to 'paid'
+                    // This maps to "Total Online Payments" in shift summary
+                    requestData = {
+                        payment_status: 'paid',
+                        payment_type: 'online'
+                    };
+                }
+                
                 $.ajax({
                     url: rposData.zaikonRestUrl + 'orders/' + orderId + '/payment-status',
                     method: 'PUT',
@@ -555,12 +573,10 @@
                     beforeSend: function(xhr) {
                         xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
                     },
-                    data: JSON.stringify({
-                        payment_status: 'paid',
-                        payment_type: paymentType
-                    }),
+                    data: JSON.stringify(requestData),
                     success: function(response) {
-                        window.ZaikonToast.success('Order marked as paid (' + (paymentType === 'cash' ? 'Cash' : 'Online') + ')');
+                        var message = paymentType === 'cash' ? 'COD payment received (Cash)' : 'Payment received (Online)';
+                        window.ZaikonToast.success(message);
                         self.loadOrders();
                     },
                     error: function(xhr) {
