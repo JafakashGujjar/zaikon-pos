@@ -65,10 +65,12 @@ class RPOS_Fryer_Oil_Batches {
         global $wpdb;
         
         return $wpdb->get_row($wpdb->prepare(
-            "SELECT b.*, u.display_name as created_by_name, u2.display_name as closed_by_name
+            "SELECT b.*, u.display_name as created_by_name, u2.display_name as closed_by_name,
+                    f.name as fryer_name
              FROM {$wpdb->prefix}rpos_fryer_oil_batches b
              LEFT JOIN {$wpdb->users} u ON b.created_by = u.ID
              LEFT JOIN {$wpdb->users} u2 ON b.closed_by = u2.ID
+             LEFT JOIN {$wpdb->prefix}rpos_fryers f ON b.fryer_id = f.id
              WHERE b.id = %d",
             $id
         ));
@@ -80,18 +82,35 @@ class RPOS_Fryer_Oil_Batches {
     public static function get_active($fryer_id = null) {
         global $wpdb;
         
-        $query = "SELECT b.*, u.display_name as created_by_name
+        $query = "SELECT b.*, u.display_name as created_by_name, f.name as fryer_name
                   FROM {$wpdb->prefix}rpos_fryer_oil_batches b
                   LEFT JOIN {$wpdb->users} u ON b.created_by = u.ID
+                  LEFT JOIN {$wpdb->prefix}rpos_fryers f ON b.fryer_id = f.id
                   WHERE b.status = 'active'";
         
-        if ($fryer_id !== null) {
+        if ($fryer_id !== null && $fryer_id > 0) {
             $query .= $wpdb->prepare(" AND b.fryer_id = %d", $fryer_id);
+        } else {
+            // For default/unassigned fryer, get any active batch (prefer ones without fryer_id first)
+            $query .= " AND (b.fryer_id IS NULL OR b.fryer_id = 0)";
         }
         
         $query .= " ORDER BY b.created_at DESC LIMIT 1";
         
-        return $wpdb->get_row($query);
+        $batch = $wpdb->get_row($query);
+        
+        // Fallback: if no batch found for null/0 fryer_id, try to get ANY active batch
+        if (!$batch && ($fryer_id === null || $fryer_id === 0)) {
+            $query = "SELECT b.*, u.display_name as created_by_name, f.name as fryer_name
+                      FROM {$wpdb->prefix}rpos_fryer_oil_batches b
+                      LEFT JOIN {$wpdb->users} u ON b.created_by = u.ID
+                      LEFT JOIN {$wpdb->prefix}rpos_fryers f ON b.fryer_id = f.id
+                      WHERE b.status = 'active'
+                      ORDER BY b.created_at DESC LIMIT 1";
+            $batch = $wpdb->get_row($query);
+        }
+        
+        return $batch;
     }
     
     /**

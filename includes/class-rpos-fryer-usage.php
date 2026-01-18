@@ -20,6 +20,8 @@ class RPOS_Fryer_Usage {
         
         global $wpdb;
         
+        error_log("RPOS Fryer: Processing order #" . $order_id . " with " . count($items) . " items");
+        
         $recorded = false;
         
         foreach ($items as $item) {
@@ -30,11 +32,15 @@ class RPOS_Fryer_Usage {
             
             // Check if this product uses fryer oil
             if (!RPOS_Fryer_Products::is_fryer_product($product_id)) {
+                error_log("RPOS Fryer: Product #" . $product_id . " (" . $product_name . ") is not a fryer product");
                 continue;
             }
             
+            error_log("RPOS Fryer: Product #" . $product_id . " (" . $product_name . ") is a fryer product");
+            
             // Get the fryer for this product
             $fryer_id = RPOS_Fryer_Products::get_product_fryer($product_id);
+            error_log("RPOS Fryer: Product #" . $product_id . " is assigned to fryer ID: " . ($fryer_id ?: 'null/default'));
             
             // Get active batch for this fryer
             $batch = RPOS_Fryer_Oil_Batches::get_active($fryer_id);
@@ -43,6 +49,8 @@ class RPOS_Fryer_Usage {
                 error_log("RPOS Fryer: No active batch found for fryer #" . ($fryer_id ?: 'default') . ", skipping product #" . $product_id);
                 continue;
             }
+            
+            error_log("RPOS Fryer: Found active batch #" . $batch->id . " (" . $batch->batch_name . ") for fryer #" . ($fryer_id ?: 'default'));
             
             // Get oil units for this product
             $oil_units = RPOS_Fryer_Products::get_oil_units($product_id, $fryer_id);
@@ -75,6 +83,8 @@ class RPOS_Fryer_Usage {
                 RPOS_Fryer_Oil_Batches::increment_usage($batch->id, $units_consumed);
                 $recorded = true;
                 error_log("RPOS Fryer: Recorded usage for product #" . $product_id . " (" . $quantity . " x " . $oil_units . " = " . $units_consumed . " units) in batch #" . $batch->id);
+            } else {
+                error_log("RPOS Fryer: Failed to record usage for product #" . $product_id . " - DB error: " . $wpdb->last_error);
             }
         }
         
