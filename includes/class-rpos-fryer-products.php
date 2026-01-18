@@ -132,6 +132,7 @@ class RPOS_Fryer_Products {
             $result = $wpdb->get_var($wpdb->prepare(
                 "SELECT oil_units FROM {$wpdb->prefix}rpos_fryer_product_map
                  WHERE product_id = %d
+                 ORDER BY id ASC
                  LIMIT 1",
                 $product_id
             ));
