@@ -1676,9 +1676,70 @@
         startAutoRefresh: function() {
             var self = this;
             this.stopAutoRefresh();
+            // Use 3-second polling for near-instant updates
             this.autoRefreshInterval = setInterval(function() {
-                self.loadOrders();
-            }, 30000); // 30 seconds
+                self.checkForNewOrders();
+            }, 3000); // 3 seconds for live updates
+        },
+        
+        // Add new method to check for new orders efficiently
+        checkForNewOrders: function() {
+            var self = this;
+            
+            $.ajax({
+                url: rposKdsData.restUrl + 'orders',
+                method: 'GET',
+                data: { limit: 100 },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposKdsData.nonce);
+                },
+                success: function(response) {
+                    var newOrders = response.filter(function(order) {
+                        return ['new', 'cooking', 'ready'].includes(order.status);
+                    });
+                    
+                    // Get current order IDs
+                    var currentOrderIds = newOrders.map(function(o) { return o.id; });
+                    
+                    // Check if there are any changes (new orders added or orders removed/status changed)
+                    var hasChanges = false;
+                    
+                    // Check for new orders
+                    if (self.previousOrderIds.length > 0) {
+                        var newlyAdded = currentOrderIds.filter(function(id) {
+                            return self.previousOrderIds.indexOf(id) === -1;
+                        });
+                        
+                        var removed = self.previousOrderIds.filter(function(id) {
+                            return currentOrderIds.indexOf(id) === -1;
+                        });
+                        
+                        hasChanges = newlyAdded.length > 0 || removed.length > 0;
+                        
+                        // Also check if any order statuses changed
+                        if (!hasChanges) {
+                            var currentStatuses = {};
+                            newOrders.forEach(function(o) { currentStatuses[o.id] = o.status; });
+                            
+                            hasChanges = self.orders.some(function(o) {
+                                return currentStatuses[o.id] && currentStatuses[o.id] !== o.status;
+                            });
+                        }
+                    } else {
+                        // First load or empty list - always update
+                        hasChanges = true;
+                    }
+                    
+                    // Only re-render if there are actual changes
+                    if (hasChanges) {
+                        console.log('ZAIKON KDS: Changes detected, updating display...');
+                        self.loadOrders(); // Full reload when changes detected
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('ZAIKON KDS: Failed to check for new orders', error);
+                }
+            });
         },
         
         stopAutoRefresh: function() {
