@@ -512,27 +512,67 @@
         markOrderPaid: function(orderId) {
             var self = this;
             
-            if (!confirm('Mark this COD order as paid?')) {
-                return;
-            }
+            // Create payment type selection modal
+            var modalHtml = '<div id="zaikon-payment-type-modal" class="zaikon-payment-type-modal">' +
+                '<div class="zaikon-payment-type-content">' +
+                    '<h3>How was payment received?</h3>' +
+                    '<p>Select the payment method for this COD order:</p>' +
+                    '<div class="zaikon-payment-type-buttons">' +
+                        '<button class="zaikon-payment-type-btn cash-btn" data-payment-type="cash">' +
+                            '<span class="payment-icon">💵</span>' +
+                            '<span class="payment-label">Cash</span>' +
+                        '</button>' +
+                        '<button class="zaikon-payment-type-btn online-btn" data-payment-type="online">' +
+                            '<span class="payment-icon">💳</span>' +
+                            '<span class="payment-label">Online Payment</span>' +
+                        '</button>' +
+                    '</div>' +
+                    '<button class="zaikon-payment-type-cancel">Cancel</button>' +
+                '</div>' +
+            '</div>';
             
-            $.ajax({
-                url: rposData.zaikonRestUrl + 'orders/' + orderId + '/payment-status',
-                method: 'PUT',
-                contentType: 'application/json',
-                beforeSend: function(xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
-                },
-                data: JSON.stringify({
-                    payment_status: 'paid'
-                }),
-                success: function(response) {
-                    window.ZaikonToast.success('Order marked as paid');
-                    self.loadOrders();
-                },
-                error: function(xhr) {
-                    console.error('Error updating payment status:', xhr);
-                    window.ZaikonToast.error('Failed to update payment status');
+            // Remove existing modal if any
+            $('#zaikon-payment-type-modal').remove();
+            
+            // Add modal to body
+            $('body').append(modalHtml);
+            
+            // Handle payment type selection
+            $('.zaikon-payment-type-btn').on('click', function() {
+                var paymentType = $(this).data('payment-type');
+                $('#zaikon-payment-type-modal').remove();
+                
+                $.ajax({
+                    url: rposData.zaikonRestUrl + 'orders/' + orderId + '/payment-status',
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                    },
+                    data: JSON.stringify({
+                        payment_status: 'paid',
+                        payment_type: paymentType
+                    }),
+                    success: function(response) {
+                        window.ZaikonToast.success('Order marked as paid (' + (paymentType === 'cash' ? 'Cash' : 'Online') + ')');
+                        self.loadOrders();
+                    },
+                    error: function(xhr) {
+                        console.error('Error updating payment status:', xhr);
+                        window.ZaikonToast.error('Failed to update payment status');
+                    }
+                });
+            });
+            
+            // Handle cancel
+            $('.zaikon-payment-type-cancel').on('click', function() {
+                $('#zaikon-payment-type-modal').remove();
+            });
+            
+            // Close modal when clicking outside
+            $('#zaikon-payment-type-modal').on('click', function(e) {
+                if ($(e.target).is('#zaikon-payment-type-modal')) {
+                    $('#zaikon-payment-type-modal').remove();
                 }
             });
         },
