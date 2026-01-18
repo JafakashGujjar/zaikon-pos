@@ -1231,11 +1231,11 @@ class RPOS_REST_API {
         
         // Convert local date to UTC date range for proper timezone handling
         // The database stores timestamps in UTC, so we need to convert local date boundaries to UTC
+        $utc_timezone = new DateTimeZone('UTC');
         $local_start = new DateTime($date . ' 00:00:00', RPOS_Timezone::get_timezone());
         $local_end = new DateTime($date . ' 23:59:59', RPOS_Timezone::get_timezone());
         
         // Convert to UTC for database query
-        $utc_timezone = new DateTimeZone('UTC');
         $local_start->setTimezone($utc_timezone);
         $local_end->setTimezone($utc_timezone);
         
