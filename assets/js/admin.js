@@ -1698,13 +1698,15 @@
                         return ['new', 'cooking', 'ready'].includes(order.status);
                     });
                     
-                    // Get current order IDs
+                    // Get current order IDs and statuses
                     var currentOrderIds = newOrders.map(function(o) { return o.id; });
+                    var currentStatuses = {};
+                    newOrders.forEach(function(o) { currentStatuses[o.id] = o.status; });
                     
                     // Check if there are any changes (new orders added or orders removed/status changed)
                     var hasChanges = false;
                     
-                    // Check for new orders
+                    // Check for changes only if we have previous data
                     if (self.previousOrderIds.length > 0) {
                         var newlyAdded = currentOrderIds.filter(function(id) {
                             return self.previousOrderIds.indexOf(id) === -1;
@@ -1717,12 +1719,12 @@
                         hasChanges = newlyAdded.length > 0 || removed.length > 0;
                         
                         // Also check if any order statuses changed
-                        if (!hasChanges) {
-                            var currentStatuses = {};
-                            newOrders.forEach(function(o) { currentStatuses[o.id] = o.status; });
+                        if (!hasChanges && self.orders.length > 0) {
+                            var previousStatuses = {};
+                            self.orders.forEach(function(o) { previousStatuses[o.id] = o.status; });
                             
-                            hasChanges = self.orders.some(function(o) {
-                                return currentStatuses[o.id] && currentStatuses[o.id] !== o.status;
+                            hasChanges = currentOrderIds.some(function(id) {
+                                return previousStatuses[id] && previousStatuses[id] !== currentStatuses[id];
                             });
                         }
                     } else {
@@ -1734,6 +1736,10 @@
                     if (hasChanges) {
                         console.log('ZAIKON KDS: Changes detected, updating display...');
                         self.loadOrders(); // Full reload when changes detected
+                    } else {
+                        // Update tracking data even when no visual changes needed
+                        self.previousOrderIds = currentOrderIds;
+                        self.orders = newOrders;
                     }
                 },
                 error: function(xhr, status, error) {
