@@ -512,6 +512,9 @@
         markOrderPaid: function(orderId) {
             var self = this;
             
+            // Remove existing modal if any
+            $('#zaikon-payment-type-modal').remove();
+            
             // Create payment type selection modal
             var modalHtml = '<div id="zaikon-payment-type-modal" class="zaikon-payment-type-modal">' +
                 '<div class="zaikon-payment-type-content">' +
@@ -531,16 +534,14 @@
                 '</div>' +
             '</div>';
             
-            // Remove existing modal if any
-            $('#zaikon-payment-type-modal').remove();
-            
             // Add modal to body
             $('body').append(modalHtml);
             
-            // Handle payment type selection
-            $('.zaikon-payment-type-btn').on('click', function() {
+            // Handle payment type selection using event delegation
+            $(document).off('click.paymentType').on('click.paymentType', '.zaikon-payment-type-btn', function() {
                 var paymentType = $(this).data('payment-type');
                 $('#zaikon-payment-type-modal').remove();
+                $(document).off('click.paymentType');
                 
                 $.ajax({
                     url: rposData.zaikonRestUrl + 'orders/' + orderId + '/payment-status',
@@ -564,15 +565,21 @@
                 });
             });
             
-            // Handle cancel
-            $('.zaikon-payment-type-cancel').on('click', function() {
+            // Handle cancel using event delegation
+            $(document).on('click.paymentTypeCancel', '.zaikon-payment-type-cancel', function() {
                 $('#zaikon-payment-type-modal').remove();
+                $(document).off('click.paymentType');
+                $(document).off('click.paymentTypeCancel');
+                $(document).off('click.paymentTypeOverlay');
             });
             
-            // Close modal when clicking outside
-            $('#zaikon-payment-type-modal').on('click', function(e) {
+            // Close modal when clicking outside using event delegation
+            $(document).on('click.paymentTypeOverlay', '#zaikon-payment-type-modal', function(e) {
                 if ($(e.target).is('#zaikon-payment-type-modal')) {
                     $('#zaikon-payment-type-modal').remove();
+                    $(document).off('click.paymentType');
+                    $(document).off('click.paymentTypeCancel');
+                    $(document).off('click.paymentTypeOverlay');
                 }
             });
         },
