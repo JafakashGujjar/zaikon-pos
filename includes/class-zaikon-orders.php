@@ -32,8 +32,8 @@ class Zaikon_Orders {
             'order_status' => sanitize_text_field($data['order_status'] ?? 'active'),
             'special_instructions' => isset($data['special_instructions']) ? sanitize_textarea_field($data['special_instructions']) : null,
             'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id()),
-            'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql')
+            'created_at' => RPOS_Timezone::current_utc_mysql(),
+            'updated_at' => RPOS_Timezone::current_utc_mysql()
         );
         
         $result = $wpdb->insert(
@@ -142,7 +142,7 @@ class Zaikon_Orders {
             return false;
         }
         
-        $update_data['updated_at'] = current_time('mysql');
+        $update_data['updated_at'] = RPOS_Timezone::current_utc_mysql();
         $formats[] = '%s';
         
         return $wpdb->update(

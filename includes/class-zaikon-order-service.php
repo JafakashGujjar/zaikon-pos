@@ -120,7 +120,7 @@ class Zaikon_Order_Service {
                         'rider_id' => $delivery_data['assigned_rider_id'],
                         'delivery_id' => $delivery_id,
                         'status' => 'assigned',
-                        'assigned_at' => current_time('mysql')
+                        'assigned_at' => RPOS_Timezone::current_utc_mysql()
                     ));
                     
                     if (!$rider_order_id) {
@@ -173,7 +173,7 @@ class Zaikon_Order_Service {
         );
         
         if ($new_status === 'delivered') {
-            $update_data['delivered_at'] = current_time('mysql');
+            $update_data['delivered_at'] = RPOS_Timezone::current_utc_mysql();
         }
         
         $result = Zaikon_Deliveries::update($delivery_id, $update_data);
@@ -278,7 +278,7 @@ class Zaikon_Order_Service {
                 'rider_id' => $rider_id,
                 'delivery_id' => $delivery->id,
                 'status' => 'assigned',
-                'assigned_at' => current_time('mysql'),
+                'assigned_at' => RPOS_Timezone::current_utc_mysql(),
                 'notes' => $notes
             ));
         }

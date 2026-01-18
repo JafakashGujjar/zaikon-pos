@@ -10,6 +10,23 @@ if (!defined('ABSPATH')) {
 class RPOS_Timezone {
     
     /**
+     * Cached UTC timezone instance
+     */
+    private static $utc_timezone = null;
+    
+    /**
+     * Get UTC timezone (cached)
+     * 
+     * @return DateTimeZone UTC timezone object
+     */
+    private static function get_utc_timezone() {
+        if (self::$utc_timezone === null) {
+            self::$utc_timezone = new DateTimeZone('UTC');
+        }
+        return self::$utc_timezone;
+    }
+    
+    /**
      * Get the configured timezone string
      */
     public static function get_timezone_string() {
@@ -55,6 +72,30 @@ class RPOS_Timezone {
     }
     
     /**
+     * Get current UTC DateTime for database storage
+     * 
+     * Returns current time in UTC timezone as DateTime object.
+     * Use this when storing timestamps in the database to ensure consistency.
+     * 
+     * @return DateTime DateTime object in UTC timezone
+     */
+    public static function now_utc() {
+        return new DateTime('now', self::get_utc_timezone());
+    }
+    
+    /**
+     * Get current UTC time as MySQL datetime string for database storage
+     * 
+     * Returns a MySQL-compatible datetime string in UTC timezone.
+     * Format: YYYY-MM-DD HH:MM:SS (e.g., '2024-01-17 14:30:00')
+     * 
+     * @return string MySQL datetime string in UTC format
+     */
+    public static function current_utc_mysql() {
+        return self::now_utc()->format('Y-m-d H:i:s');
+    }
+    
+    /**
      * Convert a timestamp or datetime string to plugin timezone
      * 
      * IMPORTANT: This method assumes datetime strings from the database are in UTC.
@@ -72,7 +113,7 @@ class RPOS_Timezone {
         } else {
             // MySQL datetime string - ASSUMES UTC storage
             // This is the standard for WordPress and most web applications
-            $dt = new DateTime($datetime, new DateTimeZone('UTC'));
+            $dt = new DateTime($datetime, self::get_utc_timezone());
         }
         
         $dt->setTimezone(self::get_timezone());

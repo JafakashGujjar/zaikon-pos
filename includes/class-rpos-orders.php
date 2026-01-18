@@ -45,7 +45,7 @@ class RPOS_Orders {
             'order_type' => sanitize_text_field($data['order_type'] ?? 'dine-in'),
             'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
             'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id()),
-            'created_at' => current_time('mysql')
+            'created_at' => RPOS_Timezone::current_utc_mysql()
         );
         
         // Build formats array dynamically

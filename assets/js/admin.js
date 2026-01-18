@@ -1359,29 +1359,10 @@
         getElapsedMinutes: function(createdAt) {
             var now = new Date();
             
-            // Get timezone offset from plugin settings
-            // NOTE: This logic is duplicated in session-management.js formatOrderTime()
-            // Keep both implementations in sync if modifications are needed
-            var timezoneOffset = 0;
-            if (typeof rposAdmin !== 'undefined' && typeof rposAdmin.timezoneOffset !== 'undefined') {
-                timezoneOffset = parseInt(rposAdmin.timezoneOffset);
-                if (isNaN(timezoneOffset)) {
-                    timezoneOffset = 0;
-                }
-            } else if (typeof rposKdsData !== 'undefined' && typeof rposKdsData.timezoneOffset !== 'undefined') {
-                timezoneOffset = parseInt(rposKdsData.timezoneOffset);
-                if (isNaN(timezoneOffset)) {
-                    timezoneOffset = 0;
-                }
-            }
-            
-            // WordPress current_time('mysql') returns datetime in plugin's configured timezone
-            // Parse it as UTC first, then subtract the plugin offset to get actual UTC timestamp
-            // For example: MySQL datetime "2024-01-17 14:30:00" in UTC+5 timezone
-            // → parse as UTC gives "2024-01-17T14:30:00Z" 
-            // → subtract 5 hours offset → "2024-01-17T09:30:00Z" (actual UTC)
+            // Database now stores timestamps in UTC format (after fix)
+            // Parse the MySQL datetime string as UTC and calculate elapsed time
+            // The 'Z' suffix tells JavaScript to parse as UTC time
             var created = new Date(createdAt.replace(' ', 'T') + 'Z');
-            created = new Date(created.getTime() - (timezoneOffset * 60 * 1000));
             
             var diff = (now - created) / 1000 / 60; // minutes
             return diff;
