@@ -515,6 +515,11 @@
             // Remove existing modal if any
             $('#zaikon-payment-type-modal').remove();
             
+            // Cleanup function for event listeners
+            var cleanupModalEvents = function() {
+                $(document).off('.paymentTypeModal');
+            };
+            
             // Create payment type selection modal
             var modalHtml = '<div id="zaikon-payment-type-modal" class="zaikon-payment-type-modal">' +
                 '<div class="zaikon-payment-type-content">' +
@@ -538,10 +543,10 @@
             $('body').append(modalHtml);
             
             // Handle payment type selection using event delegation
-            $(document).off('click.paymentType').on('click.paymentType', '.zaikon-payment-type-btn', function() {
+            $(document).on('click.paymentTypeModal', '.zaikon-payment-type-btn', function() {
                 var paymentType = $(this).data('payment-type');
                 $('#zaikon-payment-type-modal').remove();
-                $(document).off('click.paymentType');
+                cleanupModalEvents();
                 
                 $.ajax({
                     url: rposData.zaikonRestUrl + 'orders/' + orderId + '/payment-status',
@@ -566,20 +571,16 @@
             });
             
             // Handle cancel using event delegation
-            $(document).on('click.paymentTypeCancel', '.zaikon-payment-type-cancel', function() {
+            $(document).on('click.paymentTypeModal', '.zaikon-payment-type-cancel', function() {
                 $('#zaikon-payment-type-modal').remove();
-                $(document).off('click.paymentType');
-                $(document).off('click.paymentTypeCancel');
-                $(document).off('click.paymentTypeOverlay');
+                cleanupModalEvents();
             });
             
             // Close modal when clicking outside using event delegation
-            $(document).on('click.paymentTypeOverlay', '#zaikon-payment-type-modal', function(e) {
+            $(document).on('click.paymentTypeModal', '#zaikon-payment-type-modal', function(e) {
                 if ($(e.target).is('#zaikon-payment-type-modal')) {
                     $('#zaikon-payment-type-modal').remove();
-                    $(document).off('click.paymentType');
-                    $(document).off('click.paymentTypeCancel');
-                    $(document).off('click.paymentTypeOverlay');
+                    cleanupModalEvents();
                 }
             });
         },
