@@ -1279,14 +1279,26 @@ class RPOS_REST_API {
             return new WP_Error('invalid_status', 'Invalid payment status', array('status' => 400));
         }
         
+        // Prepare update data
+        $update_data = array(
+            'payment_status' => $payment_status,
+            'updated_at' => RPOS_Timezone::current_utc_mysql()
+        );
+        
+        $format = array('%s', '%s');
+        
+        // Add support for updating payment_type when provided
+        $payment_type = sanitize_text_field($params['payment_type'] ?? '');
+        if ($payment_type && in_array($payment_type, array('cash', 'online', 'cod'))) {
+            $update_data['payment_type'] = $payment_type;
+            $format[] = '%s';
+        }
+        
         $result = $wpdb->update(
             $wpdb->prefix . 'zaikon_orders',
-            array(
-                'payment_status' => $payment_status,
-                'updated_at' => RPOS_Timezone::current_utc_mysql()
-            ),
+            $update_data,
             array('id' => $order_id),
-            array('%s', '%s'),
+            $format,
             array('%d')
         );
         
