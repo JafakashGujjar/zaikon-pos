@@ -193,6 +193,43 @@ class RPOS_Admin_Menu {
             array($this, 'gas_cylinders_page')
         );
         
+        // Fryer Oil Management
+        add_submenu_page(
+            'restaurant-pos',
+            __('Fryer Oil Dashboard', 'restaurant-pos'),
+            __('Fryer Oil', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-fryer-oil',
+            array($this, 'fryer_oil_dashboard_page')
+        );
+        
+        add_submenu_page(
+            'restaurant-pos',
+            __('Fryer Oil Batches', 'restaurant-pos'),
+            __('Oil Batches', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-fryer-oil-batches',
+            array($this, 'fryer_oil_batches_page')
+        );
+        
+        add_submenu_page(
+            'restaurant-pos',
+            __('Fryer Oil Settings', 'restaurant-pos'),
+            __('Oil Settings', 'restaurant-pos'),
+            'rpos_manage_inventory',
+            'restaurant-pos-fryer-oil-settings',
+            array($this, 'fryer_oil_settings_page')
+        );
+        
+        add_submenu_page(
+            'restaurant-pos',
+            __('Fryer Oil Reports', 'restaurant-pos'),
+            __('Oil Reports', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-fryer-oil-reports',
+            array($this, 'fryer_oil_reports_page')
+        );
+        
         // Orders
         add_submenu_page(
             'restaurant-pos',
@@ -379,6 +416,34 @@ class RPOS_Admin_Menu {
      */
     public function gas_cylinders_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/gas-cylinders-enterprise.php';
+    }
+    
+    /**
+     * Fryer Oil Dashboard page
+     */
+    public function fryer_oil_dashboard_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/fryer-oil-dashboard.php';
+    }
+    
+    /**
+     * Fryer Oil Batches page
+     */
+    public function fryer_oil_batches_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/fryer-oil-batches.php';
+    }
+    
+    /**
+     * Fryer Oil Settings page
+     */
+    public function fryer_oil_settings_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/fryer-oil-settings.php';
+    }
+    
+    /**
+     * Fryer Oil Reports page
+     */
+    public function fryer_oil_reports_page() {
+        include RPOS_PLUGIN_DIR . 'includes/admin/fryer-oil-reports.php';
     }
     
     /**

@@ -79,6 +79,14 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-riders.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-notifications.php';
         
+        // Fryer Oil Tracking system classes
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-fryer-oil.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-fryer-oil-batches.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-fryer-products.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-fryer-usage.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-fryer-reminders.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-fryer-reports.php';
+        
         // Batch/Lot inventory system classes
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-suppliers.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-rpos-batches.php';
@@ -150,6 +158,7 @@ class Restaurant_POS {
         RPOS_Admin_Menu::instance();
         RPOS_Admin_Notices::instance();
         RPOS_REST_API::instance();
+        RPOS_Fryer_Oil::instance();
         Zaikon_Frontend::init();
         
         // Load plugin text domain

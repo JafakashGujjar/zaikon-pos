@@ -342,6 +342,9 @@ class RPOS_Orders {
         // Track cylinder consumption (enterprise feature)
         RPOS_Gas_Cylinders::record_consumption($order_id, $order_items);
         
+        // Track fryer oil usage (enterprise feature)
+        RPOS_Fryer_Usage::record_usage_from_order($order_id, $order_items);
+        
         // Mark as deducted
         $result = self::mark_ingredients_deducted($order_id);
         error_log('RPOS Orders: Completed stock deduction for order #' . $order_id);
