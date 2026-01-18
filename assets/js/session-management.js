@@ -554,8 +554,8 @@
                     // Cash: Keep payment_type as 'cod', set status to 'cod_received'
                     // This maps to "Total COD Collected" in shift summary
                     requestData = {
-                        payment_status: 'cod_received'
-                        // payment_type stays as 'cod' - no need to send it
+                        payment_status: 'cod_received',
+                        payment_type: 'cod'
                     };
                 } else if (paymentType === 'online') {
                     // Online: Change payment_type to 'online', set status to 'paid'
