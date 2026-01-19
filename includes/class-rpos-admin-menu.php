@@ -20,6 +20,15 @@ class RPOS_Admin_Menu {
     
     public function __construct() {
         add_action('admin_menu', array($this, 'add_menu'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_menu_styles'));
+    }
+    
+    /**
+     * Enqueue admin menu styles
+     */
+    public function enqueue_menu_styles($hook) {
+        // Enqueue on all admin pages to ensure menu styling is available
+        wp_enqueue_style('rpos-admin-menu', RPOS_PLUGIN_URL . 'assets/css/admin-menu.css', array(), RPOS_VERSION);
     }
     
     /**
@@ -83,11 +92,31 @@ class RPOS_Admin_Menu {
             array($this, 'kds_page')
         );
         
+        // Separator 1
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-separator">───</span>',
+            'read',
+            'rpos-separator-1',
+            '__return_null'
+        );
+        
+        // Products Section Header
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-section-header">▸ Products</span>',
+            'read',
+            'rpos-products-header',
+            '__return_null'
+        );
+        
         // Products
         add_submenu_page(
             'restaurant-pos',
             __('Products', 'restaurant-pos'),
-            __('Products', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Products', 'restaurant-pos'),
             'rpos_manage_products',
             'restaurant-pos-products',
             array($this, 'products_page')
@@ -97,17 +126,37 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Categories', 'restaurant-pos'),
-            __('Categories', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Categories', 'restaurant-pos'),
             'rpos_manage_products',
             'restaurant-pos-categories',
             array($this, 'categories_page')
+        );
+        
+        // Separator 2
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-separator">───</span>',
+            'read',
+            'rpos-separator-2',
+            '__return_null'
+        );
+        
+        // Inventory Section Header
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-section-header">▸ Inventory</span>',
+            'read',
+            'rpos-inventory-header',
+            '__return_null'
         );
         
         // Inventory
         add_submenu_page(
             'restaurant-pos',
             __('Inventory', 'restaurant-pos'),
-            __('Inventory', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Inventory', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-inventory',
             array($this, 'inventory_page')
@@ -117,7 +166,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Ingredients', 'restaurant-pos'),
-            __('Ingredients', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Ingredients', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-ingredients',
             array($this, 'ingredients_page')
@@ -127,7 +176,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Ingredients Usage Report', 'restaurant-pos'),
-            __('Usage Report', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Usage Report', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-ingredients-report',
             array($this, 'ingredients_report_page')
@@ -137,7 +186,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Waste / Spoilage', 'restaurant-pos'),
-            __('Waste / Spoilage', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Waste / Spoilage', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-ingredients-waste',
             array($this, 'ingredients_waste_page')
@@ -147,7 +196,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Stock Dashboard', 'restaurant-pos'),
-            __('Stock Dashboard', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Stock Dashboard', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-ingredients-dashboard',
             array($this, 'ingredients_dashboard_page')
@@ -157,7 +206,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Suppliers', 'restaurant-pos'),
-            __('Suppliers', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Suppliers', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-suppliers',
             array($this, 'suppliers_page')
@@ -167,7 +216,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Batches / Lots', 'restaurant-pos'),
-            __('Batches / Lots', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Batches / Lots', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-batches',
             array($this, 'batches_page')
@@ -177,7 +226,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Inventory Settings', 'restaurant-pos'),
-            __('Inventory Settings', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Inventory Settings', 'restaurant-pos'),
             'rpos_manage_settings',
             'restaurant-pos-inventory-settings',
             array($this, 'inventory_settings_page')
@@ -187,7 +236,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Gas Cylinders', 'restaurant-pos'),
-            __('Gas Cylinders', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Gas Cylinders', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-gas-cylinders',
             array($this, 'gas_cylinders_page')
@@ -197,7 +246,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Fryer Oil Dashboard', 'restaurant-pos'),
-            __('Fryer Oil', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Fryer Oil', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-fryer-oil',
             array($this, 'fryer_oil_dashboard_page')
@@ -206,7 +255,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Fryer Oil Batches', 'restaurant-pos'),
-            __('Oil Batches', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Oil Batches', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-fryer-oil-batches',
             array($this, 'fryer_oil_batches_page')
@@ -215,26 +264,37 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Fryer Oil Settings', 'restaurant-pos'),
-            __('Oil Settings', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Oil Settings', 'restaurant-pos'),
             'rpos_manage_inventory',
             'restaurant-pos-fryer-oil-settings',
             array($this, 'fryer_oil_settings_page')
         );
         
+        // Separator 3
         add_submenu_page(
             'restaurant-pos',
-            __('Fryer Oil Reports', 'restaurant-pos'),
-            __('Oil Reports', 'restaurant-pos'),
-            'rpos_view_reports',
-            'restaurant-pos-fryer-oil-reports',
-            array($this, 'fryer_oil_reports_page')
+            '',
+            '<span class="rpos-menu-separator">───</span>',
+            'read',
+            'rpos-separator-3',
+            '__return_null'
+        );
+        
+        // Orders & Reports Section Header
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-section-header">▸ Orders &amp; Reports</span>',
+            'read',
+            'rpos-orders-header',
+            '__return_null'
         );
         
         // Orders
         add_submenu_page(
             'restaurant-pos',
             __('Orders', 'restaurant-pos'),
-            __('Orders', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Orders', 'restaurant-pos'),
             'rpos_view_orders',
             'restaurant-pos-orders',
             array($this, 'orders_page')
@@ -244,7 +304,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Reports', 'restaurant-pos'),
-            __('Reports', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Reports', 'restaurant-pos'),
             'rpos_view_reports',
             'restaurant-pos-reports',
             array($this, 'reports_page')
@@ -254,7 +314,7 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Shift Reports', 'restaurant-pos'),
-            __('Shift Reports', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Shift Reports', 'restaurant-pos'),
             'rpos_view_reports',
             'restaurant-pos-shift-reports',
             array($this, 'shift_reports_page')
@@ -264,10 +324,110 @@ class RPOS_Admin_Menu {
         add_submenu_page(
             'restaurant-pos',
             __('Kitchen Staff Report', 'restaurant-pos'),
-            __('Kitchen Staff Report', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Kitchen Staff Report', 'restaurant-pos'),
             'rpos_view_reports',
             'restaurant-pos-kitchen-staff-report',
             array($this, 'kitchen_staff_report_page')
+        );
+        
+        // Oil Reports
+        add_submenu_page(
+            'restaurant-pos',
+            __('Fryer Oil Reports', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Oil Reports', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-fryer-oil-reports',
+            array($this, 'fryer_oil_reports_page')
+        );
+        
+        // Cashier Shifts & Expenses
+        add_submenu_page(
+            'restaurant-pos',
+            __('Cashier Shifts & Expenses', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Cashier Shifts', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-cashier-shifts',
+            array($this, 'cashier_shifts_page')
+        );
+        
+        // Expenses History
+        add_submenu_page(
+            'restaurant-pos',
+            __('Expenses History', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Expenses History', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-expenses-history',
+            array($this, 'expenses_history_page')
+        );
+        
+        // Separator 4
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-separator">───</span>',
+            'read',
+            'rpos-separator-4',
+            '__return_null'
+        );
+        
+        // Delivery Section Header
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-section-header">▸ Delivery</span>',
+            'read',
+            'rpos-delivery-header',
+            '__return_null'
+        );
+        
+        // Zaikon Delivery Management (New comprehensive system)
+        add_submenu_page(
+            'restaurant-pos',
+            __('Delivery Management', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Delivery Management', 'restaurant-pos'),
+            'rpos_manage_settings',
+            'restaurant-pos-zaikon-delivery',
+            array($this, 'zaikon_delivery_management_page')
+        );
+        
+        // Delivery Customers Analytics
+        add_submenu_page(
+            'restaurant-pos',
+            __('Delivery Customers', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Delivery Customers', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-delivery-customers',
+            array($this, 'delivery_customers_page')
+        );
+        
+        // Rider Payroll
+        add_submenu_page(
+            'restaurant-pos',
+            __('Rider Payroll', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Rider Payroll', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-rider-payroll',
+            array($this, 'rider_payroll_page')
+        );
+        
+        // Rider Deliveries Admin View
+        add_submenu_page(
+            'restaurant-pos',
+            __('Rider Deliveries (Admin)', 'restaurant-pos'),
+            '&nbsp;&nbsp;&nbsp;&nbsp;' . __('Rider Deliveries (Admin)', 'restaurant-pos'),
+            'rpos_view_reports',
+            'restaurant-pos-rider-deliveries-admin',
+            array($this, 'rider_deliveries_admin_page')
+        );
+        
+        // Separator 5
+        add_submenu_page(
+            'restaurant-pos',
+            '',
+            '<span class="rpos-menu-separator">───</span>',
+            'read',
+            'rpos-separator-5',
+            '__return_null'
         );
         
         // Settings
@@ -278,66 +438,6 @@ class RPOS_Admin_Menu {
             'rpos_manage_settings',
             'restaurant-pos-settings',
             array($this, 'settings_page')
-        );
-        
-        // Zaikon Delivery Management (New comprehensive system)
-        add_submenu_page(
-            'restaurant-pos',
-            __('Delivery Management', 'restaurant-pos'),
-            __('Delivery Management', 'restaurant-pos'),
-            'rpos_manage_settings',
-            'restaurant-pos-zaikon-delivery',
-            array($this, 'zaikon_delivery_management_page')
-        );
-        
-        // Delivery Customers Analytics
-        add_submenu_page(
-            'restaurant-pos',
-            __('Delivery Customers', 'restaurant-pos'),
-            __('Delivery Customers', 'restaurant-pos'),
-            'rpos_view_reports',
-            'restaurant-pos-delivery-customers',
-            array($this, 'delivery_customers_page')
-        );
-        
-        // Rider Payroll
-        add_submenu_page(
-            'restaurant-pos',
-            __('Rider Payroll', 'restaurant-pos'),
-            __('Rider Payroll', 'restaurant-pos'),
-            'rpos_view_reports',
-            'restaurant-pos-rider-payroll',
-            array($this, 'rider_payroll_page')
-        );
-        
-        // Cashier Shifts & Expenses
-        add_submenu_page(
-            'restaurant-pos',
-            __('Cashier Shifts & Expenses', 'restaurant-pos'),
-            __('Cashier Shifts', 'restaurant-pos'),
-            'rpos_view_reports',
-            'restaurant-pos-cashier-shifts',
-            array($this, 'cashier_shifts_page')
-        );
-        
-        // Expenses History
-        add_submenu_page(
-            'restaurant-pos',
-            __('Expenses History', 'restaurant-pos'),
-            __('Expenses History', 'restaurant-pos'),
-            'rpos_view_reports',
-            'restaurant-pos-expenses-history',
-            array($this, 'expenses_history_page')
-        );
-        
-        // Rider Deliveries Admin View
-        add_submenu_page(
-            'restaurant-pos',
-            __('Rider Deliveries (Admin)', 'restaurant-pos'),
-            __('Rider Deliveries (Admin)', 'restaurant-pos'),
-            'rpos_view_reports',
-            'restaurant-pos-rider-deliveries-admin',
-            array($this, 'rider_deliveries_admin_page')
         );
     }
     
