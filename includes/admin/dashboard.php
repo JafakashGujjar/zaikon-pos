@@ -72,7 +72,7 @@ $sales_by_type = $wpdb->get_results($wpdb->prepare(
 $category_sales = $wpdb->get_results($wpdb->prepare(
     "SELECT 
         p.category_id,
-        c.name as category_name,
+        COALESCE(c.name, 'Uncategorized') as category_name,
         SUM(oi.line_total) as total_sales,
         SUM(oi.quantity) as total_quantity
     FROM {$wpdb->prefix}rpos_order_items oi
@@ -82,8 +82,7 @@ $category_sales = $wpdb->get_results($wpdb->prepare(
     WHERE o.status = 'completed'
         AND o.created_at >= %s
         AND o.created_at <= %s
-        AND c.name IS NOT NULL
-    GROUP BY p.category_id, c.name
+    GROUP BY p.category_id, COALESCE(c.name, 'Uncategorized')
     ORDER BY total_sales DESC
     LIMIT 5",
     $today_start,
@@ -233,7 +232,7 @@ wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/
                                 <?php foreach ($top_products as $product): ?>
                                 <tr>
                                     <td><strong><?php echo esc_html($product->product_name); ?></strong></td>
-                                    <td><?php echo absint($product->quantity_sold); ?></td>
+                                    <td><?php echo absint($product->total_quantity); ?></td>
                                     <td><?php echo esc_html($currency . number_format($product->total_revenue, 2)); ?></td>
                                 </tr>
                                 <?php endforeach; ?>
