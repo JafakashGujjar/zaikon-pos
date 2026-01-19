@@ -143,6 +143,33 @@
                 self.renderProducts();
             });
             
+            // Sidebar Navigation Buttons
+            $('.zaikon-sidebar-btn').on('click', function() {
+                var buttonId = $(this).attr('id');
+                
+                // Update active state
+                $('.zaikon-sidebar-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                // Handle different navigation actions
+                if (buttonId === 'zaikon-sidebar-home') {
+                    // Already on home/menu view - reset to all categories
+                    $('.rpos-category-btn.active').removeClass('active');
+                    $('.rpos-category-btn').first().addClass('active').trigger('click');
+                    window.scrollTo(0, 0);
+                } else if (buttonId === 'zaikon-sidebar-history') {
+                    // Open order history - could be implemented differently from orders
+                    // For now, show info that this is a future feature
+                    ZAIKON_Toast.info('Order History view coming soon');
+                } else if (buttonId === 'zaikon-sidebar-orders') {
+                    // Open orders list - reuse existing orders button functionality
+                    $('#rpos-orders-btn').trigger('click');
+                } else if (buttonId === 'zaikon-sidebar-settings') {
+                    // Could open settings modal in the future
+                    ZAIKON_Toast.info('Settings functionality coming soon');
+                }
+            });
+            
             // Order Type Pills - Changed to dropdown
             $('#rpos-order-type').on('change', function() {
                 var orderType = $(this).val();
@@ -261,8 +288,18 @@
             
             $grid.empty();
             
+            // Add grid header with title and sort dropdown
+            var $gridHeader = $('<div class="zaikon-products-grid-header">')
+                .append('<h3>Menu Items</h3>')
+                .append(
+                    $('<div class="zaikon-products-sort">')
+                        .append('<span>Sort by:</span>')
+                        .append('<select id="zaikon-products-sort-select"><option value="popular">Popular</option><option value="name">Name</option><option value="price">Price</option></select>')
+                );
+            $grid.append($gridHeader);
+            
             if (filtered.length === 0) {
-                $grid.html('<div class="zaikon-no-products">No products found</div>');
+                $grid.append('<div class="zaikon-no-products">No products found</div>');
                 return;
             }
             
@@ -274,15 +311,27 @@
                         self.addToCart(product);
                     });
                 
-                // Add product image with safe attribute insertion
+                // Add stock badge if stock info available and positive
+                if (product.stock_quantity !== undefined && product.stock_quantity !== null && product.stock_quantity > 0) {
+                    var $stockBadge = $('<div class="zaikon-product-stock-badge">').text(product.stock_quantity);
+                    $item.append($stockBadge);
+                }
+                
+                // Add product image with circular wrapper
+                var $imageWrapper = $('<div class="zaikon-product-image-wrapper">');
+                var $imageCircle = $('<div class="zaikon-product-image-circle">');
+                
                 if (product.image_url) {
                     var $img = $('<img class="zaikon-product-image">')
                         .attr('src', product.image_url)
                         .attr('alt', product.name);
-                    $item.append($img);
+                    $imageCircle.append($img);
                 } else {
-                    $item.append('<div class="zaikon-product-image"><span class="dashicons dashicons-cart"></span></div>');
+                    $imageCircle.append('<span class="dashicons dashicons-cart" style="font-size: 40px; color: rgba(255,255,255,0.5);"></span>');
                 }
+                
+                $imageWrapper.append($imageCircle);
+                $item.append($imageWrapper);
                 
                 var $info = $('<div class="zaikon-product-info">');
                 

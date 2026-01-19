@@ -15,30 +15,36 @@ $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
 
 <div class="wrap zaikon-pos-screen">
     <div class="zaikon-pos-container">
+        <!-- Vertical Navigation Sidebar -->
+        <div class="zaikon-pos-sidebar">
+            <button class="zaikon-sidebar-btn active" id="zaikon-sidebar-home" title="<?php echo esc_attr__('Home / Menu', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-admin-home"></span>
+            </button>
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-history" title="<?php echo esc_attr__('Order History', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-clock"></span>
+            </button>
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-orders" title="<?php echo esc_attr__('Orders', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-list-view"></span>
+            </button>
+            <div class="zaikon-sidebar-divider"></div>
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-settings" title="<?php echo esc_attr__('Settings', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-admin-settings"></span>
+            </button>
+        </div>
+
         <!-- Left Side: Product Grid -->
         <div class="zaikon-pos-left">
             <div class="zaikon-pos-header">
                 <div class="zaikon-pos-header-top">
                     <div class="zaikon-pos-branding">
-                        <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-yellow);">POS</span></h2>
-                        <p class="zaikon-dev-credit">
-                            <span style="font-size: 11px; color: var(--zaikon-gray-dark);"><?php echo esc_html__('Developed by:', 'restaurant-pos'); ?></span><br>
-                            <span style="font-size: 13px; font-weight: 600; color: var(--zaikon-dark);">
-                            <?php 
-                            $dev_credit = RPOS_Settings::get('dev_credit', base64_encode('Muhammad Jafakash Nawaz'));
-                            // Validate that it's a valid base64 string before decoding
-                            if (base64_encode(base64_decode($dev_credit, true)) === $dev_credit) {
-                                echo esc_html(base64_decode($dev_credit));
-                            } else {
-                                echo esc_html('Muhammad Jafakash Nawaz');
-                            }
-                            ?>
-                            </span>
-                        </p>
+                        <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-orange);">POS</span></h2>
                     </div>
                     
                     <div class="zaikon-pos-header-actions">
-                        <input type="search" class="zaikon-pos-search" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search" style="width: 220px;">
+                        <div class="zaikon-pos-search-wrapper">
+                            <span class="dashicons dashicons-search zaikon-pos-search-icon"></span>
+                            <input type="search" class="zaikon-pos-search" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search">
+                        </div>
                         
                         <div class="zaikon-expenses-btn-wrapper" style="position: relative;">
                             <button class="zaikon-header-btn zaikon-expenses-btn" id="rpos-expenses-btn" title="<?php echo esc_attr__('Manage Expenses', 'restaurant-pos'); ?>">
