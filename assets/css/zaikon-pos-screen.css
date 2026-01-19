@@ -51,6 +51,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 /* ===== POS CONTAINER ===== */
+/* Desktop-optimized layout: 60px sidebar + flexible products + 400px cart = fits 1366x768 and 1920x1080 */
 .zaikon-pos-screen {
     background: var(--zaikon-bg-primary);
     min-height: 100vh;
@@ -61,7 +62,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-pos-container {
     display: grid;
-    grid-template-columns: 60px 1fr 400px;
+    grid-template-columns: 60px 1fr 400px;  /* Sidebar | Products | Cart */
     height: 100vh;
     overflow: hidden;
 }
