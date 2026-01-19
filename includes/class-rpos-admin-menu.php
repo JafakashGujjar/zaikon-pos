@@ -27,8 +27,12 @@ class RPOS_Admin_Menu {
      * Enqueue admin menu styles
      */
     public function enqueue_menu_styles($hook) {
-        // Enqueue on all admin pages to ensure menu styling is available
-        wp_enqueue_style('rpos-admin-menu', RPOS_PLUGIN_URL . 'assets/css/admin-menu.css', array(), RPOS_VERSION);
+        // Only enqueue on admin pages where the menu is visible
+        // The WordPress admin menu is present on all admin pages, so we load this globally
+        // but only for authenticated users who can see the menu
+        if (is_admin() && current_user_can('read')) {
+            wp_enqueue_style('rpos-admin-menu', RPOS_PLUGIN_URL . 'assets/css/admin-menu.css', array(), RPOS_VERSION);
+        }
     }
     
     /**

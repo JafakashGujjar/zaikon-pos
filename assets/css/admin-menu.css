@@ -68,9 +68,21 @@
 }
 
 /* Make sure section headers stand out slightly */
-#adminmenu li a:has(.rpos-menu-section-header) {
+/* Fallback for browsers without :has() support */
+#adminmenu li a[href*="rpos-products-header"],
+#adminmenu li a[href*="rpos-inventory-header"],
+#adminmenu li a[href*="rpos-orders-header"],
+#adminmenu li a[href*="rpos-delivery-header"] {
     background-color: #f6f7f7;
     margin-top: 4px;
+}
+
+/* Modern browser enhancement with :has() */
+@supports selector(:has(*)) {
+    #adminmenu li a:has(.rpos-menu-section-header) {
+        background-color: #f6f7f7;
+        margin-top: 4px;
+    }
 }
 
 /* Dark mode support for section headers */
@@ -83,13 +95,24 @@
         color: #9ec2e6;
     }
     
-    #adminmenu li a:has(.rpos-menu-section-header) {
+    /* Fallback for browsers without :has() support */
+    #adminmenu li a[href*="rpos-products-header"],
+    #adminmenu li a[href*="rpos-inventory-header"],
+    #adminmenu li a[href*="rpos-orders-header"],
+    #adminmenu li a[href*="rpos-delivery-header"] {
         background-color: #1e1e1e;
+    }
+    
+    /* Modern browser enhancement with :has() */
+    @supports selector(:has(*)) {
+        #adminmenu li a:has(.rpos-menu-section-header) {
+            background-color: #1e1e1e;
+        }
     }
 }
 
 /* WordPress admin color scheme support */
-body.admin-color-light #adminmenu li a:has(.rpos-menu-section-header) {
+body.admin-color-light #adminmenu li a[href*="header"] {
     background-color: #f6f7f7;
 }
 
