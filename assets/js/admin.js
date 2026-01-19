@@ -153,13 +153,16 @@
                 
                 // Handle different navigation actions
                 if (buttonId === 'zaikon-sidebar-home') {
-                    // Already on home/menu view - do nothing or scroll to top
+                    // Already on home/menu view - reset to all categories
+                    $('.rpos-category-btn.active').removeClass('active');
+                    $('.rpos-category-btn').first().addClass('active').trigger('click');
                     window.scrollTo(0, 0);
                 } else if (buttonId === 'zaikon-sidebar-history') {
-                    // Open order history - reuse existing orders button functionality
-                    $('#rpos-orders-btn').trigger('click');
+                    // Open order history - could be implemented differently from orders
+                    // For now, show info that this is a future feature
+                    ZAIKON_Toast.info('Order History view coming soon');
                 } else if (buttonId === 'zaikon-sidebar-orders') {
-                    // Open orders - reuse existing orders button functionality
+                    // Open orders list - reuse existing orders button functionality
                     $('#rpos-orders-btn').trigger('click');
                 } else if (buttonId === 'zaikon-sidebar-settings') {
                     // Could open settings modal in the future
@@ -308,8 +311,8 @@
                         self.addToCart(product);
                     });
                 
-                // Add stock badge if stock info available
-                if (product.stock_quantity !== undefined && product.stock_quantity !== null) {
+                // Add stock badge if stock info available and positive
+                if (product.stock_quantity !== undefined && product.stock_quantity !== null && product.stock_quantity > 0) {
                     var $stockBadge = $('<div class="zaikon-product-stock-badge">').text(product.stock_quantity);
                     $item.append($stockBadge);
                 }
