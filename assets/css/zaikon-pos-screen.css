@@ -377,7 +377,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     color: var(--zaikon-text-secondary);
     line-height: var(--leading-tight);
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     margin-bottom: var(--space-1);
