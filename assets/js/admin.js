@@ -143,6 +143,30 @@
                 self.renderProducts();
             });
             
+            // Sidebar Navigation Buttons
+            $('.zaikon-sidebar-btn').on('click', function() {
+                var buttonId = $(this).attr('id');
+                
+                // Update active state
+                $('.zaikon-sidebar-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                // Handle different navigation actions
+                if (buttonId === 'zaikon-sidebar-home') {
+                    // Already on home/menu view - do nothing or scroll to top
+                    window.scrollTo(0, 0);
+                } else if (buttonId === 'zaikon-sidebar-history') {
+                    // Open order history - reuse existing orders button functionality
+                    $('#rpos-orders-btn').trigger('click');
+                } else if (buttonId === 'zaikon-sidebar-orders') {
+                    // Open orders - reuse existing orders button functionality
+                    $('#rpos-orders-btn').trigger('click');
+                } else if (buttonId === 'zaikon-sidebar-settings') {
+                    // Could open settings modal in the future
+                    ZAIKON_Toast.info('Settings functionality coming soon');
+                }
+            });
+            
             // Order Type Pills - Changed to dropdown
             $('#rpos-order-type').on('change', function() {
                 var orderType = $(this).val();

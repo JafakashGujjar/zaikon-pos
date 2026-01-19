@@ -1271,12 +1271,17 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 .zaikon-pos-header-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     margin-bottom: var(--space-4);
 }
 
 .zaikon-pos-branding {
     flex: 0 0 auto;
+}
+
+.zaikon-pos-branding h2 {
+    margin: 0;
+    line-height: 1.2;
 }
 
 .zaikon-dev-credit {
