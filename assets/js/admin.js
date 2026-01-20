@@ -108,6 +108,7 @@
         cart: [],
         products: [],
         currentCategory: 0,
+        searchTerm: '',
         deliveryData: null,
         notificationInterval: null,
         lastNotificationCheck: null,
@@ -251,6 +252,12 @@
             $(window).on('resize', updateScrollArrows);
             updateScrollArrows();
             
+            // Product search functionality
+            $('#zaikon-product-search').on('input', function() {
+                self.searchTerm = $(this).val().toLowerCase();
+                self.renderProducts();
+            });
+            
             // Order Type Pills - Changed to dropdown
             $('#rpos-order-type').on('change', function() {
                 var orderType = $(this).val();
@@ -363,9 +370,19 @@
         renderProducts: function() {
             var self = this;
             var $grid = $('#rpos-products-grid, .zaikon-products-grid');
+            
+            // Filter by category first
             var filtered = this.currentCategory === 0 
                 ? this.products 
                 : this.products.filter(function(p) { return p.category_id == self.currentCategory; });
+            
+            // Then filter by search term if present
+            if (this.searchTerm && this.searchTerm.length > 0) {
+                filtered = filtered.filter(function(p) {
+                    return p.name.toLowerCase().includes(self.searchTerm) || 
+                           (p.description && p.description.toLowerCase().includes(self.searchTerm));
+                });
+            }
             
             $grid.empty();
             
