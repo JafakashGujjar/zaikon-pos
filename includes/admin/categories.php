@@ -12,6 +12,21 @@ wp_enqueue_media();
 wp_enqueue_style('wp-color-picker');
 wp_enqueue_script('wp-color-picker');
 
+// Enqueue custom category admin script
+wp_enqueue_script(
+    'rpos-category-admin',
+    RPOS_PLUGIN_URL . 'assets/js/category-admin.js',
+    array('jquery', 'wp-color-picker'),
+    RPOS_VERSION,
+    true
+);
+
+// Localize script for translations
+wp_localize_script('rpos-category-admin', 'rposCategoryAdmin', array(
+    'uploadTitle' => __('Choose Category Image', 'restaurant-pos'),
+    'useImageText' => __('Use this image', 'restaurant-pos')
+));
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_category_nonce'])) {
     if (!wp_verify_nonce($_POST['rpos_category_nonce'], 'rpos_category_action')) {
@@ -185,117 +200,3 @@ $categories = RPOS_Categories::get_all();
         </div>
     </div>
 </div>
-
-<style>
-/* Category Image Upload Styles */
-.rpos-category-image-upload {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.rpos-image-preview {
-    width: 100px;
-    height: 100px;
-    border: 2px dashed #ccc;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    background: #f5f5f5;
-}
-
-.rpos-image-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.rpos-image-preview .dashicons {
-    font-size: 48px;
-    color: #ccc;
-}
-
-/* Color Picker Styles */
-.rpos-color-picker {
-    width: 100px;
-}
-
-.rpos-color-presets {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.rpos-color-preset {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px #ccc;
-    transition: transform 0.2s;
-}
-
-.rpos-color-preset:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 0 2px #2271b1;
-}
-</style>
-
-<script>
-jQuery(document).ready(function($) {
-    // WordPress Media Uploader
-    var mediaUploader;
-    
-    $('#rpos-upload-category-image').on('click', function(e) {
-        e.preventDefault();
-        
-        if (mediaUploader) {
-            mediaUploader.open();
-            return;
-        }
-        
-        mediaUploader = wp.media({
-            title: '<?php echo esc_js(__('Choose Category Image', 'restaurant-pos')); ?>',
-            button: {
-                text: '<?php echo esc_js(__('Use this image', 'restaurant-pos')); ?>'
-            },
-            multiple: false
-        });
-        
-        mediaUploader.on('select', function() {
-            var attachment = mediaUploader.state().get('selection').first().toJSON();
-            $('#image_url').val(attachment.url);
-            $('#rpos-category-image-preview').html('<img src="' + attachment.url + '" alt="Category Image">');
-            $('#rpos-remove-category-image').show();
-        });
-        
-        mediaUploader.open();
-    });
-    
-    // Remove image
-    $('#rpos-remove-category-image').on('click', function(e) {
-        e.preventDefault();
-        $('#image_url').val('');
-        $('#rpos-category-image-preview').html('<span class="dashicons dashicons-format-image"></span>');
-        $(this).hide();
-    });
-    
-    // Color Picker
-    if ($.fn.wpColorPicker) {
-        $('.rpos-color-picker').wpColorPicker();
-    }
-    
-    // Color Presets
-    $('.rpos-color-preset').on('click', function() {
-        var color = $(this).data('color');
-        $('#bg_color').val(color).trigger('change');
-        if ($.fn.wpColorPicker) {
-            $('.rpos-color-picker').wpColorPicker('color', color);
-        }
-    });
-});
-</script>

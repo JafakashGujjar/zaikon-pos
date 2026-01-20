@@ -375,16 +375,21 @@ class RPOS_Install {
         }
         
         // Add image_url and bg_color columns to categories table
-        $table_name = $wpdb->prefix . 'rpos_categories';
-        
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'image_url'");
-        if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `image_url` varchar(500) DEFAULT NULL AFTER `description`");
-        }
-        
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'bg_color'");
-        if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `bg_color` varchar(20) DEFAULT NULL AFTER `image_url`");
+        $categories_image_migration_done = get_option('rpos_categories_image_migration_done', false);
+        if (!$categories_image_migration_done) {
+            $table_name = $wpdb->prefix . 'rpos_categories';
+            
+            $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'image_url'");
+            if (empty($column_exists)) {
+                $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `image_url` varchar(500) DEFAULT NULL AFTER `description`");
+            }
+            
+            $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'bg_color'");
+            if (empty($column_exists)) {
+                $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `bg_color` varchar(20) DEFAULT NULL AFTER `image_url`");
+            }
+            
+            update_option('rpos_categories_image_migration_done', true);
         }
     }
     

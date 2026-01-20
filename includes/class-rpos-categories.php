@@ -60,9 +60,10 @@ class RPOS_Categories {
             $insert_data['image_url'] = esc_url_raw($data['image_url']);
         }
         
-        // Add bg_color if provided
+        // Add bg_color if provided (sanitize and provide fallback)
         if (isset($data['bg_color']) && !empty($data['bg_color'])) {
-            $insert_data['bg_color'] = sanitize_hex_color($data['bg_color']);
+            $color = sanitize_hex_color($data['bg_color']);
+            $insert_data['bg_color'] = $color ? $color : '#4A5568';
         }
         
         $result = $wpdb->insert(
@@ -90,9 +91,14 @@ class RPOS_Categories {
             $update_data['image_url'] = !empty($data['image_url']) ? esc_url_raw($data['image_url']) : null;
         }
         
-        // Add bg_color if provided
+        // Add bg_color if provided (sanitize and provide fallback)
         if (isset($data['bg_color'])) {
-            $update_data['bg_color'] = !empty($data['bg_color']) ? sanitize_hex_color($data['bg_color']) : null;
+            if (!empty($data['bg_color'])) {
+                $color = sanitize_hex_color($data['bg_color']);
+                $update_data['bg_color'] = $color ? $color : '#4A5568';
+            } else {
+                $update_data['bg_color'] = null;
+            }
         }
         
         return $wpdb->update(
