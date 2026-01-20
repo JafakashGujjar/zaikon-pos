@@ -50,13 +50,26 @@ class RPOS_Categories {
     public static function create($data) {
         global $wpdb;
         
+        $insert_data = array(
+            'name' => sanitize_text_field($data['name']),
+            'description' => wp_kses_post($data['description'] ?? '')
+        );
+        
+        // Add image_url if provided
+        if (isset($data['image_url']) && !empty($data['image_url'])) {
+            $insert_data['image_url'] = esc_url_raw($data['image_url']);
+        }
+        
+        // Add bg_color if provided (sanitize and provide fallback)
+        if (isset($data['bg_color']) && !empty($data['bg_color'])) {
+            $color = sanitize_hex_color($data['bg_color']);
+            $insert_data['bg_color'] = $color ? $color : '#4A5568';
+        }
+        
         $result = $wpdb->insert(
             $wpdb->prefix . 'rpos_categories',
-            array(
-                'name' => sanitize_text_field($data['name']),
-                'description' => wp_kses_post($data['description'] ?? '')
-            ),
-            array('%s', '%s')
+            $insert_data,
+            array_fill(0, count($insert_data), '%s')
         );
         
         return $result ? $wpdb->insert_id : false;
@@ -68,14 +81,31 @@ class RPOS_Categories {
     public static function update($id, $data) {
         global $wpdb;
         
+        $update_data = array(
+            'name' => sanitize_text_field($data['name']),
+            'description' => wp_kses_post($data['description'] ?? '')
+        );
+        
+        // Add image_url if provided
+        if (isset($data['image_url'])) {
+            $update_data['image_url'] = !empty($data['image_url']) ? esc_url_raw($data['image_url']) : null;
+        }
+        
+        // Add bg_color if provided (sanitize and provide fallback)
+        if (isset($data['bg_color'])) {
+            if (!empty($data['bg_color'])) {
+                $color = sanitize_hex_color($data['bg_color']);
+                $update_data['bg_color'] = $color ? $color : '#4A5568';
+            } else {
+                $update_data['bg_color'] = null;
+            }
+        }
+        
         return $wpdb->update(
             $wpdb->prefix . 'rpos_categories',
-            array(
-                'name' => sanitize_text_field($data['name']),
-                'description' => wp_kses_post($data['description'] ?? '')
-            ),
+            $update_data,
             array('id' => $id),
-            array('%s', '%s'),
+            array_fill(0, count($update_data), '%s'),
             array('%d')
         );
     }
