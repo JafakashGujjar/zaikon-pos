@@ -116,6 +116,22 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 </div>
             </div>
             
+            <!-- Hidden elements for backward compatibility with existing JavaScript -->
+            <div style="display: none;">
+                <div class="zaikon-notification-bell" id="rpos-notification-bell">
+                    <span class="dashicons dashicons-bell"></span>
+                    <span class="zaikon-notification-badge" id="rpos-notification-badge-hidden" style="display: none;">0</span>
+                </div>
+                <button class="zaikon-header-btn zaikon-expenses-btn" id="rpos-expenses-btn">
+                    <span class="dashicons dashicons-money-alt"></span>
+                    <?php echo esc_html__('Expenses', 'restaurant-pos'); ?>
+                </button>
+                <button class="zaikon-header-btn zaikon-orders-btn" id="rpos-orders-btn">
+                    <span class="dashicons dashicons-list-view"></span>
+                    <?php echo esc_html__('Orders', 'restaurant-pos'); ?>
+                </button>
+            </div>
+            
             <!-- Inline Delivery Panel -->
             <div id="zaikon-delivery-panel" class="zaikon-delivery-panel" style="display:none;">
                 <div class="zaikon-delivery-panel-header">
