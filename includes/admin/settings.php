@@ -33,6 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_settings_nonce']
         RPOS_Settings::update('notification_sound_url', esc_url_raw($_POST['notification_sound_url']));
     }
     
+    // Handle POS logo upload
+    if (isset($_POST['pos_logo_url'])) {
+        RPOS_Settings::update('pos_logo_url', esc_url_raw($_POST['pos_logo_url']));
+    }
+    
     echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully!', 'restaurant-pos') . '</p></div>';
 }
 
@@ -229,6 +234,33 @@ $tab = $_GET['tab'] ?? 'general';
                     </tr>
                 </table>
                 
+                <h3><?php echo esc_html__('POS Branding', 'restaurant-pos'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="pos_logo_url"><?php echo esc_html__('POS Logo', 'restaurant-pos'); ?></label>
+                        </th>
+                        <td>
+                            <input type="url" id="pos_logo_url" name="pos_logo_url" class="regular-text" 
+                                   value="<?php echo esc_attr($settings['pos_logo_url'] ?? ''); ?>" readonly>
+                            <button type="button" class="button" id="upload_pos_logo_button">
+                                <?php echo esc_html__('Upload Logo', 'restaurant-pos'); ?>
+                            </button>
+                            <button type="button" class="button" id="clear_pos_logo_button">
+                                <?php echo esc_html__('Remove', 'restaurant-pos'); ?>
+                            </button>
+                            <?php if (!empty($settings['pos_logo_url'])): ?>
+                            <div style="margin-top: 10px;">
+                                <img src="<?php echo esc_url($settings['pos_logo_url']); ?>" style="max-width: 100px; max-height: 100px; border: 1px solid #ddd; padding: 5px; background: white;">
+                            </div>
+                            <?php endif; ?>
+                            <p class="description">
+                                <?php echo esc_html__('Upload a logo to display at the top of the POS sidebar. Recommended size: 100x100px or square image.', 'restaurant-pos'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
                 <h3><?php echo esc_html__('Notification Settings', 'restaurant-pos'); ?></h3>
                 <table class="form-table">
                     <tr>
@@ -373,6 +405,41 @@ if ($tab === 'display') {
                     alert('<?php echo esc_js(__('Could not play sound. Please check the file format.', 'restaurant-pos')); ?>');
                 });
             }
+        });
+        
+        // Upload POS logo
+        var logoUploader;
+        $('#upload_pos_logo_button').on('click', function(e) {
+            e.preventDefault();
+            
+            if (logoUploader) {
+                logoUploader.open();
+                return;
+            }
+            
+            logoUploader = wp.media({
+                title: '<?php echo esc_js(__('Choose POS Logo', 'restaurant-pos')); ?>',
+                button: {
+                    text: '<?php echo esc_js(__('Use this image', 'restaurant-pos')); ?>'
+                },
+                library: {
+                    type: 'image'
+                },
+                multiple: false
+            });
+            
+            logoUploader.on('select', function() {
+                var attachment = logoUploader.state().get('selection').first().toJSON();
+                $('#pos_logo_url').val(attachment.url);
+            });
+            
+            logoUploader.open();
+        });
+        
+        // Clear POS logo
+        $('#clear_pos_logo_button').on('click', function(e) {
+            e.preventDefault();
+            $('#pos_logo_url').val('');
         });
     });
     </script>

@@ -11,73 +11,102 @@ if (!defined('ABSPATH')) {
 $categories = RPOS_Categories::get_all();
 $currency = RPOS_Settings::get('currency_symbol', '$');
 $restaurant_name = RPOS_Settings::get('restaurant_name', get_bloginfo('name'));
+$pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
 ?>
 
 <div class="wrap zaikon-pos-screen">
     <div class="zaikon-pos-container">
         <!-- Vertical Navigation Sidebar -->
         <div class="zaikon-pos-sidebar">
+            <!-- Logo Section -->
+            <div class="zaikon-sidebar-logo">
+                <?php if (!empty($pos_logo_url)): ?>
+                    <img src="<?php echo esc_url($pos_logo_url); ?>" alt="<?php echo esc_attr($restaurant_name); ?>" class="zaikon-pos-logo-img">
+                <?php else: ?>
+                    <div class="zaikon-pos-logo-text"><?php echo esc_html($restaurant_name); ?></div>
+                <?php endif; ?>
+                <div class="zaikon-developer-credit">Developed by<br>Muhammad Jaffakash Nawaz</div>
+            </div>
+            
+            <div class="zaikon-sidebar-divider"></div>
+            
+            <!-- New Sidebar Buttons -->
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-notification" title="<?php echo esc_attr__('Notifications', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-bell"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Notifications', 'restaurant-pos'); ?></span>
+                <span class="zaikon-notification-badge" id="rpos-notification-badge" style="display: none;">0</span>
+            </button>
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-search" title="<?php echo esc_attr__('Search', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-search"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Search', 'restaurant-pos'); ?></span>
+            </button>
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-expenses" title="<?php echo esc_attr__('Expenses', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-money-alt"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Expenses', 'restaurant-pos'); ?></span>
+            </button>
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-orders-btn" title="<?php echo esc_attr__('Orders', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-list-view"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Orders', 'restaurant-pos'); ?></span>
+            </button>
+            
+            <div class="zaikon-sidebar-divider"></div>
+            
+            <!-- Existing Sidebar Buttons -->
             <button class="zaikon-sidebar-btn active" id="zaikon-sidebar-home" title="<?php echo esc_attr__('Home / Menu', 'restaurant-pos'); ?>">
                 <span class="dashicons dashicons-admin-home"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Home', 'restaurant-pos'); ?></span>
             </button>
             <button class="zaikon-sidebar-btn" id="zaikon-sidebar-history" title="<?php echo esc_attr__('Order History', 'restaurant-pos'); ?>">
                 <span class="dashicons dashicons-clock"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('History', 'restaurant-pos'); ?></span>
             </button>
-            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-orders" title="<?php echo esc_attr__('Orders', 'restaurant-pos'); ?>">
-                <span class="dashicons dashicons-list-view"></span>
-            </button>
-            <div class="zaikon-sidebar-divider"></div>
             <button class="zaikon-sidebar-btn" id="zaikon-sidebar-settings" title="<?php echo esc_attr__('Settings', 'restaurant-pos'); ?>">
                 <span class="dashicons dashicons-admin-settings"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Settings', 'restaurant-pos'); ?></span>
             </button>
+        </div>
+        
+        <!-- Slide-out Search Panel -->
+        <div class="zaikon-search-panel" id="zaikon-search-panel" style="display: none;">
+            <div class="zaikon-search-panel-header">
+                <h4><?php echo esc_html__('Search Products', 'restaurant-pos'); ?></h4>
+                <button class="zaikon-search-panel-close" id="zaikon-search-panel-close">
+                    <span class="dashicons dashicons-no-alt"></span>
+                </button>
+            </div>
+            <div class="zaikon-search-panel-body">
+                <input type="search" class="zaikon-search-panel-input" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search">
+            </div>
         </div>
 
         <!-- Left Side: Product Grid -->
         <div class="zaikon-pos-left">
-            <div class="zaikon-pos-header">
-                <div class="zaikon-pos-header-top">
-                    <div class="zaikon-pos-branding">
-                        <h2><?php echo esc_html($restaurant_name); ?> <span style="color: var(--zaikon-orange);">POS</span></h2>
-                    </div>
-                    
-                    <div class="zaikon-pos-header-actions">
-                        <div class="zaikon-pos-search-wrapper">
-                            <span class="dashicons dashicons-search zaikon-pos-search-icon"></span>
-                            <input type="search" class="zaikon-pos-search" placeholder="<?php echo esc_attr__('Search products...', 'restaurant-pos'); ?>" id="zaikon-product-search">
-                        </div>
-                        
-                        <div class="zaikon-expenses-btn-wrapper" style="position: relative;">
-                            <button class="zaikon-header-btn zaikon-expenses-btn" id="rpos-expenses-btn" title="<?php echo esc_attr__('Manage Expenses', 'restaurant-pos'); ?>">
-                                <span class="dashicons dashicons-money-alt"></span>
-                                <?php echo esc_html__('Expenses', 'restaurant-pos'); ?>
-                            </button>
-                        </div>
-                        
-                        <!-- Notification Bell -->
-                        <div class="zaikon-notification-bell" id="rpos-notification-bell">
-                            <span class="dashicons dashicons-bell"></span>
-                            <span class="zaikon-notification-badge" id="rpos-notification-badge" style="display: none;">0</span>
-                        </div>
-                        
-                        <button class="zaikon-header-btn zaikon-orders-btn" id="rpos-orders-btn" title="<?php echo esc_attr__('View Orders', 'restaurant-pos'); ?>">
-                            <span class="dashicons dashicons-list-view"></span>
-                            <?php echo esc_html__('Orders', 'restaurant-pos'); ?>
+            <!-- Categories at Top of Menu Items Area -->
+            <div class="zaikon-pos-categories-modern">
+                <button class="zaikon-scroll-arrow zaikon-scroll-left" id="zaikon-scroll-categories-left" style="display: none;">
+                    <span class="dashicons dashicons-arrow-left-alt2"></span>
+                </button>
+                <div class="zaikon-categories-scroll-container">
+                    <div class="zaikon-categories-wrapper">
+                        <button class="zaikon-category-modern active rpos-category-btn" data-category="0">
+                            <div class="zaikon-category-icon">
+                                <span class="dashicons dashicons-menu"></span>
+                            </div>
+                            <span class="zaikon-category-name"><?php echo esc_html__('All', 'restaurant-pos'); ?></span>
                         </button>
+                        <?php foreach ($categories as $category): ?>
+                        <button class="zaikon-category-modern rpos-category-btn" data-category="<?php echo esc_attr($category->id); ?>">
+                            <div class="zaikon-category-icon">
+                                <span class="dashicons dashicons-category"></span>
+                            </div>
+                            <span class="zaikon-category-name"><?php echo esc_html($category->name); ?></span>
+                        </button>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-                
-                <div class="zaikon-pos-categories">
-                    <button class="zaikon-category-btn active rpos-category-btn" data-category="0">
-                        <span class="dashicons dashicons-menu"></span>
-                        <?php echo esc_html__('All', 'restaurant-pos'); ?>
-                    </button>
-                    <?php foreach ($categories as $category): ?>
-                    <button class="zaikon-category-btn rpos-category-btn" data-category="<?php echo esc_attr($category->id); ?>">
-                        <span class="dashicons dashicons-category"></span>
-                        <?php echo esc_html($category->name); ?>
-                    </button>
-                    <?php endforeach; ?>
-                </div>
+                <button class="zaikon-scroll-arrow zaikon-scroll-right" id="zaikon-scroll-categories-right">
+                    <span class="dashicons dashicons-arrow-right-alt2"></span>
+                </button>
             </div>
             
             <div class="zaikon-products-grid" id="rpos-products-grid">
