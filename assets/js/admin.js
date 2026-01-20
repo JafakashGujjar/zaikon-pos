@@ -108,6 +108,7 @@
         cart: [],
         products: [],
         currentCategory: 0,
+        searchTerm: '',
         deliveryData: null,
         notificationInterval: null,
         lastNotificationCheck: null,
@@ -147,7 +148,38 @@
             $('.zaikon-sidebar-btn').on('click', function() {
                 var buttonId = $(this).attr('id');
                 
-                // Update active state
+                // Handle search separately - don't change active state
+                if (buttonId === 'zaikon-sidebar-search') {
+                    // Toggle search panel
+                    $('#zaikon-search-panel').toggleClass('active');
+                    if ($('#zaikon-search-panel').hasClass('active')) {
+                        $('#zaikon-product-search').focus();
+                    }
+                    return;
+                }
+                
+                // Handle notification bell
+                if (buttonId === 'zaikon-sidebar-notification') {
+                    // Trigger the existing notification bell functionality
+                    $('#rpos-notification-bell').trigger('click');
+                    return;
+                }
+                
+                // Handle expenses button
+                if (buttonId === 'zaikon-sidebar-expenses') {
+                    // Trigger the existing expenses button functionality
+                    $('#rpos-expenses-btn').trigger('click');
+                    return;
+                }
+                
+                // Handle orders button
+                if (buttonId === 'zaikon-sidebar-orders-btn') {
+                    // Trigger the existing orders button functionality
+                    $('#rpos-orders-btn').trigger('click');
+                    return;
+                }
+                
+                // Update active state for other buttons
                 $('.zaikon-sidebar-btn').removeClass('active');
                 $(this).addClass('active');
                 
@@ -161,13 +193,69 @@
                     // Open order history - could be implemented differently from orders
                     // For now, show info that this is a future feature
                     ZAIKON_Toast.info('Order History view coming soon');
-                } else if (buttonId === 'zaikon-sidebar-orders') {
-                    // Open orders list - reuse existing orders button functionality
-                    $('#rpos-orders-btn').trigger('click');
                 } else if (buttonId === 'zaikon-sidebar-settings') {
                     // Could open settings modal in the future
                     ZAIKON_Toast.info('Settings functionality coming soon');
                 }
+            });
+            
+            // Close search panel button
+            $('#zaikon-search-panel-close').on('click', function() {
+                $('#zaikon-search-panel').removeClass('active');
+            });
+            
+            // Close search panel when clicking outside
+            $(document).on('click', function(e) {
+                var $target = $(e.target);
+                if (!$target.closest('#zaikon-search-panel').length && 
+                    !$target.closest('#zaikon-sidebar-search').length &&
+                    $('#zaikon-search-panel').hasClass('active')) {
+                    $('#zaikon-search-panel').removeClass('active');
+                }
+            });
+            
+            // Category scroll arrows
+            $('#zaikon-scroll-categories-left').on('click', function() {
+                var container = $('.zaikon-categories-wrapper');
+                container.animate({
+                    scrollLeft: container.scrollLeft() - 200
+                }, 300);
+            });
+            
+            $('#zaikon-scroll-categories-right').on('click', function() {
+                var container = $('.zaikon-categories-wrapper');
+                container.animate({
+                    scrollLeft: container.scrollLeft() + 200
+                }, 300);
+            });
+            
+            // Update scroll arrows visibility
+            function updateScrollArrows() {
+                var container = $('.zaikon-categories-wrapper');
+                var scrollLeft = container.scrollLeft();
+                var maxScroll = container[0].scrollWidth - container[0].clientWidth;
+                
+                if (scrollLeft > 0) {
+                    $('#zaikon-scroll-categories-left').show();
+                } else {
+                    $('#zaikon-scroll-categories-left').hide();
+                }
+                
+                if (scrollLeft < maxScroll - 1) {
+                    $('#zaikon-scroll-categories-right').show();
+                } else {
+                    $('#zaikon-scroll-categories-right').hide();
+                }
+            }
+            
+            $('.zaikon-categories-wrapper').on('scroll', updateScrollArrows);
+            $(window).on('resize', updateScrollArrows);
+            updateScrollArrows();
+            
+            // Product search functionality
+            $('#zaikon-product-search').on('input', function() {
+                self.searchTerm = $(this).val().toLowerCase();
+                self.renderProducts();
             });
             
             // Order Type Pills - Changed to dropdown
@@ -282,9 +370,19 @@
         renderProducts: function() {
             var self = this;
             var $grid = $('#rpos-products-grid, .zaikon-products-grid');
+            
+            // Filter by category first
             var filtered = this.currentCategory === 0 
                 ? this.products 
                 : this.products.filter(function(p) { return p.category_id == self.currentCategory; });
+            
+            // Then filter by search term if present
+            if (this.searchTerm && this.searchTerm.length > 0) {
+                filtered = filtered.filter(function(p) {
+                    return p.name.toLowerCase().includes(self.searchTerm) || 
+                           (p.description && p.description.toLowerCase().includes(self.searchTerm));
+                });
+            }
             
             $grid.empty();
             
