@@ -7,6 +7,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Enqueue WordPress media scripts and color picker
+wp_enqueue_media();
+wp_enqueue_style('wp-color-picker');
+wp_enqueue_script('wp-color-picker');
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_category_nonce'])) {
     if (!wp_verify_nonce($_POST['rpos_category_nonce'], 'rpos_category_action')) {
@@ -22,7 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_category_nonce']
     if ($action === 'create') {
         $data = array(
             'name' => sanitize_text_field($_POST['name'] ?? ''),
-            'description' => wp_kses_post($_POST['description'] ?? '')
+            'description' => wp_kses_post($_POST['description'] ?? ''),
+            'image_url' => esc_url_raw($_POST['image_url'] ?? ''),
+            'bg_color' => sanitize_hex_color($_POST['bg_color'] ?? '')
         );
         
         $category_id = RPOS_Categories::create($data);
@@ -34,7 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rpos_category_nonce']
         $category_id = absint($_POST['category_id']);
         $data = array(
             'name' => sanitize_text_field($_POST['name'] ?? ''),
-            'description' => wp_kses_post($_POST['description'] ?? '')
+            'description' => wp_kses_post($_POST['description'] ?? ''),
+            'image_url' => esc_url_raw($_POST['image_url'] ?? ''),
+            'bg_color' => sanitize_hex_color($_POST['bg_color'] ?? '')
         );
         
         RPOS_Categories::update($category_id, $data);
@@ -80,6 +89,45 @@ $categories = RPOS_Categories::get_all();
                         <th><label for="description"><?php echo esc_html__('Description', 'restaurant-pos'); ?></label></th>
                         <td>
                             <textarea id="description" name="description" rows="3" class="large-text"><?php echo esc_textarea($editing_category->description ?? ''); ?></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="image_url"><?php echo esc_html__('Category Image', 'restaurant-pos'); ?></label></th>
+                        <td>
+                            <div class="rpos-category-image-upload">
+                                <input type="hidden" id="image_url" name="image_url" value="<?php echo esc_attr($editing_category->image_url ?? ''); ?>">
+                                <div class="rpos-image-preview" id="rpos-category-image-preview">
+                                    <?php if (!empty($editing_category->image_url)): ?>
+                                        <img src="<?php echo esc_url($editing_category->image_url); ?>" alt="Category Image">
+                                    <?php else: ?>
+                                        <span class="dashicons dashicons-format-image"></span>
+                                    <?php endif; ?>
+                                </div>
+                                <button type="button" class="button" id="rpos-upload-category-image">
+                                    <?php echo esc_html__('Choose Image', 'restaurant-pos'); ?>
+                                </button>
+                                <button type="button" class="button" id="rpos-remove-category-image" style="<?php echo empty($editing_category->image_url) ? 'display:none;' : ''; ?>">
+                                    <?php echo esc_html__('Remove Image', 'restaurant-pos'); ?>
+                                </button>
+                                <p class="description"><?php echo esc_html__('Upload an image for this category. Recommended size: 100x100px', 'restaurant-pos'); ?></p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="bg_color"><?php echo esc_html__('Background Color', 'restaurant-pos'); ?></label></th>
+                        <td>
+                            <input type="text" id="bg_color" name="bg_color" class="rpos-color-picker" 
+                                   value="<?php echo esc_attr($editing_category->bg_color ?? '#4A5568'); ?>">
+                            <p class="description"><?php echo esc_html__('Choose a background color for the circular icon', 'restaurant-pos'); ?></p>
+                            <div class="rpos-color-presets">
+                                <span class="rpos-color-preset" data-color="#C53030" style="background-color: #C53030;" title="Red"></span>
+                                <span class="rpos-color-preset" data-color="#DD6B20" style="background-color: #DD6B20;" title="Orange"></span>
+                                <span class="rpos-color-preset" data-color="#D53F8C" style="background-color: #D53F8C;" title="Pink"></span>
+                                <span class="rpos-color-preset" data-color="#805AD5" style="background-color: #805AD5;" title="Purple"></span>
+                                <span class="rpos-color-preset" data-color="#38A169" style="background-color: #38A169;" title="Green"></span>
+                                <span class="rpos-color-preset" data-color="#3182CE" style="background-color: #3182CE;" title="Blue"></span>
+                                <span class="rpos-color-preset" data-color="#718096" style="background-color: #718096;" title="Gray"></span>
+                            </div>
                         </td>
                     </tr>
                 </table>
@@ -137,3 +185,117 @@ $categories = RPOS_Categories::get_all();
         </div>
     </div>
 </div>
+
+<style>
+/* Category Image Upload Styles */
+.rpos-category-image-upload {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.rpos-image-preview {
+    width: 100px;
+    height: 100px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #f5f5f5;
+}
+
+.rpos-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rpos-image-preview .dashicons {
+    font-size: 48px;
+    color: #ccc;
+}
+
+/* Color Picker Styles */
+.rpos-color-picker {
+    width: 100px;
+}
+
+.rpos-color-presets {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.rpos-color-preset {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #ccc;
+    transition: transform 0.2s;
+}
+
+.rpos-color-preset:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px #2271b1;
+}
+</style>
+
+<script>
+jQuery(document).ready(function($) {
+    // WordPress Media Uploader
+    var mediaUploader;
+    
+    $('#rpos-upload-category-image').on('click', function(e) {
+        e.preventDefault();
+        
+        if (mediaUploader) {
+            mediaUploader.open();
+            return;
+        }
+        
+        mediaUploader = wp.media({
+            title: '<?php echo esc_js(__('Choose Category Image', 'restaurant-pos')); ?>',
+            button: {
+                text: '<?php echo esc_js(__('Use this image', 'restaurant-pos')); ?>'
+            },
+            multiple: false
+        });
+        
+        mediaUploader.on('select', function() {
+            var attachment = mediaUploader.state().get('selection').first().toJSON();
+            $('#image_url').val(attachment.url);
+            $('#rpos-category-image-preview').html('<img src="' + attachment.url + '" alt="Category Image">');
+            $('#rpos-remove-category-image').show();
+        });
+        
+        mediaUploader.open();
+    });
+    
+    // Remove image
+    $('#rpos-remove-category-image').on('click', function(e) {
+        e.preventDefault();
+        $('#image_url').val('');
+        $('#rpos-category-image-preview').html('<span class="dashicons dashicons-format-image"></span>');
+        $(this).hide();
+    });
+    
+    // Color Picker
+    if ($.fn.wpColorPicker) {
+        $('.rpos-color-picker').wpColorPicker();
+    }
+    
+    // Color Presets
+    $('.rpos-color-preset').on('click', function() {
+        var color = $(this).data('color');
+        $('#bg_color').val(color).trigger('change');
+        if ($.fn.wpColorPicker) {
+            $('.rpos-color-picker').wpColorPicker('color', color);
+        }
+    });
+});
+</script>

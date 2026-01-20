@@ -89,15 +89,19 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 <div class="zaikon-categories-scroll-container">
                     <div class="zaikon-categories-wrapper">
                         <button class="zaikon-category-modern active rpos-category-btn" data-category="0">
-                            <div class="zaikon-category-icon">
+                            <div class="zaikon-category-circle" style="background-color: #718096">
                                 <span class="dashicons dashicons-menu"></span>
                             </div>
                             <span class="zaikon-category-name"><?php echo esc_html__('All', 'restaurant-pos'); ?></span>
                         </button>
                         <?php foreach ($categories as $category): ?>
                         <button class="zaikon-category-modern rpos-category-btn" data-category="<?php echo esc_attr($category->id); ?>">
-                            <div class="zaikon-category-icon">
-                                <span class="dashicons dashicons-category"></span>
+                            <div class="zaikon-category-circle" style="background-color: <?php echo esc_attr($category->bg_color ?: '#4A5568'); ?>">
+                                <?php if (!empty($category->image_url)): ?>
+                                    <img src="<?php echo esc_url($category->image_url); ?>" alt="<?php echo esc_attr($category->name); ?>">
+                                <?php else: ?>
+                                    <span class="dashicons dashicons-category"></span>
+                                <?php endif; ?>
                             </div>
                             <span class="zaikon-category-name"><?php echo esc_html($category->name); ?></span>
                         </button>

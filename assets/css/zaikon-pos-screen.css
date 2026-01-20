@@ -413,26 +413,20 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     flex-direction: column;
     align-items: center;
     gap: var(--space-2);
-    background: var(--zaikon-bg-primary);
-    border: 2px solid var(--zaikon-border-light);
-    border-radius: var(--radius-full);
-    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: none;
     cursor: pointer;
-    transition: all var(--transition-base);
-    min-width: 100px;
+    padding: 10px;
+    min-width: 90px;
+    transition: transform 0.2s ease;
 }
 
 .zaikon-category-modern:hover {
-    border-color: var(--zaikon-orange);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
 }
 
 .zaikon-category-modern.active {
-    background: linear-gradient(135deg, var(--zaikon-orange) 0%, var(--zaikon-yellow) 100%);
-    color: var(--zaikon-white);
-    border-color: var(--zaikon-orange);
-    box-shadow: 0 6px 16px rgba(255, 138, 0, 0.4);
+    /* Remove the gradient background since we're using the circle now */
 }
 
 .zaikon-category-icon {
@@ -456,11 +450,55 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     height: 24px;
 }
 
+/* Modern Circular Categories - New Design */
+.zaikon-category-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+.zaikon-category-circle img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+}
+
+.zaikon-category-circle .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: #fff;
+}
+
+.zaikon-category-modern:hover .zaikon-category-circle {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.zaikon-category-modern.active .zaikon-category-circle {
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px #2271b1;
+}
+
 .zaikon-category-name {
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
     text-align: center;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.zaikon-category-modern.active .zaikon-category-name {
+    color: #2271b1;
 }
 
 .zaikon-scroll-arrow {

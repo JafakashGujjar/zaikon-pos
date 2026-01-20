@@ -373,6 +373,19 @@ class RPOS_Install {
             self::upgrade_kitchen_staff_capabilities();
             update_option('rpos_kitchen_staff_capability_upgrade_done', true);
         }
+        
+        // Add image_url and bg_color columns to categories table
+        $table_name = $wpdb->prefix . 'rpos_categories';
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'image_url'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `image_url` varchar(500) DEFAULT NULL AFTER `description`");
+        }
+        
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'bg_color'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `bg_color` varchar(20) DEFAULT NULL AFTER `image_url`");
+        }
     }
     
     /**
@@ -510,6 +523,8 @@ class RPOS_Install {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             name varchar(255) NOT NULL,
             description text,
+            image_url varchar(500),
+            bg_color varchar(20),
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
