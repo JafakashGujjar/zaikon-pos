@@ -51,6 +51,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 /* ===== POS CONTAINER ===== */
+/* Desktop-optimized layout: 60px sidebar + flexible products + 400px cart = fits 1366x768 and 1920x1080 */
 .zaikon-pos-screen {
     background: var(--zaikon-bg-primary);
     min-height: 100vh;
@@ -61,28 +62,28 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-pos-container {
     display: grid;
-    grid-template-columns: auto 1fr 3fr;
+    grid-template-columns: 60px 1fr 400px;  /* Sidebar | Products | Cart */
     height: 100vh;
     overflow: hidden;
 }
 
 /* ===== VERTICAL NAVIGATION SIDEBAR ===== */
 .zaikon-pos-sidebar {
-    width: 70px;
+    width: 60px;
     background: var(--zaikon-bg-secondary);
     border-right: 1px solid var(--zaikon-border-light);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: var(--space-4) 0;
+    padding: var(--space-3) 0;
     gap: var(--space-2);
     height: 100vh;
     overflow-y: auto;
 }
 
 .zaikon-sidebar-btn {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -92,7 +93,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     cursor: pointer;
     transition: all var(--transition-base);
     position: relative;
-    color: var(--zaikon-text-secondary);
+    color: var(--zaikon-text-muted);
 }
 
 .zaikon-sidebar-btn:hover {
@@ -102,7 +103,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-sidebar-btn.active {
-    background: var(--zaikon-orange);
+    background: linear-gradient(135deg, var(--zaikon-orange) 0%, var(--zaikon-yellow) 100%);
     color: var(--zaikon-white);
     box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
 }
@@ -131,7 +132,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 .zaikon-pos-header {
     background: var(--zaikon-bg-secondary);
     color: var(--zaikon-text-primary);
-    padding: var(--space-4) var(--space-6);
+    padding: var(--space-3) var(--space-4);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid var(--zaikon-border-light);
     border-radius: 0;
@@ -143,15 +144,16 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-pos-header h2 {
     margin: 0;
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     font-weight: var(--font-bold);
     color: var(--zaikon-text-primary);
+    white-space: nowrap;
 }
 
 .zaikon-pos-search-wrapper {
     position: relative;
     flex: 1;
-    max-width: 400px;
+    max-width: 300px;
 }
 
 .zaikon-pos-search-icon {
@@ -167,12 +169,12 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 .zaikon-pos-search {
     flex: 1;
     width: 100%;
-    padding: var(--space-3) var(--space-4) var(--space-3) var(--space-10);
-    font-size: var(--text-base);
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-8);
+    font-size: var(--text-sm);
     border: 2px solid var(--zaikon-border-light);
     border-radius: var(--radius-full);
     background: var(--zaikon-bg-primary);
-    min-height: var(--touch-comfortable);
+    min-height: 36px;
     color: var(--zaikon-text-primary);
     transition: border-color var(--transition-base);
 }
@@ -188,7 +190,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     gap: var(--space-2);
     overflow-x: auto;
-    padding: var(--space-3) 0;
+    padding: var(--space-2) 0;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -207,16 +209,16 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-category-btn {
     flex-shrink: 0;
-    padding: var(--space-3) var(--space-5);
-    background: var(--zaikon-dark);
-    color: var(--zaikon-white);
-    border: 2px solid var(--zaikon-dark);
+    padding: var(--space-2) var(--space-4);
+    background: var(--zaikon-bg-primary);
+    color: var(--zaikon-text-primary);
+    border: 2px solid var(--zaikon-border-light);
     border-radius: var(--radius-full);
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: var(--font-semibold);
     cursor: pointer;
     transition: all var(--transition-base);
-    min-height: var(--touch-comfortable);
+    min-height: 36px;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -224,28 +226,29 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-category-btn:hover {
-    background: var(--zaikon-dark-light);
+    background: var(--zaikon-bg-tertiary);
     border-color: var(--zaikon-orange);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .zaikon-category-btn.active {
-    background: var(--zaikon-orange);
+    background: var(--zaikon-dark);
     color: var(--zaikon-white);
-    border-color: var(--zaikon-orange);
-    box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
+    border-color: var(--zaikon-dark);
+    box-shadow: 0 4px 12px rgba(26, 26, 46, 0.3);
 }
 
 /* Product Grid */
 .zaikon-products-grid {
     flex: 1;
     overflow-y: auto;
-    padding: var(--space-6);
+    padding: var(--space-4);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--space-3);
     align-content: start;
+    background: var(--zaikon-bg-primary);
 }
 
 .zaikon-products-grid-header {
@@ -253,12 +256,12 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-2);
 }
 
 .zaikon-products-grid-header h3 {
     margin: 0;
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     font-weight: var(--font-bold);
     color: var(--zaikon-text-primary);
 }
@@ -288,7 +291,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     overflow: visible;
     cursor: pointer;
     transition: all var(--transition-base);
-    min-height: 240px;
+    min-height: 220px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -308,7 +311,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-product-image-wrapper {
     width: 100%;
-    padding: var(--space-4) var(--space-4) 0;
+    padding: var(--space-3) var(--space-3) 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -316,8 +319,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-product-image-circle {
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     background: var(--zaikon-dark);
     display: flex;
@@ -349,16 +352,16 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-product-info {
-    padding: var(--space-4);
+    padding: var(--space-3);
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: var(--space-2);
+    gap: var(--space-1);
 }
 
 .zaikon-product-name {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: var(--font-semibold);
     color: var(--zaikon-text-primary);
     margin-bottom: 0;
@@ -370,7 +373,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-product-description {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: var(--zaikon-text-secondary);
     line-height: var(--leading-tight);
     display: -webkit-box;
@@ -381,7 +384,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-product-price {
-    font-size: var(--text-lg);
+    font-size: var(--text-base);
     font-weight: var(--font-bold);
     color: var(--zaikon-orange);
 }
@@ -970,17 +973,17 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-2);
 }
 
 .zaikon-notification-bell {
     position: relative;
     cursor: pointer;
-    padding: var(--space-3);
+    padding: var(--space-2);
     background: var(--zaikon-bg-tertiary);
     border-radius: 50%;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -995,9 +998,9 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-notification-bell .dashicons {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
     color: var(--zaikon-text-primary);
 }
 
@@ -1292,7 +1295,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 .zaikon-pos-header-actions {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-2);
     flex: 1;
     justify-content: flex-end;
 }
@@ -1301,17 +1304,17 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-3) var(--space-5);
+    padding: var(--space-2) var(--space-4);
     background: var(--zaikon-orange);
     color: white;
     border: none;
     border-radius: var(--radius-full);
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: var(--font-semibold);
     cursor: pointer;
     transition: all var(--transition-base);
     white-space: nowrap;
-    min-height: var(--touch-comfortable);
+    min-height: 36px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -1322,9 +1325,9 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-header-btn .dashicons {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
 }
 
 .zaikon-expenses-btn {
