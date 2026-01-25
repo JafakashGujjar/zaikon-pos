@@ -267,6 +267,50 @@ class RPOS_REST_API {
             'permission_callback' => array($this, 'check_process_orders_permission')
         ));
         
+        // ========== Order Tracking Endpoints ==========
+        
+        // Public tracking endpoint (no authentication required)
+        register_rest_route($zaikon_namespace, '/track/(?P<token>[a-f0-9]+)', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_order_by_tracking_token'),
+            'permission_callback' => '__return_true' // Public endpoint
+        ));
+        
+        // Update order tracking status (KDS, POS)
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/tracking-status', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'update_order_tracking_status'),
+            'permission_callback' => array($this, 'check_kds_permission')
+        ));
+        
+        // Assign rider with contact info
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/assign-rider-info', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'assign_rider_info'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
+        
+        // Get tracking URL for order
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/tracking-url', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_order_tracking_url'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
+        // Extend cooking ETA
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/extend-eta', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'extend_cooking_eta'),
+            'permission_callback' => array($this, 'check_kds_permission')
+        ));
+        
+        // Get remaining ETA
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/eta', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_remaining_eta'),
+            'permission_callback' => '__return_true' // Public for tracking page
+        ));
+        
         // Cylinder endpoints
         register_rest_route($zaikon_namespace, '/cylinders/consumption', array(
             'methods' => 'GET',
@@ -1574,6 +1618,149 @@ class RPOS_REST_API {
         return rest_ensure_response(array(
             'success' => true,
             'data' => $zones
+        ));
+    }
+    
+    // ========== Order Tracking API Methods ==========
+    
+    /**
+     * Get order by tracking token (public endpoint)
+     */
+    public function get_order_by_tracking_token($request) {
+        $token = $request->get_param('token');
+        
+        $order = Zaikon_Order_Tracking::get_order_by_token($token);
+        
+        if (!$order) {
+            return new WP_Error('not_found', 'Order not found', array('status' => 404));
+        }
+        
+        // Get ETA information
+        $eta = Zaikon_Order_Tracking::get_remaining_eta($order->id);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'order' => $order,
+            'eta' => $eta
+        ));
+    }
+    
+    /**
+     * Update order tracking status
+     */
+    public function update_order_tracking_status($request) {
+        $order_id = $request->get_param('id');
+        $new_status = $request->get_param('status');
+        
+        if (empty($new_status)) {
+            return new WP_Error('missing_param', 'Status is required', array('status' => 400));
+        }
+        
+        $result = Zaikon_Order_Tracking::update_status($order_id, $new_status);
+        
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Order status updated successfully'
+        ));
+    }
+    
+    /**
+     * Assign rider information to order
+     */
+    public function assign_rider_info($request) {
+        $order_id = $request->get_param('id');
+        $rider_data = array(
+            'rider_name' => $request->get_param('rider_name'),
+            'rider_phone' => $request->get_param('rider_phone'),
+            'rider_avatar' => $request->get_param('rider_avatar'),
+            'rider_id' => $request->get_param('rider_id')
+        );
+        
+        if (empty($rider_data['rider_name']) || empty($rider_data['rider_phone'])) {
+            return new WP_Error('missing_param', 'Rider name and phone are required', array('status' => 400));
+        }
+        
+        $result = Zaikon_Order_Tracking::assign_rider($order_id, $rider_data);
+        
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Rider assigned successfully'
+        ));
+    }
+    
+    /**
+     * Get tracking URL for order
+     */
+    public function get_order_tracking_url($request) {
+        global $wpdb;
+        
+        $order_id = $request->get_param('id');
+        
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT tracking_token, order_number FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        if (!$order) {
+            return new WP_Error('not_found', 'Order not found', array('status' => 404));
+        }
+        
+        // Generate token if it doesn't exist
+        if (empty($order->tracking_token)) {
+            $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order_id);
+        } else {
+            $tracking_token = $order->tracking_token;
+        }
+        
+        $tracking_url = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'tracking_url' => $tracking_url,
+            'tracking_token' => $tracking_token,
+            'order_number' => $order->order_number
+        ));
+    }
+    
+    /**
+     * Extend cooking ETA
+     */
+    public function extend_cooking_eta($request) {
+        $order_id = $request->get_param('id');
+        $additional_minutes = $request->get_param('additional_minutes') ?: 5;
+        
+        $new_eta = Zaikon_Order_Tracking::extend_cooking_eta($order_id, $additional_minutes);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'new_eta' => $new_eta,
+            'message' => 'Cooking ETA extended by ' . $additional_minutes . ' minutes'
+        ));
+    }
+    
+    /**
+     * Get remaining ETA (public endpoint)
+     */
+    public function get_remaining_eta($request) {
+        $order_id = $request->get_param('id');
+        
+        $eta = Zaikon_Order_Tracking::get_remaining_eta($order_id);
+        
+        if (!$eta) {
+            return new WP_Error('not_found', 'Order not found', array('status' => 404));
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'eta' => $eta
         ));
     }
 }

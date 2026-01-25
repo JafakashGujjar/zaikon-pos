@@ -374,6 +374,13 @@ class RPOS_Install {
             update_option('rpos_kitchen_staff_capability_upgrade_done', true);
         }
         
+        // Run delivery tracking system migration if not already done
+        $delivery_tracking_migration_done = get_option('rpos_delivery_tracking_migration_done', false);
+        if (!$delivery_tracking_migration_done) {
+            self::migrate_delivery_tracking_system();
+            update_option('rpos_delivery_tracking_migration_done', true);
+        }
+        
         // Add image_url and bg_color columns to categories table
         $categories_image_migration_done = get_option('rpos_categories_image_migration_done', false);
         if (!$categories_image_migration_done) {
@@ -1557,5 +1564,146 @@ class RPOS_Install {
             $kitchen_staff->add_cap('rpos_view_orders');
             error_log('RPOS: Added rpos_view_orders capability to kitchen_staff role');
         }
+    }
+    
+    /**
+     * Migrate delivery tracking system - add tracking fields to orders and deliveries
+     */
+    public static function migrate_delivery_tracking_system() {
+        global $wpdb;
+        
+        // ========== Zaikon Orders Table Updates ==========
+        $orders_table = $wpdb->prefix . 'zaikon_orders';
+        
+        // Verify table exists before altering
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $orders_table
+        ));
+        
+        if (!$table_exists) {
+            error_log('RPOS: zaikon_orders table does not exist, skipping tracking migration');
+            return;
+        }
+        
+        // Add tracking_token field for shareable tracking links
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'tracking_token'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `tracking_token` varchar(100) UNIQUE DEFAULT NULL AFTER `order_number`");
+            error_log('RPOS: Added tracking_token column to zaikon_orders');
+        }
+        
+        // Extend order_status enum to include tracking states
+        $column_info = $wpdb->get_row("SHOW COLUMNS FROM `{$orders_table}` LIKE 'order_status'");
+        if ($column_info && strpos($column_info->Type, 'confirmed') === false) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` MODIFY `order_status` ENUM('pending','confirmed','cooking','ready','dispatched','delivered','active','completed','cancelled','replacement') DEFAULT 'pending'");
+            error_log('RPOS: Extended order_status enum with tracking states');
+        }
+        
+        // Add cooking_eta and delivery_eta fields
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'cooking_eta_minutes'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `cooking_eta_minutes` int(11) DEFAULT 20 AFTER `order_status`");
+            error_log('RPOS: Added cooking_eta_minutes column to zaikon_orders');
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'delivery_eta_minutes'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `delivery_eta_minutes` int(11) DEFAULT 15 AFTER `cooking_eta_minutes`");
+            error_log('RPOS: Added delivery_eta_minutes column to zaikon_orders');
+        }
+        
+        // Add timestamp fields for tracking
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'confirmed_at'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `confirmed_at` datetime DEFAULT NULL AFTER `delivery_eta_minutes`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'cooking_started_at'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `cooking_started_at` datetime DEFAULT NULL AFTER `confirmed_at`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'ready_at'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `ready_at` datetime DEFAULT NULL AFTER `cooking_started_at`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'dispatched_at'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `dispatched_at` datetime DEFAULT NULL AFTER `ready_at`");
+        }
+        
+        // ========== Zaikon Deliveries Table Updates ==========
+        $deliveries_table = $wpdb->prefix . 'zaikon_deliveries';
+        
+        // Verify table exists
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $deliveries_table
+        ));
+        
+        if (!$table_exists) {
+            error_log('RPOS: zaikon_deliveries table does not exist, skipping delivery tracking migration');
+            return;
+        }
+        
+        // Add rider info fields for tracking page
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$deliveries_table}` LIKE %s",
+            'rider_name'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$deliveries_table}` ADD COLUMN `rider_name` varchar(191) DEFAULT NULL AFTER `assigned_rider_id`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$deliveries_table}` LIKE %s",
+            'rider_phone'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$deliveries_table}` ADD COLUMN `rider_phone` varchar(50) DEFAULT NULL AFTER `rider_name`");
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$deliveries_table}` LIKE %s",
+            'rider_avatar'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$deliveries_table}` ADD COLUMN `rider_avatar` varchar(500) DEFAULT NULL AFTER `rider_phone`");
+        }
+        
+        error_log('RPOS: Delivery tracking migration completed successfully');
     }
 }
