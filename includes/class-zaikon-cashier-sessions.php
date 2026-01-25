@@ -90,12 +90,14 @@ class Zaikon_Cashier_Sessions {
     
     /**
      * Calculate session totals from orders and expenses
+     * Optimized version with reduced queries and specific column selection
      */
     public static function calculate_session_totals($session_id) {
         global $wpdb;
         
         $session = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}zaikon_cashier_sessions WHERE id = %d",
+            "SELECT cashier_id, session_start, session_end, opening_cash_rs 
+             FROM {$wpdb->prefix}zaikon_cashier_sessions WHERE id = %d",
             $session_id
         ));
         
@@ -106,9 +108,29 @@ class Zaikon_Cashier_Sessions {
         // Get all orders from this cashier since session start
         $end_time = $session->session_end ?? current_time('mysql');
         
-        // Get delivery orders from zaikon_orders table
-        $zaikon_orders = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}zaikon_orders 
+        // Cache schema check as a transient for 1 hour to avoid repeated SHOW COLUMNS queries
+        $cache_key = 'zaikon_rpos_orders_schema_v1';
+        $schema_info = get_transient($cache_key);
+        
+        if (false === $schema_info) {
+            $columns = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}rpos_orders");
+            $schema_info = array(
+                'has_payment_type' => in_array('payment_type', $columns),
+                'has_payment_status' => in_array('payment_status', $columns)
+            );
+            set_transient($cache_key, $schema_info, HOUR_IN_SECONDS);
+        }
+        
+        $has_payment_type = $schema_info['has_payment_type'];
+        $has_payment_status = $schema_info['has_payment_status'];
+        
+        // Optimize: Use single query with SUM aggregation for zaikon_orders instead of fetching all rows
+        $zaikon_totals = $wpdb->get_row($wpdb->prepare(
+            "SELECT 
+                COALESCE(SUM(CASE WHEN payment_type = 'cash' AND payment_status = 'paid' THEN grand_total_rs ELSE 0 END), 0) as cash_sales,
+                COALESCE(SUM(CASE WHEN payment_type = 'cod' AND (payment_status = 'cod_received' OR payment_status = 'paid') THEN grand_total_rs ELSE 0 END), 0) as cod_collected,
+                COALESCE(SUM(CASE WHEN payment_type = 'online' AND (payment_status = 'paid' OR payment_status = 'completed') THEN grand_total_rs ELSE 0 END), 0) as online_payments
+             FROM {$wpdb->prefix}zaikon_orders 
              WHERE cashier_id = %d 
              AND created_at >= %s 
              AND created_at <= %s
@@ -118,26 +140,11 @@ class Zaikon_Cashier_Sessions {
             $end_time
         ));
         
-        $cash_sales = 0;
-        $cod_collected = 0;
+        $cash_sales = floatval($zaikon_totals->cash_sales);
+        $cod_collected = floatval($zaikon_totals->cod_collected);
+        $online_payments = floatval($zaikon_totals->online_payments);
         
-        // Calculate totals from zaikon_orders (delivery orders only)
-        foreach ($zaikon_orders as $order) {
-            if ($order->payment_type === 'cash' && $order->payment_status === 'paid') {
-                $cash_sales += floatval($order->grand_total_rs);
-            } elseif ($order->payment_type === 'cod' && 
-                    ($order->payment_status === 'cod_received' || $order->payment_status === 'paid')) {
-                $cod_collected += floatval($order->grand_total_rs);
-            }
-        }
-        
-        // Also get non-delivery orders from rpos_orders table (dine-in and takeaway)
-        // These don't exist in zaikon_orders, so we need to query rpos_orders
-        // Check if payment_type column exists in rpos_orders
-        $columns = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}rpos_orders");
-        $has_payment_type = in_array('payment_type', $columns);
-        $has_payment_status = in_array('payment_status', $columns);
-        
+        // Optimize: Use SUM aggregation for rpos_orders instead of fetching all rows
         if ($has_payment_type && $has_payment_status) {
             // Get all cash/paid dine-in and takeaway orders
             // Include orders that are:
@@ -146,30 +153,11 @@ class Zaikon_Cashier_Sessions {
             //    - Safe assumption: All dine-in/takeaway orders are paid at counter before being created
             //    - These legacy orders would never have been created without payment
             //    - Additional safety: status filter excludes cancelled/void/refunded
-            $rpos_orders = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}rpos_orders 
-                 WHERE cashier_id = %d 
-                 AND created_at >= %s 
-                 AND created_at <= %s
-                 AND order_type IN ('dine-in', 'takeaway')
-                 AND status NOT IN ('cancelled', 'void', 'refunded')
-                 AND (
-                     (payment_type = 'cash' AND payment_status = 'paid')
-                     OR
-                     (payment_type IS NULL OR payment_type = '')
-                 )",
-                $session->cashier_id,
-                $session->session_start,
-                $end_time
-            ));
-            
-            foreach ($rpos_orders as $order) {
-                $cash_sales += floatval($order->total);
-            }
-        } else {
-            // Legacy schema - assume all completed dine-in and takeaway orders are cash and paid
-            $rpos_orders = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}rpos_orders 
+            $rpos_totals = $wpdb->get_row($wpdb->prepare(
+                "SELECT 
+                    COALESCE(SUM(CASE WHEN (payment_type = 'cash' AND payment_status = 'paid') OR (payment_type IS NULL OR payment_type = '') THEN total ELSE 0 END), 0) as cash_total,
+                    COALESCE(SUM(CASE WHEN payment_type = 'online' AND payment_status = 'paid' THEN total ELSE 0 END), 0) as online_total
+                 FROM {$wpdb->prefix}rpos_orders 
                  WHERE cashier_id = %d 
                  AND created_at >= %s 
                  AND created_at <= %s
@@ -180,44 +168,24 @@ class Zaikon_Cashier_Sessions {
                 $end_time
             ));
             
-            foreach ($rpos_orders as $order) {
-                // Legacy orders are assumed to be cash sales
-                $cash_sales += floatval($order->total);
-            }
-        }
-        
-        // Calculate online payments from both zaikon_orders and rpos_orders
-        $online_payments = 0;
-        
-        // Calculate online payments from zaikon_orders (delivery orders)
-        foreach ($zaikon_orders as $order) {
-            if ($order->payment_type === 'online' && 
-                ($order->payment_status === 'paid' || $order->payment_status === 'completed')) {
-                $online_payments += floatval($order->grand_total_rs);
-            }
-        }
-        
-        // Also check rpos_orders for online payments (if schema supports it)
-        // Note: COD is tracked separately in zaikon_orders for delivery orders,
-        // not included in this online payments query
-        if ($has_payment_type && $has_payment_status) {
-            $online_rpos_orders = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}rpos_orders 
+            $cash_sales += floatval($rpos_totals->cash_total);
+            $online_payments += floatval($rpos_totals->online_total);
+        } else {
+            // Legacy schema - assume all completed dine-in and takeaway orders are cash and paid
+            $rpos_cash = $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(total), 0) 
+                 FROM {$wpdb->prefix}rpos_orders 
                  WHERE cashier_id = %d 
                  AND created_at >= %s 
                  AND created_at <= %s
                  AND order_type IN ('dine-in', 'takeaway')
-                 AND status NOT IN ('cancelled', 'void', 'refunded')
-                 AND payment_type = 'online'
-                 AND payment_status = 'paid'",
+                 AND status NOT IN ('cancelled', 'void', 'refunded')",
                 $session->cashier_id,
                 $session->session_start,
                 $end_time
             ));
             
-            foreach ($online_rpos_orders as $order) {
-                $online_payments += floatval($order->total);
-            }
+            $cash_sales += floatval($rpos_cash);
         }
         
         // Get total expenses for this session
