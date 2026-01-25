@@ -42,11 +42,23 @@ class Zaikon_Order_Service {
             
             $result['order_id'] = $order_id;
             
+            // Generate tracking token for the order
+            $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order_id);
+            if ($tracking_token) {
+                $result['tracking_token'] = $tracking_token;
+                $result['tracking_url'] = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
+            }
+            
+            // Set initial order status to 'pending' if delivery, or 'confirmed' if dine-in/takeaway
+            $initial_status = ($order_data['order_type'] === 'delivery') ? 'pending' : 'confirmed';
+            Zaikon_Order_Tracking::update_status($order_id, $initial_status);
+            
             // Log order creation
             Zaikon_System_Events::log('order', $order_id, 'create', array(
                 'order_number' => $order_data['order_number'],
                 'order_type' => $order_data['order_type'],
-                'grand_total_rs' => $order_data['grand_total_rs']
+                'grand_total_rs' => $order_data['grand_total_rs'],
+                'tracking_token' => $tracking_token
             ));
             
             // 2. Create order items
