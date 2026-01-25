@@ -603,6 +603,30 @@
     flex: 1;
 }
 
+/* Info/Blue button styling for Order Tracking */
+.zaikon-btn-info {
+    background-color: #3182CE;
+    color: #fff;
+    border: none;
+}
+
+.zaikon-btn-info:hover {
+    background-color: #2C5282;
+}
+
+/* Ensure receipt action buttons are properly laid out */
+.zaikon-receipt-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.zaikon-receipt-footer .zaikon-btn {
+    flex: 1;
+    min-width: 120px;
+}
+
 /* KDS */
 .rpos-kds {
     background: #f6f7f7;
