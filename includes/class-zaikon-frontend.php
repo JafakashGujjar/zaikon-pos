@@ -28,6 +28,9 @@ class Zaikon_Frontend {
         add_rewrite_rule('^zaikon-pos/pos/?$', 'index.php?zaikon_pos_page=pos', 'top');
         add_rewrite_rule('^zaikon-pos/kds/?$', 'index.php?zaikon_pos_page=kds', 'top');
         add_rewrite_rule('^zaikon-pos/deliveries/?$', 'index.php?zaikon_pos_page=deliveries', 'top');
+        
+        // Public tracking page - no login required
+        add_rewrite_rule('^track-order/([a-f0-9]+)/?$', 'index.php?zaikon_tracking_token=$matches[1]', 'top');
     }
     
     /**
@@ -35,6 +38,7 @@ class Zaikon_Frontend {
      */
     public static function add_query_vars($vars) {
         $vars[] = 'zaikon_pos_page';
+        $vars[] = 'zaikon_tracking_token';
         return $vars;
     }
     
@@ -43,12 +47,24 @@ class Zaikon_Frontend {
      */
     public static function load_template($template) {
         $page = get_query_var('zaikon_pos_page');
+        $tracking_token = get_query_var('zaikon_tracking_token');
+        
+        // Handle public tracking page (no login required)
+        if ($tracking_token) {
+            $tracking_template = RPOS_PLUGIN_DIR . 'templates/tracking-page.php';
+            
+            if (file_exists($tracking_template)) {
+                return $tracking_template;
+            }
+            
+            return $template;
+        }
         
         if (!$page) {
             return $template;
         }
         
-        // Check if user is logged in
+        // Check if user is logged in for POS pages
         if (!is_user_logged_in()) {
             wp_redirect(wp_login_url(home_url('/zaikon-pos/')));
             exit;
