@@ -25,7 +25,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 <?php else: ?>
                     <div class="zaikon-pos-logo-text"><?php echo esc_html($restaurant_name); ?></div>
                 <?php endif; ?>
-                <div class="zaikon-developer-credit">Developed by<br>Muhammad Jaffakash Nawaz</div>
+                <div class="zaikon-developer-credit">Developed by<br>Muhammad Jafakash Nawaz</div>
             </div>
             
             <div class="zaikon-sidebar-divider"></div>
