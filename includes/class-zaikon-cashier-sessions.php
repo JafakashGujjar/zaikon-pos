@@ -109,7 +109,7 @@ class Zaikon_Cashier_Sessions {
         $end_time = $session->session_end ?? current_time('mysql');
         
         // Cache schema check as a transient for 1 hour to avoid repeated SHOW COLUMNS queries
-        $cache_key = 'rpos_orders_schema_v1';
+        $cache_key = 'zaikon_rpos_orders_schema_v1';
         $schema_info = get_transient($cache_key);
         
         if (false === $schema_info) {
