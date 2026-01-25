@@ -352,6 +352,64 @@
             $('#rpos-print-rider-slip').on('click', function() {
                 self.printRiderSlip();
             });
+            
+            // Share receipt button handler
+            $('#zaikon-share-receipt').on('click', function() {
+                // Get receipt data with validation
+                const orderNumber = $('#receipt-order-number').text().trim();
+                const total = $('#receipt-total').text().trim();
+                const restaurantName = $('#receipt-restaurant-name').text().trim();
+                
+                // Validate that we have the required data
+                if (!orderNumber || !total || !restaurantName) {
+                    ZAIKON_Toast.error('Receipt data not available');
+                    return;
+                }
+                
+                const shareText = `Receipt from ${restaurantName}\nOrder: ${orderNumber}\nTotal: ${total}`;
+                
+                // Check if Web Share API is available
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Receipt - ' + orderNumber,
+                        text: shareText
+                    }).catch(function(error) {
+                        console.error('Error sharing:', error);
+                    });
+                } else {
+                    // Fallback: Copy to clipboard
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(shareText).then(function() {
+                            ZAIKON_Toast.success('Receipt copied to clipboard!');
+                        }).catch(function(error) {
+                            console.error('Error copying to clipboard:', error);
+                            ZAIKON_Toast.error('Failed to copy receipt to clipboard');
+                        });
+                    } else {
+                        // Older browser fallback - create temporary textarea
+                        const textArea = document.createElement('textarea');
+                        textArea.value = shareText;
+                        textArea.style.position = 'absolute';
+                        textArea.style.top = '-9999px';
+                        textArea.style.left = '-9999px';
+                        textArea.style.opacity = '0';
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        try {
+                            const successful = document.execCommand('copy');
+                            if (successful) {
+                                ZAIKON_Toast.success('Receipt copied to clipboard!');
+                            } else {
+                                ZAIKON_Toast.error('Failed to copy receipt to clipboard');
+                            }
+                        } catch (error) {
+                            console.error('Error copying to clipboard:', error);
+                            ZAIKON_Toast.error('Failed to copy receipt to clipboard');
+                        }
+                        document.body.removeChild(textArea);
+                    }
+                }
+            });
         },
         
         loadProducts: function() {

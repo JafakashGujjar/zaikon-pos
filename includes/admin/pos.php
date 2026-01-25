@@ -333,6 +333,10 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
             <button class="zaikon-btn zaikon-btn-primary zaikon-btn-lg" onclick="window.print();">
                 <?php echo esc_html__('Print Receipt', 'restaurant-pos'); ?>
             </button>
+            <button class="zaikon-btn zaikon-btn-secondary zaikon-btn-lg" id="zaikon-share-receipt">
+                <span class="dashicons dashicons-share"></span>
+                <?php echo esc_html__('Share', 'restaurant-pos'); ?>
+            </button>
             <button class="zaikon-btn zaikon-btn-secondary zaikon-btn-lg" id="rpos-print-rider-slip" style="display: none;">
                 <?php echo esc_html__('Print Rider Slip', 'restaurant-pos'); ?>
             </button>
