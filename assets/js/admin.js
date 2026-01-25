@@ -410,6 +410,64 @@
                     }
                 }
             });
+            
+            // Order Tracking button handler
+            $('#zaikon-order-tracking').on('click', function() {
+                // Get order number from receipt
+                const orderNumber = $('#receipt-order-number').text().trim().replace('Order #', '');
+                
+                // Validate that we have the order number
+                if (!orderNumber) {
+                    ZAIKON_Toast.error('Order number not available');
+                    return;
+                }
+                
+                // Generate tracking URL
+                const trackingUrl = window.location.origin + '/order-tracking/' + orderNumber;
+                
+                // Check if Web Share API is available
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Track Your Order',
+                        text: 'Track your order #' + orderNumber,
+                        url: trackingUrl
+                    }).catch(function(error) {
+                        console.error('Error sharing:', error);
+                    });
+                } else {
+                    // Fallback: Copy to clipboard
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(trackingUrl).then(function() {
+                            ZAIKON_Toast.success('Order tracking link copied to clipboard!\n\n' + trackingUrl);
+                        }).catch(function(error) {
+                            console.error('Error copying to clipboard:', error);
+                            ZAIKON_Toast.error('Failed to copy tracking link to clipboard');
+                        });
+                    } else {
+                        // Older browser fallback - create temporary textarea
+                        const textArea = document.createElement('textarea');
+                        textArea.value = trackingUrl;
+                        textArea.style.position = 'absolute';
+                        textArea.style.top = '-9999px';
+                        textArea.style.left = '-9999px';
+                        textArea.style.opacity = '0';
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        try {
+                            const successful = document.execCommand('copy');
+                            if (successful) {
+                                ZAIKON_Toast.success('Order tracking link copied to clipboard!\n\n' + trackingUrl);
+                            } else {
+                                ZAIKON_Toast.error('Failed to copy tracking link to clipboard');
+                            }
+                        } catch (error) {
+                            console.error('Error copying to clipboard:', error);
+                            ZAIKON_Toast.error('Failed to copy tracking link to clipboard');
+                        }
+                        document.body.removeChild(textArea);
+                    }
+                }
+            });
         },
         
         loadProducts: function() {
