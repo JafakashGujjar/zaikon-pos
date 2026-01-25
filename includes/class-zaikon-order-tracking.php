@@ -326,26 +326,3 @@ class Zaikon_Order_Tracking {
         return $result;
     }
 }
-
-// Initialize system events logging class
-class Zaikon_System_Events {
-    
-    /**
-     * Log a system event
-     */
-    public static function log($entity_type, $entity_id, $action, $metadata = array()) {
-        global $wpdb;
-        
-        $wpdb->insert(
-            $wpdb->prefix . 'zaikon_system_events',
-            array(
-                'entity_type' => sanitize_text_field($entity_type),
-                'entity_id' => absint($entity_id),
-                'action' => sanitize_text_field($action),
-                'metadata' => json_encode($metadata),
-                'created_at' => RPOS_Timezone::current_utc_mysql()
-            ),
-            array('%s', '%d', '%s', '%s', '%s')
-        );
-    }
-}

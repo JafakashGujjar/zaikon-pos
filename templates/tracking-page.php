@@ -408,8 +408,10 @@
     </div>
 
     <script>
-        // Get tracking token from URL
-        const trackingToken = '<?php echo esc_js(get_query_var("zaikon_tracking_token")); ?>';
+        // Get tracking token from URL and validate format
+        const rawToken = '<?php echo esc_js(get_query_var("zaikon_tracking_token")); ?>';
+        // Validate token is 32-character hex string
+        const trackingToken = /^[a-f0-9]{32}$/.test(rawToken) ? rawToken : null;
         const apiBaseUrl = '<?php echo esc_js(rest_url("zaikon/v1/")); ?>';
         
         let currentOrderData = null;
@@ -474,6 +476,14 @@
             
             // Render order items
             renderOrderItems(order);
+            
+            // Stop polling if order is in final state
+            const finalStates = ['delivered', 'cancelled'];
+            if (finalStates.includes(order.order_status) && pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+                console.log('Polling stopped - order is in final state:', order.order_status);
+            }
         }
         
         // Render status timeline
