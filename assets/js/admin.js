@@ -124,12 +124,21 @@
         
         init: function() {
             if ($('.rpos-pos-screen').length || $('.zaikon-pos-screen').length) {
+                var self = this;
                 this.loadProducts();
                 this.bindEvents();
                 this.initNotifications();
                 this.initNotificationSound();
                 // Initialize COD option visibility (hide by default since default is "dine-in")
                 this.toggleCODOption(false);
+                
+                // Cleanup intervals on page unload to prevent memory leaks
+                $(window).on('beforeunload', function() {
+                    if (self.notificationInterval) {
+                        clearInterval(self.notificationInterval);
+                        self.notificationInterval = null;
+                    }
+                });
             }
         },
         
@@ -401,6 +410,9 @@
                 return;
             }
             
+            // Batch DOM updates: create all items first, then append once
+            var $fragment = $(document.createDocumentFragment());
+            
             filtered.forEach(function(product) {
                 var $item = $('<div class="zaikon-product-card zaikon-animate-fadeIn">')
                     .data('product', product)
@@ -449,8 +461,11 @@
                 
                 $item.append($info);
                 
-                $grid.append($item);
+                $fragment.append($item);
             });
+            
+            // Single DOM update instead of multiple appends
+            $grid.append($fragment);
         },
         
         addToCart: function(product) {
@@ -482,6 +497,9 @@
                 return;
             }
             
+            // Batch DOM updates: create all items first, then append once
+            var $fragment = $(document.createDocumentFragment());
+            
             this.cart.forEach(function(item, index) {
                 var lineTotal = item.product.selling_price * item.quantity;
                 
@@ -500,8 +518,11 @@
                 
                 $item.append('<div class="zaikon-cart-item-total">' + rposData.currency + lineTotal.toFixed(2) + '</div>');
                 
-                $container.append($item);
+                $fragment.append($item);
             });
+            
+            // Single DOM update instead of multiple appends
+            $container.append($fragment);
             
             // Bind cart item events
             $('.rpos-qty-minus').on('click', function() {
@@ -756,8 +777,12 @@
             // Initial load
             this.loadNotifications();
             
-            // Poll every 10 seconds
+            // Poll every 10 seconds, but only when tab is visible
             this.notificationInterval = setInterval(function() {
+                // Skip polling if document is hidden (tab not active)
+                if (document.hidden) {
+                    return;
+                }
                 self.loadNotifications();
             }, 10000);
             
