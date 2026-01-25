@@ -801,33 +801,6 @@
             $('#rpos-order-detail-close, #rpos-order-detail-close-btn').on('click', function() {
                 $('#rpos-order-detail-modal').fadeOut();
             });
-            
-            // Bind expenses button click handler
-            $('#rpos-expenses-btn').on('click', function() {
-                $('#rpos-expenses-modal').fadeIn();
-            });
-            
-            // Bind expenses modal close handlers
-            $('#rpos-expenses-modal-close, #rpos-close-expenses').on('click', function() {
-                $('#rpos-expenses-modal').fadeOut();
-            });
-            
-            // Bind orders button click handler
-            $('#rpos-orders-btn').on('click', function() {
-                $('#rpos-orders-modal').fadeIn();
-                // Load orders when modal opens
-                self.loadOrdersList();
-            });
-            
-            // Bind orders modal close handlers
-            $('#rpos-orders-modal-close, #rpos-close-orders').on('click', function() {
-                $('#rpos-orders-modal').fadeOut();
-            });
-            
-            // Bind refresh orders button
-            $('#rpos-refresh-orders').on('click', function() {
-                self.loadOrdersList();
-            });
         },
         
         loadNotifications: function() {
@@ -995,55 +968,6 @@
                 },
                 error: function() {
                     ZAIKON_Toast.error('Failed to mark notifications as read');
-                }
-            });
-        },
-        
-        loadOrdersList: function() {
-            var self = this;
-            var selectedDate = $('#rpos-orders-date').val();
-            
-            $('#rpos-orders-list').html('<div class="zaikon-loading"><div class="zaikon-spinner"></div><p>Loading orders...</p></div>');
-            
-            $.ajax({
-                url: rposData.restUrl + 'orders',
-                method: 'GET',
-                data: {
-                    date: selectedDate
-                },
-                beforeSend: function(xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
-                },
-                success: function(response) {
-                    if (response.orders && response.orders.length > 0) {
-                        var html = '<div class="zaikon-orders-grid">';
-                        response.orders.forEach(function(order) {
-                            var statusClass = 'status-' + order.status.toLowerCase().replace(/\s+/g, '-');
-                            html += '<div class="zaikon-order-card ' + statusClass + '">';
-                            html += '<div class="zaikon-order-card-header">';
-                            html += '<span class="zaikon-order-id">#' + order.id + '</span>';
-                            html += '<span class="zaikon-order-status">' + order.status + '</span>';
-                            html += '</div>';
-                            html += '<div class="zaikon-order-card-body">';
-                            html += '<div class="zaikon-order-info">';
-                            html += '<strong>Type:</strong> ' + order.order_type + '<br>';
-                            html += '<strong>Payment:</strong> ' + order.payment_type + '<br>';
-                            html += '<strong>Total:</strong> ' + (order.total_amount || '0.00') + '<br>';
-                            html += '<strong>Time:</strong> ' + order.created_at;
-                            html += '</div>';
-                            html += '<button class="zaikon-btn zaikon-btn-sm rpos-view-order-btn" data-order-id="' + order.id + '">View Details</button>';
-                            html += '</div>';
-                            html += '</div>';
-                        });
-                        html += '</div>';
-                        $('#rpos-orders-list').html(html);
-                    } else {
-                        $('#rpos-orders-list').html('<p style="text-align: center; color: var(--zaikon-gray-dark);">No orders found for this date</p>');
-                    }
-                },
-                error: function() {
-                    ZAIKON_Toast.error('Failed to load orders');
-                    $('#rpos-orders-list').html('<p style="text-align: center; color: var(--zaikon-red);">Error loading orders</p>');
                 }
             });
         },
