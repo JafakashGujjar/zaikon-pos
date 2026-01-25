@@ -48,6 +48,10 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 <span class="dashicons dashicons-list-view"></span>
                 <span class="zaikon-sidebar-label"><?php echo esc_html__('Orders', 'restaurant-pos'); ?></span>
             </button>
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-delivery-tracking" title="<?php echo esc_attr__('Delivery Tracking', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-location"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Delivery Tracking', 'restaurant-pos'); ?></span>
+            </button>
             
             <div class="zaikon-sidebar-divider"></div>
             
@@ -598,6 +602,78 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
         </div>
         <div class="zaikon-modal-footer">
             <button class="zaikon-btn zaikon-btn-secondary" id="rpos-order-detail-close-btn">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delivery Tracking Modal -->
+<div id="rpos-delivery-tracking-modal" class="zaikon-modal" style="display: none;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 600px;">
+        <div class="zaikon-modal-header">
+            <h3><?php echo esc_html__('Delivery Tracking', 'restaurant-pos'); ?></h3>
+            <button class="zaikon-modal-close" id="rpos-delivery-tracking-close">&times;</button>
+        </div>
+        <div class="zaikon-modal-body">
+            <p style="margin-bottom: var(--space-4); color: var(--zaikon-dark-secondary);">
+                <?php echo esc_html__('Search for an order to get its tracking link. You can share the tracking link with customers so they can track their delivery in real-time.', 'restaurant-pos'); ?>
+            </p>
+            
+            <div class="zaikon-order-field" style="margin-bottom: var(--space-4);">
+                <label><?php echo esc_html__('Order Number:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
+                <input type="text" id="rpos-tracking-order-number" placeholder="<?php echo esc_attr__('Enter order number (e.g., ORD-20240125-001)', 'restaurant-pos'); ?>" style="width: 100%; padding: 10px; font-size: 16px;">
+            </div>
+            
+            <button class="zaikon-btn zaikon-btn-primary" id="rpos-get-tracking-link" style="width: 100%; margin-bottom: var(--space-4);">
+                <span class="dashicons dashicons-search" style="vertical-align: middle;"></span>
+                <?php echo esc_html__('Get Tracking Link', 'restaurant-pos'); ?>
+            </button>
+            
+            <div id="rpos-tracking-result" style="display: none;">
+                <div style="padding: var(--space-4); background: var(--zaikon-gray-light); border-radius: 8px; margin-bottom: var(--space-3);">
+                    <h4 style="margin-top: 0; color: var(--zaikon-dark);"><?php echo esc_html__('Order Found', 'restaurant-pos'); ?></h4>
+                    <p style="margin: var(--space-2) 0;">
+                        <strong><?php echo esc_html__('Order:', 'restaurant-pos'); ?></strong> 
+                        <span id="rpos-tracking-order-num"></span>
+                    </p>
+                    <p style="margin: var(--space-2) 0;">
+                        <strong><?php echo esc_html__('Type:', 'restaurant-pos'); ?></strong> 
+                        <span id="rpos-tracking-order-type"></span>
+                    </p>
+                    <p style="margin: var(--space-2) 0;">
+                        <strong><?php echo esc_html__('Status:', 'restaurant-pos'); ?></strong> 
+                        <span id="rpos-tracking-order-status"></span>
+                    </p>
+                    <div style="margin-top: var(--space-3); padding: var(--space-3); background: white; border-radius: 6px; word-break: break-all;">
+                        <strong><?php echo esc_html__('Tracking URL:', 'restaurant-pos'); ?></strong><br>
+                        <span id="rpos-tracking-url" style="color: var(--zaikon-blue); font-size: 14px;"></span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: var(--space-2);">
+                    <button class="zaikon-btn zaikon-btn-info" id="rpos-copy-tracking-link" style="flex: 1;">
+                        <span class="dashicons dashicons-admin-page" style="vertical-align: middle;"></span>
+                        <?php echo esc_html__('Copy Link', 'restaurant-pos'); ?>
+                    </button>
+                    <button class="zaikon-btn zaikon-btn-success" id="rpos-share-whatsapp" style="flex: 1;">
+                        <span class="dashicons dashicons-whatsapp" style="vertical-align: middle;"></span>
+                        <?php echo esc_html__('WhatsApp', 'restaurant-pos'); ?>
+                    </button>
+                    <button class="zaikon-btn zaikon-btn-primary" id="rpos-open-tracking" style="flex: 1;">
+                        <span class="dashicons dashicons-external" style="vertical-align: middle;"></span>
+                        <?php echo esc_html__('Open', 'restaurant-pos'); ?>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="rpos-tracking-error" style="display: none; padding: var(--space-3); background: #fee; border: 1px solid #fcc; border-radius: 6px; color: #c00;">
+                <strong><?php echo esc_html__('Error:', 'restaurant-pos'); ?></strong>
+                <span id="rpos-tracking-error-msg"></span>
+            </div>
+        </div>
+        <div class="zaikon-modal-footer">
+            <button class="zaikon-btn zaikon-btn-secondary" id="rpos-delivery-tracking-close-btn">
+                <?php echo esc_html__('Close', 'restaurant-pos'); ?>
+            </button>
         </div>
     </div>
 </div>

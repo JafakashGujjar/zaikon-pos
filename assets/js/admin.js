@@ -188,6 +188,13 @@
                     return;
                 }
                 
+                // Handle delivery tracking button
+                if (buttonId === 'zaikon-sidebar-delivery-tracking') {
+                    // Open delivery tracking modal
+                    self.showDeliveryTrackingModal();
+                    return;
+                }
+                
                 // Update active state for other buttons
                 $('.zaikon-sidebar-btn').removeClass('active');
                 $(this).addClass('active');
@@ -1157,6 +1164,137 @@
                 },
                 error: function() {
                     $('#rpos-order-detail-body').html('<p style="color: red;">Failed to load order details.</p>');
+                }
+            });
+        },
+        
+        showDeliveryTrackingModal: function() {
+            var self = this;
+            
+            // Reset modal state
+            $('#rpos-tracking-order-number').val('');
+            $('#rpos-tracking-result').hide();
+            $('#rpos-tracking-error').hide();
+            
+            // Show modal
+            $('#rpos-delivery-tracking-modal').fadeIn();
+            $('#rpos-tracking-order-number').focus();
+            
+            // Bind modal close handlers (unbind first to prevent duplicates)
+            $('#rpos-delivery-tracking-close, #rpos-delivery-tracking-close-btn').off('click').on('click', function() {
+                $('#rpos-delivery-tracking-modal').fadeOut();
+            });
+            
+            // Get tracking link button handler
+            $('#rpos-get-tracking-link').off('click').on('click', function() {
+                var orderNumber = $('#rpos-tracking-order-number').val().trim();
+                
+                if (!orderNumber) {
+                    $('#rpos-tracking-error-msg').text('Please enter an order number');
+                    $('#rpos-tracking-error').show();
+                    $('#rpos-tracking-result').hide();
+                    return;
+                }
+                
+                // Hide previous results
+                $('#rpos-tracking-result').hide();
+                $('#rpos-tracking-error').hide();
+                
+                // Show loading state
+                var $btn = $(this);
+                var originalText = $btn.html();
+                $btn.prop('disabled', true).html('<span class="dashicons dashicons-update zaikon-spin"></span> Loading...');
+                
+                // Fetch tracking URL from API
+                $.ajax({
+                    url: rposData.zaikonRestUrl + 'orders/by-number/' + encodeURIComponent(orderNumber) + '/tracking-url',
+                    method: 'GET',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                    },
+                    success: function(response) {
+                        if (response.success && response.tracking_url) {
+                            // Display tracking information
+                            $('#rpos-tracking-order-num').text(response.order_number);
+                            $('#rpos-tracking-order-type').text((response.order_type || 'N/A').toUpperCase());
+                            $('#rpos-tracking-order-status').text((response.order_status || 'pending').toUpperCase());
+                            $('#rpos-tracking-url').text(response.tracking_url);
+                            
+                            // Store tracking URL for button actions
+                            $('#rpos-tracking-result').data('tracking-url', response.tracking_url);
+                            
+                            $('#rpos-tracking-result').show();
+                            ZAIKON_Toast.success('Tracking link retrieved successfully!');
+                        } else {
+                            $('#rpos-tracking-error-msg').text(response.message || 'Failed to get tracking link');
+                            $('#rpos-tracking-error').show();
+                        }
+                    },
+                    error: function(xhr) {
+                        var errorMsg = 'Failed to retrieve tracking link';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        } else if (xhr.status === 404) {
+                            errorMsg = 'Order not found. Please check the order number.';
+                        }
+                        $('#rpos-tracking-error-msg').text(errorMsg);
+                        $('#rpos-tracking-error').show();
+                        ZAIKON_Toast.error(errorMsg);
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+            
+            // Copy tracking link button handler
+            $('#rpos-copy-tracking-link').off('click').on('click', function() {
+                var trackingUrl = $('#rpos-tracking-result').data('tracking-url');
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(trackingUrl).then(function() {
+                        ZAIKON_Toast.success('Tracking link copied to clipboard!');
+                    }).catch(function(error) {
+                        console.error('Error copying to clipboard:', error);
+                        ZAIKON_Toast.error('Failed to copy link');
+                    });
+                } else {
+                    // Fallback for older browsers
+                    var textArea = document.createElement('textarea');
+                    textArea.value = trackingUrl;
+                    textArea.style.position = 'absolute';
+                    textArea.style.left = '-9999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        ZAIKON_Toast.success('Tracking link copied to clipboard!');
+                    } catch (err) {
+                        ZAIKON_Toast.error('Failed to copy link');
+                    }
+                    document.body.removeChild(textArea);
+                }
+            });
+            
+            // Share via WhatsApp button handler
+            $('#rpos-share-whatsapp').off('click').on('click', function() {
+                var trackingUrl = $('#rpos-tracking-result').data('tracking-url');
+                var orderNumber = $('#rpos-tracking-order-num').text();
+                var message = encodeURIComponent('Track your order #' + orderNumber + ': ' + trackingUrl);
+                var whatsappUrl = 'https://wa.me/?text=' + message;
+                window.open(whatsappUrl, '_blank');
+            });
+            
+            // Open tracking page button handler
+            $('#rpos-open-tracking').off('click').on('click', function() {
+                var trackingUrl = $('#rpos-tracking-result').data('tracking-url');
+                window.open(trackingUrl, '_blank');
+            });
+            
+            // Allow Enter key to submit
+            $('#rpos-tracking-order-number').off('keypress').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#rpos-get-tracking-link').click();
                 }
             });
         },
