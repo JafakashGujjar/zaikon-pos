@@ -1483,11 +1483,24 @@
         
         init: function() {
             if ($('.rpos-kds').length || $('.zaikon-kds').length) {
+                var self = this;
                 this.loadOrders();
                 this.bindEvents();
                 this.startAutoRefresh();
                 this.startTimers();
                 this.initNotificationSound();
+                
+                // Cleanup intervals on page unload to prevent memory leaks
+                $(window).on('beforeunload', function() {
+                    if (self.timerInterval) {
+                        clearInterval(self.timerInterval);
+                        self.timerInterval = null;
+                    }
+                    if (self.autoRefreshInterval) {
+                        clearInterval(self.autoRefreshInterval);
+                        self.autoRefreshInterval = null;
+                    }
+                });
             }
         },
         
@@ -1883,6 +1896,10 @@
             // Note: 5-second polling is a significant improvement over 30 seconds for restaurant operations
             // Future enhancement: Consider WebSocket/Server-Sent Events for true real-time updates
             this.autoRefreshInterval = setInterval(function() {
+                // Skip polling if document is hidden (tab not active)
+                if (document.hidden) {
+                    return;
+                }
                 self.loadOrders();
             }, 5000); // 5 seconds - Real-time updates for KDS
         },
