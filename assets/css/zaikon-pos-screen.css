@@ -112,6 +112,7 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     color: var(--zaikon-text-muted);
     line-height: 1.3;
     margin-top: var(--space-1);
+    font-weight: bold;
 }
 
 .zaikon-sidebar-btn {
