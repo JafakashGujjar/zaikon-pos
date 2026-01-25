@@ -352,6 +352,52 @@
             $('#rpos-print-rider-slip').on('click', function() {
                 self.printRiderSlip();
             });
+            
+            // Share receipt button handler
+            $('#zaikon-share-receipt').on('click', function() {
+                // Get receipt data
+                const orderNumber = $('#receipt-order-number').text();
+                const total = $('#receipt-total').text();
+                const restaurantName = $('#receipt-restaurant-name').text();
+                
+                const shareText = `Receipt from ${restaurantName}\nOrder: ${orderNumber}\nTotal: ${total}`;
+                
+                // Check if Web Share API is available
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Receipt - ' + orderNumber,
+                        text: shareText
+                    }).catch(function(error) {
+                        console.error('Error sharing:', error);
+                    });
+                } else {
+                    // Fallback: Copy to clipboard
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(shareText).then(function() {
+                            ZAIKON_Toast.success('Receipt copied to clipboard!');
+                        }).catch(function(error) {
+                            console.error('Error copying to clipboard:', error);
+                            ZAIKON_Toast.error('Failed to copy receipt to clipboard');
+                        });
+                    } else {
+                        // Older browser fallback - create temporary textarea
+                        const textArea = document.createElement('textarea');
+                        textArea.value = shareText;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-999999px';
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            ZAIKON_Toast.success('Receipt copied to clipboard!');
+                        } catch (error) {
+                            console.error('Error copying to clipboard:', error);
+                            ZAIKON_Toast.error('Failed to copy receipt to clipboard');
+                        }
+                        document.body.removeChild(textArea);
+                    }
+                }
+            });
         },
         
         loadProducts: function() {
