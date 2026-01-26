@@ -11,6 +11,36 @@ if (!defined('ABSPATH')) {
 class Zaikon_Order_Tracking {
     
     /**
+     * Regex pattern for valid tracking tokens
+     * Tokens must be 16-64 character lowercase hexadecimal strings
+     */
+    const TOKEN_PATTERN = '/^[a-f0-9]{16,64}$/';
+    
+    /**
+     * Create a partial token preview for secure logging
+     * Shows first 8 and last 4 characters for tokens >= 12 chars
+     * For shorter tokens, shows asterisks
+     * 
+     * @param string|null $token The token to preview
+     * @return string Token preview (e.g., "da276119...4ff3") or "NULL"
+     */
+    private static function create_token_preview($token) {
+        if (empty($token)) {
+            return 'NULL';
+        }
+        
+        $length = strlen($token);
+        
+        // For tokens shorter than 12 chars, show asterisks (though valid tokens are 16+ chars)
+        if ($length < 12) {
+            return str_repeat('*', $length);
+        }
+        
+        // Show first 8 and last 4 characters with ellipsis
+        return substr($token, 0, 8) . '...' . substr($token, -4);
+    }
+    
+    /**
      * Generate a unique tracking token for an order
      */
     public static function generate_tracking_token($order_id) {
@@ -40,20 +70,24 @@ class Zaikon_Order_Tracking {
         );
         
         // Verify the update was successful
-        // $wpdb->update() returns false on error, 0 if no rows matched (order_id doesn't exist)
-        if ($result === false || $result === 0) {
-            error_log('ZAIKON: Failed to save tracking token for order ' . $order_id . ' (update returned: ' . ($result === false ? 'false' : '0') . ')');
+        // $wpdb->update() returns false on error, 0 if no rows matched OR no rows changed
+        if ($result === false) {
+            error_log('ZAIKON: Database error saving tracking token for order ' . $order_id . '. Error: ' . $wpdb->last_error);
             return null;
         }
         
         // Verify token was actually saved by reading it back
+        // This handles both $result === 0 (no change needed, token already set) and $result > 0 (token updated)
         $saved_token = $wpdb->get_var($wpdb->prepare(
             "SELECT tracking_token FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
             $order_id
         ));
         
         if ($saved_token !== $token) {
-            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id);
+            // Log only partial tokens for security
+            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id . 
+                      '. Expected: ' . self::create_token_preview($token) . 
+                      ', Got: ' . self::create_token_preview($saved_token));
             return null;
         }
         
