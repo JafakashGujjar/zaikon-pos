@@ -1728,7 +1728,83 @@ class RPOS_REST_API {
         
         if (!$order) {
             error_log('ZAIKON TRACKING API: Order not found for token: ' . $token_preview);
-            return new WP_Error('not_found', 'Order not found. The tracking link may have expired or the order does not exist.', array('status' => 404));
+            
+            // Fallback: Try direct database lookup to diagnose the issue
+            global $wpdb;
+            
+            // Check if the token exists in the database (exact match)
+            $direct_check = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, order_number, order_status, tracking_token 
+                 FROM {$wpdb->prefix}zaikon_orders 
+                 WHERE tracking_token = %s",
+                $token
+            ));
+            
+            if ($direct_check) {
+                error_log('ZAIKON TRACKING API: DIRECT DB CHECK - Token FOUND! Order ID: ' . $direct_check->id . 
+                          ', Order#: ' . $direct_check->order_number . 
+                          '. But get_order_by_token returned NULL - possible JOIN issue');
+                
+                // The token exists but get_order_by_token failed - try getting order by ID directly
+                error_log('ZAIKON TRACKING API: Trying to build order response from direct DB data');
+                
+                // Manually build the order response using order ID
+                $order = $wpdb->get_row($wpdb->prepare(
+                    "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
+                            o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
+                            o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
+                            o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
+                            o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
+                            o.created_at, o.updated_at,
+                            d.customer_name, d.customer_phone, d.location_name, 
+                            d.delivery_status, d.special_instruction,
+                            d.delivery_charges_rs AS delivery_charges_rs,
+                            d.delivered_at,
+                            r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
+                     FROM {$wpdb->prefix}zaikon_orders o
+                     LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+                     LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
+                     WHERE o.id = %d",
+                    $direct_check->id
+                ));
+                
+                if ($order) {
+                    // Get order items
+                    $order->items = $wpdb->get_results($wpdb->prepare(
+                        "SELECT product_name, qty, unit_price_rs, line_total_rs
+                         FROM {$wpdb->prefix}zaikon_order_items
+                         WHERE order_id = %d
+                         ORDER BY id ASC",
+                        $order->id
+                    ));
+                    
+                    error_log('ZAIKON TRACKING API: Fallback lookup by ID SUCCESS! Order#: ' . $order->order_number);
+                }
+            } else {
+                error_log('ZAIKON TRACKING API: DIRECT DB CHECK - Token NOT in database');
+                
+                // Check for partial match or similar tokens (debugging)
+                $similar = $wpdb->get_results($wpdb->prepare(
+                    "SELECT id, order_number, tracking_token, created_at 
+                     FROM {$wpdb->prefix}zaikon_orders 
+                     WHERE tracking_token IS NOT NULL 
+                     ORDER BY created_at DESC 
+                     LIMIT 5"
+                ));
+                
+                if ($similar) {
+                    error_log('ZAIKON TRACKING API: Recent tokens in DB:');
+                    foreach ($similar as $s) {
+                        $s_preview = strlen($s->tracking_token) >= 12 ? 
+                            substr($s->tracking_token, 0, 8) . '...' . substr($s->tracking_token, -4) : '***';
+                        error_log('  - Order#: ' . $s->order_number . ', Token: ' . $s_preview . ', Created: ' . $s->created_at);
+                    }
+                }
+            }
+            
+            if (!$order) {
+                return new WP_Error('not_found', 'Order not found. The tracking link may have expired or the order does not exist.', array('status' => 404));
+            }
         }
         
         error_log('ZAIKON TRACKING API: Order found successfully! Order#: ' . $order->order_number);
