@@ -760,9 +760,11 @@
             const riderCard = document.getElementById('rider-card');
             riderCard.style.display = 'block';
             
-            const initials = order.rider_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+            // Safely extract initials with null check
+            const riderName = order.rider_name || 'Unknown';
+            const initials = riderName.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || 'R';
             document.getElementById('rider-avatar').textContent = initials;
-            document.getElementById('rider-name').textContent = order.rider_name;
+            document.getElementById('rider-name').textContent = riderName;
             document.getElementById('rider-phone-text').textContent = order.rider_phone || 'Not available';
             
             if (order.rider_vehicle) {
@@ -860,7 +862,7 @@
                             <div class="item-name">${escapeHtml(item.product_name)}</div>
                             <div class="item-quantity">Qty: ${item.qty}</div>
                         </div>
-                        <div class="item-price">Rs ${parseFloat(item.line_total_rs).toFixed(0)}</div>
+                        <div class="item-price">Rs ${Math.round(parseFloat(item.line_total_rs) || 0)}</div>
                     </div>
                 `).join('');
             } else {
@@ -872,7 +874,7 @@
             let totalsHTML = `
                 <div class="total-row">
                     <span>Subtotal</span>
-                    <span>Rs ${parseFloat(order.items_subtotal_rs || 0).toFixed(0)}</span>
+                    <span>Rs ${Math.round(parseFloat(order.items_subtotal_rs) || 0)}</span>
                 </div>
             `;
             
@@ -881,7 +883,7 @@
                 totalsHTML += `
                     <div class="total-row">
                         <span>Delivery Fee</span>
-                        <span>Rs ${deliveryCharge.toFixed(0)}</span>
+                        <span>Rs ${Math.round(deliveryCharge)}</span>
                     </div>
                 `;
             }
@@ -891,7 +893,7 @@
                 totalsHTML += `
                     <div class="total-row" style="color: var(--success);">
                         <span>Discount</span>
-                        <span>-Rs ${discount.toFixed(0)}</span>
+                        <span>-Rs ${Math.round(discount)}</span>
                     </div>
                 `;
             }
@@ -899,7 +901,7 @@
             totalsHTML += `
                 <div class="total-row grand">
                     <span>Total</span>
-                    <span>Rs ${parseFloat(order.grand_total_rs || 0).toFixed(0)}</span>
+                    <span>Rs ${Math.round(parseFloat(order.grand_total_rs) || 0)}</span>
                 </div>
             `;
             
