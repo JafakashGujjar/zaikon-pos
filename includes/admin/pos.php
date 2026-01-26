@@ -348,16 +348,8 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 <span class="dashicons dashicons-share"></span>
                 <?php echo esc_html__('Share', 'restaurant-pos'); ?>
             </button>
-            <button class="zaikon-btn zaikon-btn-info zaikon-btn-lg" id="zaikon-order-tracking">
-                <span class="dashicons dashicons-location"></span>
-                <?php echo esc_html__('Order Tracking', 'restaurant-pos'); ?>
-            </button>
             <button class="zaikon-btn zaikon-btn-secondary zaikon-btn-lg" id="rpos-print-rider-slip" style="display: none;">
                 <?php echo esc_html__('Print Rider Slip', 'restaurant-pos'); ?>
-            </button>
-            <button class="zaikon-btn zaikon-btn-success zaikon-btn-lg" id="rpos-receipt-get-tracking-link" style="display: none;">
-                <span class="dashicons dashicons-admin-site"></span>
-                <?php echo esc_html__('Get Tracking Link', 'restaurant-pos'); ?>
             </button>
             <button class="zaikon-btn zaikon-btn-yellow zaikon-btn-lg" id="rpos-new-order">
                 <?php echo esc_html__('New Order', 'restaurant-pos'); ?>

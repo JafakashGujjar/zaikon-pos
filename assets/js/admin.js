@@ -424,80 +424,6 @@
                     }
                 }
             });
-            
-            // Order Tracking button handler
-            $('#zaikon-order-tracking').on('click', function() {
-                // Get order number from receipt
-                const orderNumber = $('#receipt-order-number').text().trim().replace('Order #', '');
-                
-                // Validate that we have the order number
-                if (!orderNumber) {
-                    ZAIKON_Toast.error('Order number not available');
-                    return;
-                }
-                
-                // Generate tracking URL
-                const trackingUrl = window.location.origin + '/order-tracking/' + orderNumber;
-                
-                // Check if Web Share API is available
-                if (navigator.share) {
-                    navigator.share({
-                        title: 'Track Your Order',
-                        text: 'Track your order #' + orderNumber,
-                        url: trackingUrl
-                    }).catch(function(error) {
-                        console.error('Error sharing:', error);
-                    });
-                } else {
-                    // Fallback: Copy to clipboard
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(trackingUrl).then(function() {
-                            ZAIKON_Toast.success('Order tracking link copied to clipboard!\n\n' + trackingUrl);
-                        }).catch(function(error) {
-                            console.error('Error copying to clipboard:', error);
-                            ZAIKON_Toast.error('Failed to copy tracking link to clipboard');
-                        });
-                    } else {
-                        // Older browser fallback - create temporary textarea
-                        const textArea = document.createElement('textarea');
-                        textArea.value = trackingUrl;
-                        textArea.style.position = 'absolute';
-                        textArea.style.top = '-9999px';
-                        textArea.style.left = '-9999px';
-                        textArea.style.opacity = '0';
-                        document.body.appendChild(textArea);
-                        textArea.select();
-                        try {
-                            const successful = document.execCommand('copy');
-                            if (successful) {
-                                ZAIKON_Toast.success('Order tracking link copied to clipboard!\n\n' + trackingUrl);
-                            } else {
-                                ZAIKON_Toast.error('Failed to copy tracking link to clipboard');
-                            }
-                        } catch (error) {
-                            console.error('Error copying to clipboard:', error);
-                            ZAIKON_Toast.error('Failed to copy tracking link to clipboard');
-                        }
-                        document.body.removeChild(textArea);
-                    }
-                }
-            });
-            
-            // Receipt "Get Tracking Link" button handler
-            $('#rpos-receipt-get-tracking-link').on('click', function() {
-                var self = RPOS;
-                // Get order number from receipt
-                const orderNumber = $('#receipt-order-number').text().trim().replace('Order #', '');
-                
-                // Validate that we have the order number
-                if (!orderNumber) {
-                    ZAIKON_Toast.error('Order number not available');
-                    return;
-                }
-                
-                // Use the reusable helper function
-                self.getAndCopyTrackingLink(orderNumber, $(this));
-            });
         },
         
         loadProducts: function() {
@@ -1335,10 +1261,14 @@
             // Show/hide rider slip button based on order type
             if (orderData.order_type === 'delivery') {
                 $('#rpos-print-rider-slip').show();
-                $('#rpos-receipt-get-tracking-link').show();
+                
+                // Auto-generate tracking link for delivery orders
+                if (order && order.tracking_url) {
+                    console.log('📍 Tracking Link Generated:', order.tracking_url);
+                    console.log('📱 Share this link with customer for order tracking');
+                }
             } else {
                 $('#rpos-print-rider-slip').hide();
-                $('#rpos-receipt-get-tracking-link').hide();
             }
             
             // Add delivery details if delivery order
