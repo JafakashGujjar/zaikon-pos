@@ -736,8 +736,8 @@
 
     <script>
         const rawToken = '<?php echo esc_js(get_query_var("zaikon_tracking_token")); ?>';
-        // Token validation: allow hex tokens of 16-100 characters (flexible for future token formats)
-        const trackingToken = /^[a-f0-9]{16,100}$/.test(rawToken) ? rawToken : null;
+        // Token validation: allow hex tokens of 16-64 characters (current tokens are 32 chars)
+        const trackingToken = /^[a-f0-9]{16,64}$/.test(rawToken) ? rawToken : null;
         const apiBaseUrl = '<?php echo esc_js(rest_url("zaikon/v1/")); ?>';
         
         let currentOrderData = null;
@@ -1086,7 +1086,8 @@
             
             try {
                 // Determine if input is phone number or order number
-                const isPhone = /^[\+]?[\d\s\-]{7,20}$/.test(query.trim());
+                // Phone number regex requires at least one digit
+                const isPhone = /^[\+]?[\d\s\-]*\d[\d\s\-]*$/.test(query.trim()) && query.replace(/[\s\-\+]/g, '').length >= 7;
                 const apiUrl = isPhone 
                     ? `${apiBaseUrl}track/phone/${encodeURIComponent(query.trim())}`
                     : `${apiBaseUrl}track/order/${encodeURIComponent(query.trim())}`;

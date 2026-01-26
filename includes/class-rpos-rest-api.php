@@ -1714,8 +1714,8 @@ class RPOS_REST_API {
     public function get_order_by_tracking_token($request) {
         $token = $request->get_param('token');
         
-        // Validate token format
-        if (empty($token) || !preg_match('/^[a-f0-9]{16,100}$/', $token)) {
+        // Validate token format (current tokens are 32 chars, allow 16-64 for flexibility)
+        if (empty($token) || !preg_match('/^[a-f0-9]{16,64}$/', $token)) {
             return new WP_Error('invalid_token', 'Invalid tracking link. Please check your URL.', array('status' => 400));
         }
         
@@ -1811,16 +1811,22 @@ class RPOS_REST_API {
             return new WP_Error('invalid_phone', 'Please provide a valid phone number.', array('status' => 400));
         }
         
-        // Clean up phone number for matching
-        $phone_cleaned = preg_replace('/[\s\-\+]+/', '', $phone);
+        // Clean up phone number for matching - keep only digits
+        $phone_cleaned = preg_replace('/[^\d]/', '', $phone);
+        
+        if (strlen($phone_cleaned) < 7) {
+            return new WP_Error('invalid_phone', 'Please provide a valid phone number with at least 7 digits.', array('status' => 400));
+        }
         
         // Search for recent delivery orders with this phone number (last 30 days)
+        // Include items count in the query to avoid N+1 problem
         $orders = $wpdb->get_results($wpdb->prepare(
             "SELECT o.id, o.order_number, o.order_type, o.order_status, o.tracking_token,
                     o.grand_total_rs, o.created_at, o.items_subtotal_rs,
                     o.delivery_charges_rs AS order_delivery_charges_rs,
                     d.customer_name, d.customer_phone, d.location_name, 
-                    d.delivery_status, d.delivery_charges_rs
+                    d.delivery_status, d.delivery_charges_rs,
+                    (SELECT COALESCE(SUM(i.qty), 0) FROM {$wpdb->prefix}zaikon_order_items i WHERE i.order_id = o.id) AS items_count
              FROM {$wpdb->prefix}zaikon_orders o
              INNER JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
              WHERE REPLACE(REPLACE(REPLACE(d.customer_phone, '-', ''), ' ', ''), '+', '') LIKE %s
@@ -1834,7 +1840,7 @@ class RPOS_REST_API {
             return new WP_Error('not_found', 'No delivery orders found for this phone number in the last 30 days.', array('status' => 404));
         }
         
-        // Process orders to include tracking URLs and items
+        // Process orders to include tracking URLs
         $result_orders = array();
         foreach ($orders as $order) {
             // Generate tracking token if it doesn't exist
@@ -1846,12 +1852,6 @@ class RPOS_REST_API {
             
             $tracking_url = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
             
-            // Get order items count
-            $items_count = $wpdb->get_var($wpdb->prepare(
-                "SELECT SUM(qty) FROM {$wpdb->prefix}zaikon_order_items WHERE order_id = %d",
-                $order->id
-            ));
-            
             $result_orders[] = array(
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
@@ -1862,7 +1862,7 @@ class RPOS_REST_API {
                 'customer_phone' => $order->customer_phone,
                 'location_name' => $order->location_name,
                 'grand_total_rs' => $order->grand_total_rs,
-                'items_count' => intval($items_count ?: 0),
+                'items_count' => intval($order->items_count ?: 0),
                 'created_at' => $order->created_at,
                 'tracking_url' => $tracking_url,
                 'tracking_token' => $tracking_token
