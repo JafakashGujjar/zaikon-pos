@@ -145,6 +145,10 @@ class Zaikon_Order_Tracking {
             
             // DEBUG ONLY: Check if token exists with case-insensitive match
             // This helps diagnose if there's a case mismatch (tokens should always be lowercase)
+            // NOTE: This query intentionally uses LOWER() for debugging purposes only.
+            // It will perform a full table scan but runs only when the primary lookup fails,
+            // which should be rare. This helps identify case mismatch issues without adding
+            // overhead to the normal happy path.
             $debug_result = $wpdb->get_row($wpdb->prepare(
                 "SELECT id, order_number, tracking_token FROM {$wpdb->prefix}zaikon_orders WHERE LOWER(tracking_token) = LOWER(%s)",
                 $token
@@ -191,7 +195,10 @@ class Zaikon_Order_Tracking {
             $order_id
         ));
         
-        // If JOIN query somehow fails, fall back to basic order data
+        // FALLBACK: If JOIN query somehow fails, fall back to separate queries
+        // This should be rare but provides robustness against edge cases.
+        // Note: This results in multiple queries (N+1) but only executes when
+        // the optimized JOIN fails, ensuring the order is still returned.
         if (!$order) {
             error_log('ZAIKON TRACKING: JOIN query failed for order ID ' . $order_id . ', using basic query');
             
