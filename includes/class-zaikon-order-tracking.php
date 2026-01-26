@@ -18,7 +18,8 @@ class Zaikon_Order_Tracking {
     
     /**
      * Create a partial token preview for secure logging
-     * Shows first 8 and last 4 characters
+     * Shows first 8 and last 4 characters for tokens >= 12 chars
+     * For shorter tokens, shows asterisks
      * 
      * @param string|null $token The token to preview
      * @return string Token preview (e.g., "da276119...4ff3") or "NULL"
@@ -27,6 +28,15 @@ class Zaikon_Order_Tracking {
         if (empty($token)) {
             return 'NULL';
         }
+        
+        $length = strlen($token);
+        
+        // For tokens shorter than 12 chars, show asterisks (though valid tokens are 16+ chars)
+        if ($length < 12) {
+            return str_repeat('*', $length);
+        }
+        
+        // Show first 8 and last 4 characters with ellipsis
         return substr($token, 0, 8) . '...' . substr($token, -4);
     }
     
