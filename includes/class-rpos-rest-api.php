@@ -1715,7 +1715,7 @@ class RPOS_REST_API {
         $token = $request->get_param('token');
         
         // Validate token format (current tokens are 32 chars, allow 16-64 for flexibility)
-        if (empty($token) || !preg_match('/^[a-f0-9]{16,64}$/', $token)) {
+        if (empty($token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $token)) {
             return new WP_Error('invalid_token', 'Invalid tracking link. Please check your URL.', array('status' => 400));
         }
         
@@ -1782,7 +1782,7 @@ class RPOS_REST_API {
         ));
         
         // Generate tracking token if it doesn't exist or is invalid
-        if (empty($order->tracking_token) || !preg_match('/^[a-f0-9]{16,64}$/', $order->tracking_token)) {
+        if (empty($order->tracking_token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $order->tracking_token)) {
             // Token is missing or has invalid format, generate a new one
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
             if (empty($tracking_token)) {
@@ -1848,7 +1848,7 @@ class RPOS_REST_API {
         $result_orders = array();
         foreach ($orders as $order) {
             // Generate tracking token if it doesn't exist or is invalid
-            if (empty($order->tracking_token) || !preg_match('/^[a-f0-9]{16,64}$/', $order->tracking_token)) {
+            if (empty($order->tracking_token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $order->tracking_token)) {
                 $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
                 // Skip this order if token generation fails
                 if (empty($tracking_token)) {
@@ -1954,7 +1954,7 @@ class RPOS_REST_API {
         }
         
         // Generate token if it doesn't exist or is invalid
-        if (empty($order->tracking_token) || !preg_match('/^[a-f0-9]{16,64}$/', $order->tracking_token)) {
+        if (empty($order->tracking_token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $order->tracking_token)) {
             // Token is missing or has invalid format, generate a new one
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order_id);
             if (empty($tracking_token)) {
@@ -1994,7 +1994,7 @@ class RPOS_REST_API {
         }
         
         // Generate token if it doesn't exist or is invalid
-        if (empty($order->tracking_token) || !preg_match('/^[a-f0-9]{16,64}$/', $order->tracking_token)) {
+        if (empty($order->tracking_token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $order->tracking_token)) {
             // Token is missing or has invalid format, generate a new one
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
             if (empty($tracking_token)) {
@@ -2048,7 +2048,7 @@ class RPOS_REST_API {
         $result_orders = array();
         foreach ($orders as $order) {
             // Generate tracking token if it doesn't exist or is invalid
-            if (empty($order->tracking_token) || !preg_match('/^[a-f0-9]{16,64}$/', $order->tracking_token)) {
+            if (empty($order->tracking_token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $order->tracking_token)) {
                 $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
                 // Skip this order if token generation fails
                 if (empty($tracking_token)) {

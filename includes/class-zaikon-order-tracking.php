@@ -11,6 +11,12 @@ if (!defined('ABSPATH')) {
 class Zaikon_Order_Tracking {
     
     /**
+     * Regex pattern for valid tracking tokens
+     * Tokens must be 16-64 character lowercase hexadecimal strings
+     */
+    const TOKEN_PATTERN = '/^[a-f0-9]{16,64}$/';
+    
+    /**
      * Generate a unique tracking token for an order
      */
     public static function generate_tracking_token($order_id) {
@@ -54,7 +60,10 @@ class Zaikon_Order_Tracking {
         ));
         
         if ($saved_token !== $token) {
-            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id . '. Expected: ' . $token . ', Got: ' . ($saved_token ?: 'NULL'));
+            // Log only partial token for security (first 8 and last 4 chars)
+            $token_preview = substr($token, 0, 8) . '...' . substr($token, -4);
+            $saved_preview = $saved_token ? (substr($saved_token, 0, 8) . '...' . substr($saved_token, -4)) : 'NULL';
+            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id . '. Expected: ' . $token_preview . ', Got: ' . $saved_preview);
             return null;
         }
         
