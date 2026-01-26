@@ -2077,15 +2077,16 @@ class RPOS_REST_API {
             
             if ($verify_token !== $tracking_token) {
                 error_log('ZAIKON TRACKING API: WARNING - Token mismatch! Generated: ' . substr($tracking_token, 0, 8) . ', DB has: ' . ($verify_token ? substr($verify_token, 0, 8) : 'NULL'));
+                return new WP_Error('token_error', 'Failed to save tracking token. Please try again.', array('status' => 500));
             }
             
             // Final verification: Can we look up the order using this token?
             $verify_order = Zaikon_Order_Tracking::get_order_by_token($tracking_token);
             if (!$verify_order) {
                 error_log('ZAIKON TRACKING API: CRITICAL - Token lookup verification FAILED for newly generated token!');
-            } else {
-                error_log('ZAIKON TRACKING API: Token lookup verification SUCCESS - Order ' . $verify_order->order_number . ' found');
+                return new WP_Error('token_error', 'Failed to verify tracking token. Please contact support.', array('status' => 500));
             }
+            error_log('ZAIKON TRACKING API: Token lookup verification SUCCESS - Order ' . $verify_order->order_number . ' found');
         } else {
             $tracking_token = $order->tracking_token;
             error_log('ZAIKON TRACKING API: Using existing token: ' . substr($tracking_token, 0, 8) . '...');
@@ -2103,6 +2104,14 @@ class RPOS_REST_API {
                     return new WP_Error('token_error', 'Failed to regenerate tracking token. Please try again.', array('status' => 500));
                 }
                 error_log('ZAIKON TRACKING API: New token generated after failed lookup: ' . substr($tracking_token, 0, 8) . '...');
+                
+                // Verify the newly regenerated token works
+                $verify_new = Zaikon_Order_Tracking::get_order_by_token($tracking_token);
+                if (!$verify_new) {
+                    error_log('ZAIKON TRACKING API: CRITICAL - Even newly regenerated token lookup FAILED!');
+                    return new WP_Error('token_error', 'Failed to verify tracking token. Please contact support.', array('status' => 500));
+                }
+                error_log('ZAIKON TRACKING API: Regenerated token verification SUCCESS');
             } else {
                 error_log('ZAIKON TRACKING API: Existing token lookup SUCCESS - Order ' . $verify_order->order_number . ' found');
             }
