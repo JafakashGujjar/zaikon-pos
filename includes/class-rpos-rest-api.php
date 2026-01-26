@@ -1375,7 +1375,7 @@ class RPOS_REST_API {
         // SECURITY: Exclude customer_name and customer_phone from cashier view
         $orders = $wpdb->get_results($wpdb->prepare(
             "SELECT o.id, o.order_number, o.order_type, o.payment_type, o.payment_status, 
-                    o.order_status, o.subtotal_rs, o.delivery_charge_rs, o.discount_rs, 
+                    o.order_status, o.items_subtotal_rs, o.delivery_charges_rs, o.discounts_rs, 
                     o.grand_total_rs, o.created_at, o.cashier_id,
                     d.assigned_rider_id, d.delivery_status, r.name as rider_name
              FROM {$wpdb->prefix}zaikon_orders o

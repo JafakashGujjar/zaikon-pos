@@ -194,29 +194,30 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `order_status` enum('active','cancelled','replacement','completed') DEFAULT 'active' AFTER `payment_type`");
         }
         
-        // Rename columns in zaikon_orders to match expected naming
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'subtotal_rs'");
+        // Ensure columns in zaikon_orders use the standard plural names matching the schema
+        // Reverse any previous migration that renamed to singular names
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'items_subtotal_rs'");
         if (empty($column_exists)) {
-            // Check if items_subtotal_rs exists first
-            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'items_subtotal_rs'");
+            // Check if subtotal_rs exists (from previous incorrect migration)
+            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'subtotal_rs'");
             if (!empty($old_column)) {
-                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `items_subtotal_rs` `subtotal_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
+                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `subtotal_rs` `items_subtotal_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
             }
         }
         
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_charge_rs'");
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_charges_rs'");
         if (empty($column_exists)) {
-            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_charges_rs'");
+            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'delivery_charge_rs'");
             if (!empty($old_column)) {
-                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `delivery_charges_rs` `delivery_charge_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
+                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `delivery_charge_rs` `delivery_charges_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
             }
         }
         
-        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'discount_rs'");
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'discounts_rs'");
         if (empty($column_exists)) {
-            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'discounts_rs'");
+            $old_column = $wpdb->get_results("SHOW COLUMNS FROM `{$table_name}` LIKE 'discount_rs'");
             if (!empty($old_column)) {
-                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `discounts_rs` `discount_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
+                $wpdb->query("ALTER TABLE `{$table_name}` CHANGE COLUMN `discount_rs` `discounts_rs` decimal(10,2) NOT NULL DEFAULT 0.00");
             }
         }
         
