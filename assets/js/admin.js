@@ -485,6 +485,7 @@
             
             // Receipt "Get Tracking Link" button handler
             $('#rpos-receipt-get-tracking-link').on('click', function() {
+                var self = RPOS;
                 // Get order number from receipt
                 const orderNumber = $('#receipt-order-number').text().trim().replace('Order #', '');
                 
@@ -494,64 +495,8 @@
                     return;
                 }
                 
-                // Show loading state
-                var $btn = $(this);
-                var originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<span class="dashicons dashicons-update zaikon-spin"></span> Getting Link...');
-                
-                // Fetch tracking URL from API
-                $.ajax({
-                    url: rposData.zaikonRestUrl + 'orders/by-number/' + encodeURIComponent(orderNumber) + '/tracking-url',
-                    method: 'GET',
-                    beforeSend: function(xhr) {
-                        xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
-                    },
-                    success: function(response) {
-                        if (response.success && response.tracking_url) {
-                            var successMsg = 'Tracking link copied to clipboard!\n\n' + response.tracking_url;
-                            var warningMsg = 'Tracking link:\n' + response.tracking_url;
-                            
-                            // Copy tracking URL to clipboard
-                            if (navigator.clipboard && navigator.clipboard.writeText) {
-                                navigator.clipboard.writeText(response.tracking_url).then(function() {
-                                    ZAIKON_Toast.success(successMsg, 5000);
-                                }).catch(function(error) {
-                                    console.error('Error copying to clipboard:', error);
-                                    ZAIKON_Toast.warning(warningMsg, 8000);
-                                });
-                            } else {
-                                // Fallback for older browsers
-                                var textArea = document.createElement('textarea');
-                                textArea.value = response.tracking_url;
-                                textArea.style.position = 'absolute';
-                                textArea.style.left = '-9999px';
-                                document.body.appendChild(textArea);
-                                textArea.select();
-                                try {
-                                    document.execCommand('copy');
-                                    ZAIKON_Toast.success(successMsg, 5000);
-                                } catch (err) {
-                                    ZAIKON_Toast.warning(warningMsg, 8000);
-                                }
-                                document.body.removeChild(textArea);
-                            }
-                        } else {
-                            ZAIKON_Toast.error(response.message || 'Failed to get tracking link');
-                        }
-                    },
-                    error: function(xhr) {
-                        var errorMsg = 'Failed to retrieve tracking link';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMsg = xhr.responseJSON.message;
-                        } else if (xhr.status === 404) {
-                            errorMsg = 'Order not found. Please check the order number.';
-                        }
-                        ZAIKON_Toast.error(errorMsg);
-                    },
-                    complete: function() {
-                        $btn.prop('disabled', false).html(originalHtml);
-                    }
-                });
+                // Use the reusable helper function
+                self.getAndCopyTrackingLink(orderNumber, $(this));
             });
         },
         
@@ -1475,6 +1420,75 @@
             $('#receipt-cashier').text('Cashier: ' + rposData.currentUser);
             
             $('#rpos-receipt-modal').fadeIn();
+        },
+        
+        /**
+         * Fetch and copy tracking link to clipboard
+         * @param {string} orderNumber - The order number
+         * @param {jQuery} $button - Optional button to show loading state
+         * @returns {Promise}
+         */
+        getAndCopyTrackingLink: function(orderNumber, $button) {
+            var originalHtml = $button ? $button.html() : null;
+            
+            if ($button) {
+                $button.prop('disabled', true).html('<span class="dashicons dashicons-update zaikon-spin"></span> Getting Link...');
+            }
+            
+            return $.ajax({
+                url: rposData.zaikonRestUrl + 'orders/by-number/' + encodeURIComponent(orderNumber) + '/tracking-url',
+                method: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
+                },
+                success: function(response) {
+                    if (response.success && response.tracking_url) {
+                        var successMsg = 'Tracking link copied to clipboard!\n\n' + response.tracking_url;
+                        var warningMsg = 'Tracking link:\n' + response.tracking_url;
+                        
+                        // Copy tracking URL to clipboard
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(response.tracking_url).then(function() {
+                                ZAIKON_Toast.success(successMsg, 5000);
+                            }).catch(function(error) {
+                                console.error('Error copying to clipboard:', error);
+                                ZAIKON_Toast.warning(warningMsg, 8000);
+                            });
+                        } else {
+                            // Fallback for older browsers
+                            var textArea = document.createElement('textarea');
+                            textArea.value = response.tracking_url;
+                            textArea.style.position = 'absolute';
+                            textArea.style.left = '-9999px';
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            try {
+                                document.execCommand('copy');
+                                ZAIKON_Toast.success(successMsg, 5000);
+                            } catch (err) {
+                                ZAIKON_Toast.warning(warningMsg, 8000);
+                            }
+                            document.body.removeChild(textArea);
+                        }
+                    } else {
+                        ZAIKON_Toast.error(response.message || 'Failed to get tracking link');
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Failed to retrieve tracking link';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    } else if (xhr.status === 404) {
+                        errorMsg = 'Order not found. Please check the order number.';
+                    }
+                    ZAIKON_Toast.error(errorMsg);
+                },
+                complete: function() {
+                    if ($button && originalHtml) {
+                        $button.prop('disabled', false).html(originalHtml);
+                    }
+                }
+            });
         },
         
         printRiderSlip: function() {
