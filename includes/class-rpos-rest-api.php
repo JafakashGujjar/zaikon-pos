@@ -1781,8 +1781,9 @@ class RPOS_REST_API {
             $order->id
         ));
         
-        // Generate tracking token if it doesn't exist
-        if (empty($order->tracking_token)) {
+        // Generate tracking token if it doesn't exist or is invalid
+        if (empty($order->tracking_token) || !preg_match('/^[a-f0-9]{16,64}$/', $order->tracking_token)) {
+            // Token is missing or has invalid format, generate a new one
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
             if (empty($tracking_token)) {
                 return new WP_Error('token_error', 'Failed to generate tracking token. Please try again.', array('status' => 500));
@@ -1991,8 +1992,9 @@ class RPOS_REST_API {
             return new WP_Error('not_found', 'Order not found. Please check the order number.', array('status' => 404));
         }
         
-        // Generate token if it doesn't exist
-        if (empty($order->tracking_token)) {
+        // Generate token if it doesn't exist or is invalid
+        if (empty($order->tracking_token) || !preg_match('/^[a-f0-9]{16,64}$/', $order->tracking_token)) {
+            // Token is missing or has invalid format, generate a new one
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
             if (empty($tracking_token)) {
                 return new WP_Error('token_error', 'Failed to generate tracking token. Please try again.', array('status' => 500));
