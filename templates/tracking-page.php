@@ -764,12 +764,19 @@
         const statusOrder = ['pending', 'confirmed', 'cooking', 'ready', 'dispatched', 'delivered'];
         
         async function fetchOrderData() {
+            console.log('ZAIKON TRACKING: Fetching order with token:', trackingToken ? trackingToken.substring(0, 8) + '...' : 'NULL');
+            console.log('ZAIKON TRACKING: API URL:', apiBaseUrl + 'track/' + trackingToken);
+            
             try {
                 const response = await fetch(`${apiBaseUrl}track/${trackingToken}`);
+                console.log('ZAIKON TRACKING: Response status:', response.status);
+                
                 const data = await response.json();
+                console.log('ZAIKON TRACKING: Response data:', data);
                 
                 if (!response.ok || !data.success) {
                     // Provide specific error messages based on response status
+                    console.error('ZAIKON TRACKING: Order lookup failed. Status:', response.status, 'Data:', data);
                     if (response.status === 404) {
                         throw new Error('Order not found. The tracking link may have expired or the order number is incorrect.');
                     } else if (response.status === 400) {
@@ -779,11 +786,12 @@
                     }
                 }
                 
+                console.log('ZAIKON TRACKING: Order found successfully:', data.order?.order_number);
                 currentOrderData = data;
                 renderOrderTracking(data);
                 
             } catch (error) {
-                console.error('Error fetching order:', error);
+                console.error('ZAIKON TRACKING: Error fetching order:', error);
                 // Check if it's a network error vs API error
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
                     showError('Unable to connect to the server. Please check your internet connection.');

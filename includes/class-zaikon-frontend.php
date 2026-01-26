@@ -51,12 +51,15 @@ class Zaikon_Frontend {
         
         // Handle public tracking page (no login required)
         if ($tracking_token) {
+            error_log('ZAIKON FRONTEND: Tracking page loaded with token: ' . substr($tracking_token, 0, 8) . '...' . substr($tracking_token, -4));
+            
             $tracking_template = RPOS_PLUGIN_DIR . 'templates/tracking-page.php';
             
             if (file_exists($tracking_template)) {
                 return $tracking_template;
             }
             
+            error_log('ZAIKON FRONTEND: Tracking template not found at: ' . $tracking_template);
             return $template;
         }
         
