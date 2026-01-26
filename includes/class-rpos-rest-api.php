@@ -900,6 +900,8 @@ class RPOS_REST_API {
      * Update rider delivery status
      */
     public function update_rider_delivery_status($request) {
+        global $wpdb;
+        
         $params = $request->get_json_params();
         
         if (!isset($params['order_id']) || !isset($params['status'])) {
@@ -918,6 +920,28 @@ class RPOS_REST_API {
         
         if ($result === false) {
             return new WP_Error('update_failed', 'Failed to update delivery status', array('status' => 500));
+        }
+        
+        // Sync status to zaikon_orders for tracking
+        // Get the order number from rpos_orders to find matching zaikon_orders
+        $order_number = $wpdb->get_var($wpdb->prepare(
+            "SELECT order_number FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        if ($order_number) {
+            // Find corresponding zaikon_orders record
+            $zaikon_order_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}zaikon_orders WHERE order_number = %s",
+                $order_number
+            ));
+            
+            if ($zaikon_order_id) {
+                // Map rider status to tracking status
+                $tracking_status = ($status === 'out_for_delivery') ? 'dispatched' : 'delivered';
+                Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status);
+                error_log('RPOS REST API: Synced rider status to tracking for order #' . $zaikon_order_id . ' -> ' . $tracking_status);
+            }
         }
         
         return array(

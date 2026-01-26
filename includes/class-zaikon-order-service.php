@@ -295,6 +295,28 @@ class Zaikon_Order_Service {
             ));
         }
         
+        // Update order tracking status to confirmed if the order is still pending
+        // This indicates the order is confirmed and ready for kitchen after rider is assigned
+        $current_status = $order->order_status ?? 'pending';
+        if ($current_status === 'pending') {
+            Zaikon_Order_Tracking::update_status($order_id, 'confirmed');
+        }
+        
+        // Get rider details for tracking display
+        $rider = Zaikon_Riders::get($rider_id);
+        if ($rider) {
+            // Update delivery with rider name and phone for tracking page
+            $wpdb->update(
+                $wpdb->prefix . 'zaikon_deliveries',
+                array(
+                    'assigned_rider_id' => $rider_id
+                ),
+                array('order_id' => $order_id),
+                array('%d'),
+                array('%d')
+            );
+        }
+        
         return array(
             'success' => true,
             'message' => 'Rider assigned successfully',
