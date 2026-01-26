@@ -305,7 +305,7 @@ class RPOS_REST_API {
         ));
         
         // Get delivery orders by customer phone number
-        register_rest_route($zaikon_namespace, '/orders/by-phone/(?P<phone>[0-9\+\-\s]+)/tracking', array(
+        register_rest_route($zaikon_namespace, '/orders/by-phone/(?P<phone>[0-9\+\-\s]{7,20})/tracking', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_delivery_orders_by_phone'),
             'permission_callback' => array($this, 'check_permission')

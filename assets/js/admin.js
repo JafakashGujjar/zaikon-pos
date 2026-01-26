@@ -1126,12 +1126,15 @@
             });
             
             // Helper function to determine if input looks like a phone number
+            // Minimum phone length is 7 digits (e.g., local numbers without country code)
+            var MIN_PHONE_DIGITS = 7;
+            
             function isPhoneNumber(input) {
                 // Phone numbers typically start with 0, +, or contain only digits, spaces, and dashes
                 // Order numbers typically contain letters like "ORD-"
                 var cleaned = input.replace(/[\s\-\+]/g, '');
-                // If it's all digits and at least 7 characters, treat as phone
-                if (/^\d{7,}$/.test(cleaned)) {
+                // If it's all digits and at least MIN_PHONE_DIGITS characters, treat as phone
+                if (new RegExp('^\\d{' + MIN_PHONE_DIGITS + ',}$').test(cleaned)) {
                     return true;
                 }
                 // If it starts with + followed by digits
