@@ -159,7 +159,9 @@ class Zaikon_Order_Tracking {
         if (!$order) {
             error_log('ZAIKON TRACKING: No order found for token ' . $token_preview);
             
-            // Additional debug: check if token exists in any order (case-sensitivity check)
+            // DEBUG ONLY: Check if token exists with case-insensitive match
+            // This helps diagnose if there's a case mismatch (tokens should always be lowercase)
+            // Note: This query is intentionally not indexed for debugging purposes
             $debug_result = $wpdb->get_row($wpdb->prepare(
                 "SELECT id, order_number, tracking_token FROM {$wpdb->prefix}zaikon_orders WHERE LOWER(tracking_token) = LOWER(%s)",
                 $token
@@ -186,6 +188,55 @@ class Zaikon_Order_Tracking {
         error_log('ZAIKON TRACKING: Order found! ID: ' . $order->id . ', Order#: ' . $order->order_number . ', Status: ' . $order->order_status);
         
         // Get order items with more details
+        $order->items = $wpdb->get_results($wpdb->prepare(
+            "SELECT product_name, qty, unit_price_rs, line_total_rs
+             FROM {$wpdb->prefix}zaikon_order_items
+             WHERE order_id = %d
+             ORDER BY id ASC",
+            $order->id
+        ));
+        
+        return $order;
+    }
+    
+    /**
+     * Get order by ID with delivery and rider details (for fallback lookup)
+     * This is the same query logic as get_order_by_token but searches by ID instead
+     * 
+     * @param int $order_id The order ID to lookup
+     * @return object|null The order object with delivery details, or null if not found
+     */
+    public static function get_order_by_id($order_id) {
+        global $wpdb;
+        
+        if (empty($order_id)) {
+            return null;
+        }
+        
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
+                    o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
+                    o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
+                    o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
+                    o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
+                    o.created_at, o.updated_at,
+                    d.customer_name, d.customer_phone, d.location_name, 
+                    d.delivery_status, d.special_instruction,
+                    d.delivery_charges_rs AS delivery_charges_rs,
+                    d.delivered_at,
+                    r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
+             FROM {$wpdb->prefix}zaikon_orders o
+             LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
+             WHERE o.id = %d",
+            $order_id
+        ));
+        
+        if (!$order) {
+            return null;
+        }
+        
+        // Get order items
         $order->items = $wpdb->get_results($wpdb->prepare(
             "SELECT product_name, qty, unit_price_rs, line_total_rs
              FROM {$wpdb->prefix}zaikon_order_items
