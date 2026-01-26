@@ -17,6 +17,20 @@ class Zaikon_Order_Tracking {
     const TOKEN_PATTERN = '/^[a-f0-9]{16,64}$/';
     
     /**
+     * Create a partial token preview for secure logging
+     * Shows first 8 and last 4 characters
+     * 
+     * @param string|null $token The token to preview
+     * @return string Token preview (e.g., "da276119...4ff3") or "NULL"
+     */
+    private static function create_token_preview($token) {
+        if (empty($token)) {
+            return 'NULL';
+        }
+        return substr($token, 0, 8) . '...' . substr($token, -4);
+    }
+    
+    /**
      * Generate a unique tracking token for an order
      */
     public static function generate_tracking_token($order_id) {
@@ -60,10 +74,10 @@ class Zaikon_Order_Tracking {
         ));
         
         if ($saved_token !== $token) {
-            // Log only partial token for security (first 8 and last 4 chars)
-            $token_preview = substr($token, 0, 8) . '...' . substr($token, -4);
-            $saved_preview = $saved_token ? (substr($saved_token, 0, 8) . '...' . substr($saved_token, -4)) : 'NULL';
-            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id . '. Expected: ' . $token_preview . ', Got: ' . $saved_preview);
+            // Log only partial tokens for security
+            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id . 
+                      '. Expected: ' . self::create_token_preview($token) . 
+                      ', Got: ' . self::create_token_preview($saved_token));
             return null;
         }
         
