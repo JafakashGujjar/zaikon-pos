@@ -46,8 +46,12 @@ class Zaikon_Order_Tracking {
     public static function generate_tracking_token($order_id) {
         global $wpdb;
         
+        error_log('ZAIKON TRACKING: generate_tracking_token called for order ID: ' . $order_id);
+        
         // Generate a cryptographically secure random token
         $token = bin2hex(random_bytes(16)); // 32 character hex string
+        
+        error_log('ZAIKON TRACKING: Generated token: ' . self::create_token_preview($token) . ' for order ' . $order_id);
         
         // Ensure token is unique
         $exists = $wpdb->get_var($wpdb->prepare(
@@ -57,6 +61,7 @@ class Zaikon_Order_Tracking {
         
         if ($exists) {
             // Collision detected (extremely rare), try again
+            error_log('ZAIKON TRACKING: Token collision detected, regenerating');
             return self::generate_tracking_token($order_id);
         }
         
@@ -69,10 +74,12 @@ class Zaikon_Order_Tracking {
             array('%d')
         );
         
+        error_log('ZAIKON TRACKING: wpdb->update result for order ' . $order_id . ': ' . var_export($result, true));
+        
         // Verify the update was successful
         // $wpdb->update() returns false on error, 0 if no rows matched OR no rows changed
         if ($result === false) {
-            error_log('ZAIKON: Database error saving tracking token for order ' . $order_id . '. Error: ' . $wpdb->last_error);
+            error_log('ZAIKON TRACKING: Database error saving tracking token for order ' . $order_id . '. Error: ' . $wpdb->last_error);
             return null;
         }
         
@@ -83,13 +90,17 @@ class Zaikon_Order_Tracking {
             $order_id
         ));
         
+        error_log('ZAIKON TRACKING: Token verification for order ' . $order_id . ' - saved: ' . self::create_token_preview($saved_token));
+        
         if ($saved_token !== $token) {
             // Log only partial tokens for security
-            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id . 
+            error_log('ZAIKON TRACKING: Token verification FAILED for order ' . $order_id . 
                       '. Expected: ' . self::create_token_preview($token) . 
                       ', Got: ' . self::create_token_preview($saved_token));
             return null;
         }
+        
+        error_log('ZAIKON TRACKING: Token successfully saved for order ' . $order_id);
         
         return $token;
     }
@@ -107,12 +118,23 @@ class Zaikon_Order_Tracking {
     public static function get_order_by_token($token) {
         global $wpdb;
         
+        // Log incoming token for debugging (partial token for security)
+        $token_preview = self::create_token_preview($token);
+        error_log('ZAIKON TRACKING: get_order_by_token called with token: ' . $token_preview);
+        
         if (empty($token)) {
+            error_log('ZAIKON TRACKING: Token is empty, returning null');
+            return null;
+        }
+        
+        // Validate token format before querying
+        if (!preg_match(self::TOKEN_PATTERN, $token)) {
+            error_log('ZAIKON TRACKING: Token format invalid: ' . $token_preview);
             return null;
         }
         
         // Get order with delivery details - include all necessary fields for tracking
-        $order = $wpdb->get_row($wpdb->prepare(
+        $query = $wpdb->prepare(
             "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
                     o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
                     o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
@@ -129,13 +151,92 @@ class Zaikon_Order_Tracking {
              LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
              WHERE o.tracking_token = %s",
             $token
+        );
+        
+        $order = $wpdb->get_row($query);
+        
+        // Log the result for debugging
+        if (!$order) {
+            error_log('ZAIKON TRACKING: No order found for token ' . $token_preview);
+            
+            // DEBUG ONLY: Check if token exists with case-insensitive match
+            // This helps diagnose if there's a case mismatch (tokens should always be lowercase)
+            // Note: This query is intentionally not indexed for debugging purposes
+            $debug_result = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, order_number, tracking_token FROM {$wpdb->prefix}zaikon_orders WHERE LOWER(tracking_token) = LOWER(%s)",
+                $token
+            ));
+            
+            if ($debug_result) {
+                error_log('ZAIKON TRACKING: Found order with case-insensitive match! Order ID: ' . $debug_result->id . 
+                          ', Order#: ' . $debug_result->order_number . 
+                          ', DB token: ' . self::create_token_preview($debug_result->tracking_token));
+            } else {
+                // Check total orders with tokens
+                $total_with_tokens = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}zaikon_orders WHERE tracking_token IS NOT NULL AND tracking_token != ''");
+                error_log('ZAIKON TRACKING: Total orders with tokens in DB: ' . $total_with_tokens);
+            }
+            
+            // Log last SQL error if any
+            if ($wpdb->last_error) {
+                error_log('ZAIKON TRACKING: DB error: ' . $wpdb->last_error);
+            }
+            
+            return null;
+        }
+        
+        error_log('ZAIKON TRACKING: Order found! ID: ' . $order->id . ', Order#: ' . $order->order_number . ', Status: ' . $order->order_status);
+        
+        // Get order items with more details
+        $order->items = $wpdb->get_results($wpdb->prepare(
+            "SELECT product_name, qty, unit_price_rs, line_total_rs
+             FROM {$wpdb->prefix}zaikon_order_items
+             WHERE order_id = %d
+             ORDER BY id ASC",
+            $order->id
+        ));
+        
+        return $order;
+    }
+    
+    /**
+     * Get order by ID with delivery and rider details (for fallback lookup)
+     * This is the same query logic as get_order_by_token but searches by ID instead
+     * 
+     * @param int $order_id The order ID to lookup
+     * @return object|null The order object with delivery details, or null if not found
+     */
+    public static function get_order_by_id($order_id) {
+        global $wpdb;
+        
+        if (empty($order_id)) {
+            return null;
+        }
+        
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
+                    o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
+                    o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
+                    o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
+                    o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
+                    o.created_at, o.updated_at,
+                    d.customer_name, d.customer_phone, d.location_name, 
+                    d.delivery_status, d.special_instruction,
+                    d.delivery_charges_rs AS delivery_charges_rs,
+                    d.delivered_at,
+                    r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
+             FROM {$wpdb->prefix}zaikon_orders o
+             LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
+             WHERE o.id = %d",
+            $order_id
         ));
         
         if (!$order) {
             return null;
         }
         
-        // Get order items with more details
+        // Get order items
         $order->items = $wpdb->get_results($wpdb->prepare(
             "SELECT product_name, qty, unit_price_rs, line_total_rs
              FROM {$wpdb->prefix}zaikon_order_items
