@@ -1323,8 +1323,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 
 .zaikon-notification-dropdown {
     position: fixed;
-    top: 80px;
-    right: var(--space-4);
+    top: 100px;
+    left: 100px;
     width: 400px;
     max-height: 600px;
     background: var(--zaikon-bg-secondary);
