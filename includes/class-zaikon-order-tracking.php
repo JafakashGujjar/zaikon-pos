@@ -31,13 +31,30 @@ class Zaikon_Order_Tracking {
         }
         
         // Update order with tracking token
-        $wpdb->update(
+        $result = $wpdb->update(
             $wpdb->prefix . 'zaikon_orders',
             array('tracking_token' => $token),
             array('id' => $order_id),
             array('%s'),
             array('%d')
         );
+        
+        // Verify the update was successful
+        if ($result === false) {
+            error_log('ZAIKON: Failed to save tracking token for order ' . $order_id . '. Error: ' . $wpdb->last_error);
+            return null;
+        }
+        
+        // Verify token was actually saved by reading it back
+        $saved_token = $wpdb->get_var($wpdb->prepare(
+            "SELECT tracking_token FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        if ($saved_token !== $token) {
+            error_log('ZAIKON: Tracking token mismatch after save for order ' . $order_id . '. Expected: ' . $token . ', Got: ' . ($saved_token ?: 'NULL'));
+            return null;
+        }
         
         return $token;
     }

@@ -1784,6 +1784,9 @@ class RPOS_REST_API {
         // Generate tracking token if it doesn't exist
         if (empty($order->tracking_token)) {
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+            if (empty($tracking_token)) {
+                return new WP_Error('token_error', 'Failed to generate tracking token. Please try again.', array('status' => 500));
+            }
             $order->tracking_token = $tracking_token;
         }
         
@@ -1846,6 +1849,11 @@ class RPOS_REST_API {
             // Generate tracking token if it doesn't exist
             if (empty($order->tracking_token)) {
                 $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+                // Skip this order if token generation fails
+                if (empty($tracking_token)) {
+                    error_log('ZAIKON: Skipping order ' . $order->id . ' in public phone tracking - token generation failed');
+                    continue;
+                }
             } else {
                 $tracking_token = $order->tracking_token;
             }
@@ -1947,6 +1955,9 @@ class RPOS_REST_API {
         // Generate token if it doesn't exist
         if (empty($order->tracking_token)) {
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order_id);
+            if (empty($tracking_token)) {
+                return new WP_Error('token_error', 'Failed to generate tracking token. Please try again.', array('status' => 500));
+            }
         } else {
             $tracking_token = $order->tracking_token;
         }
@@ -1983,6 +1994,9 @@ class RPOS_REST_API {
         // Generate token if it doesn't exist
         if (empty($order->tracking_token)) {
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+            if (empty($tracking_token)) {
+                return new WP_Error('token_error', 'Failed to generate tracking token. Please try again.', array('status' => 500));
+            }
         } else {
             $tracking_token = $order->tracking_token;
         }
@@ -2033,6 +2047,11 @@ class RPOS_REST_API {
             // Generate tracking token if it doesn't exist
             if (empty($order->tracking_token)) {
                 $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+                // Skip this order if token generation fails
+                if (empty($tracking_token)) {
+                    error_log('ZAIKON: Skipping order ' . $order->id . ' in phone tracking - token generation failed');
+                    continue;
+                }
             } else {
                 $tracking_token = $order->tracking_token;
             }
