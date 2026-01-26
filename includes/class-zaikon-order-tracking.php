@@ -59,13 +59,22 @@ class Zaikon_Order_Tracking {
             return null;
         }
         
-        // Get order with delivery details
+        // Get order with delivery details - include all necessary fields for tracking
         $order = $wpdb->get_row($wpdb->prepare(
-            "SELECT o.*, d.customer_name, d.customer_phone, d.location_name, 
-                    d.delivery_status, d.rider_name, d.rider_phone, d.rider_avatar,
-                    d.delivery_charges_rs, d.special_instruction
+            "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
+                    o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
+                    o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
+                    o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
+                    o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
+                    o.created_at, o.updated_at,
+                    d.customer_name, d.customer_phone, d.location_name, 
+                    d.delivery_status, d.special_instruction,
+                    d.delivery_charges_rs AS delivery_charges_rs,
+                    d.delivered_at,
+                    r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
              FROM {$wpdb->prefix}zaikon_orders o
              LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
              WHERE o.tracking_token = %s",
             $token
         ));
@@ -74,7 +83,7 @@ class Zaikon_Order_Tracking {
             return null;
         }
         
-        // Get order items
+        // Get order items with more details
         $order->items = $wpdb->get_results($wpdb->prepare(
             "SELECT product_name, qty, unit_price_rs, line_total_rs
              FROM {$wpdb->prefix}zaikon_order_items
