@@ -112,12 +112,132 @@
             border-radius: 12px;
             text-align: center;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: 12px;
         }
         
+        .error-message .error-icon { display: flex; align-items: center; gap: 10px; }
         .error-message svg { width: 24px; height: 24px; flex-shrink: 0; }
+        
+        .search-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: 16px;
+            border: 1px solid var(--gray-200);
+        }
+        
+        .search-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .search-form { display: flex; flex-direction: column; gap: 12px; }
+        
+        .search-input-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 138, 0, 0.1);
+        }
+        
+        .search-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .search-hint {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-align: center;
+        }
+        
+        .search-results {
+            margin-top: 16px;
+        }
+        
+        .search-result-item {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .search-result-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .search-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .search-result-order { font-weight: 600; color: var(--gray-800); }
+        
+        .search-result-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .search-result-status.pending { background: #FEF3C7; color: #D97706; }
+        .search-result-status.confirmed { background: #DBEAFE; color: #2563EB; }
+        .search-result-status.cooking { background: #FEE2E2; color: #DC2626; }
+        .search-result-status.ready { background: #D1FAE5; color: #059669; }
+        .search-result-status.dispatched { background: #E0E7FF; color: #4338CA; }
+        .search-result-status.delivered { background: #D1FAE5; color: #047857; }
+        
+        .search-result-details {
+            font-size: 13px;
+            color: var(--gray-500);
+            display: flex;
+            justify-content: space-between;
+        }
         
         .loading { text-align: center; padding: 60px 20px; }
         
@@ -517,11 +637,35 @@
                 <p>Loading your order...</p>
             </div>
             
-            <div id="error-state" class="error-message" style="display: none;">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                </svg>
-                <span id="error-text">Unable to load order</span>
+            <div id="error-state" style="display: none;">
+                <div class="error-message">
+                    <div class="error-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        </svg>
+                        <span id="error-text">Unable to load order</span>
+                    </div>
+                </div>
+                
+                <div class="search-section">
+                    <div class="search-section-title">Find Your Order</div>
+                    <div class="search-form">
+                        <div class="search-input-group">
+                            <input type="text" id="search-input" class="search-input" placeholder="Enter order number or phone number" autocomplete="off" />
+                            <button type="button" id="search-btn" class="search-btn">Search</button>
+                        </div>
+                        <div class="search-hint">Example: ORD-2026001 or 03001234567</div>
+                    </div>
+                    <div id="search-results" class="search-results" style="display: none;"></div>
+                    <div id="search-error" class="error-message" style="display: none; margin-top: 16px;">
+                        <div class="error-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                            </svg>
+                            <span id="search-error-text">No orders found</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div id="order-tracking" style="display: none;">
@@ -592,7 +736,8 @@
 
     <script>
         const rawToken = '<?php echo esc_js(get_query_var("zaikon_tracking_token")); ?>';
-        const trackingToken = /^[a-f0-9]{32}$/.test(rawToken) ? rawToken : null;
+        // Token validation: allow hex tokens of 16-64 characters (current tokens are 32 chars)
+        const trackingToken = /^[a-f0-9]{16,64}$/.test(rawToken) ? rawToken : null;
         const apiBaseUrl = '<?php echo esc_js(rest_url("zaikon/v1/")); ?>';
         
         let currentOrderData = null;
@@ -624,7 +769,14 @@
                 const data = await response.json();
                 
                 if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'Order not found');
+                    // Provide specific error messages based on response status
+                    if (response.status === 404) {
+                        throw new Error('Order not found. The tracking link may have expired or the order number is incorrect.');
+                    } else if (response.status === 400) {
+                        throw new Error('Invalid tracking link. Please check your URL and try again.');
+                    } else {
+                        throw new Error(data.message || 'Unable to load order details. Please try again later.');
+                    }
                 }
                 
                 currentOrderData = data;
@@ -632,7 +784,12 @@
                 
             } catch (error) {
                 console.error('Error fetching order:', error);
-                showError(error.message || 'Unable to load order. Please check your tracking link.');
+                // Check if it's a network error vs API error
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    showError('Unable to connect to the server. Please check your internet connection.');
+                } else {
+                    showError(error.message || 'Unable to load order. Please check your tracking link.');
+                }
             }
         }
         
@@ -910,8 +1067,101 @@
         
         function showError(message) {
             document.getElementById('loading-state').style.display = 'none';
-            document.getElementById('error-state').style.display = 'flex';
+            document.getElementById('error-state').style.display = 'block';
             document.getElementById('error-text').textContent = message;
+        }
+        
+        // Search functionality
+        async function searchOrder(query) {
+            const searchBtn = document.getElementById('search-btn');
+            const searchResults = document.getElementById('search-results');
+            const searchError = document.getElementById('search-error');
+            const originalText = searchBtn.textContent;
+            
+            // Reset states
+            searchResults.style.display = 'none';
+            searchError.style.display = 'none';
+            searchBtn.textContent = 'Searching...';
+            searchBtn.disabled = true;
+            
+            try {
+                // Determine if input is phone number or order number
+                // Phone number regex requires at least one digit
+                const isPhone = /^[\+]?[\d\s\-]*\d[\d\s\-]*$/.test(query.trim()) && query.replace(/[\s\-\+]/g, '').length >= 7;
+                const apiUrl = isPhone 
+                    ? `${apiBaseUrl}track/phone/${encodeURIComponent(query.trim())}`
+                    : `${apiBaseUrl}track/order/${encodeURIComponent(query.trim())}`;
+                
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'No orders found');
+                }
+                
+                if (isPhone && data.orders) {
+                    // Multiple orders from phone search
+                    renderSearchResults(data.orders);
+                } else if (data.order) {
+                    // Single order from order number search - redirect to tracking
+                    if (data.tracking_url) {
+                        window.location.href = data.tracking_url;
+                    } else {
+                        // Render the order directly
+                        currentOrderData = data;
+                        document.getElementById('error-state').style.display = 'none';
+                        renderOrderTracking(data);
+                        startPolling();
+                    }
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                searchError.style.display = 'block';
+                document.getElementById('search-error-text').textContent = error.message || 'No orders found. Please check your search and try again.';
+            } finally {
+                searchBtn.textContent = originalText;
+                searchBtn.disabled = false;
+            }
+        }
+        
+        function renderSearchResults(orders) {
+            const container = document.getElementById('search-results');
+            
+            if (!orders || orders.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            const statusLabels = {
+                'pending': 'Pending',
+                'confirmed': 'Confirmed',
+                'cooking': 'Preparing',
+                'ready': 'Ready',
+                'dispatched': 'On the Way',
+                'delivered': 'Delivered'
+            };
+            
+            container.innerHTML = orders.map(order => `
+                <div class="search-result-item" onclick="window.location.href='${escapeHtml(order.tracking_url)}'">
+                    <div class="search-result-header">
+                        <span class="search-result-order">${escapeHtml(order.order_number)}</span>
+                        <span class="search-result-status ${order.order_status}">${statusLabels[order.order_status] || order.order_status}</span>
+                    </div>
+                    <div class="search-result-details">
+                        <span>${order.items_count || 0} items • Rs ${Math.round(parseFloat(order.grand_total_rs) || 0)}</span>
+                        <span>${formatDate(order.created_at)}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.style.display = 'block';
+        }
+        
+        function formatDate(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return '';
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
         
         function formatTime(timestamp) {
@@ -942,8 +1192,25 @@
             fetchOrderData();
             startPolling();
         } else {
-            showError('Invalid tracking link. Please check your URL.');
+            showError('Enter your order number or phone number below to track your order.');
         }
+        
+        // Search event listeners
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const query = document.getElementById('search-input').value.trim();
+            if (query.length >= 3) {
+                searchOrder(query);
+            } else {
+                document.getElementById('search-error').style.display = 'block';
+                document.getElementById('search-error-text').textContent = 'Please enter at least 3 characters';
+            }
+        });
+        
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('search-btn').click();
+            }
+        });
         
         window.addEventListener('beforeunload', () => {
             if (pollInterval) {

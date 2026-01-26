@@ -276,6 +276,20 @@ class RPOS_REST_API {
             'permission_callback' => '__return_true' // Public endpoint
         ));
         
+        // Public tracking by order number (returns full order data for tracking page)
+        register_rest_route($zaikon_namespace, '/track/order/(?P<order_number>[a-zA-Z0-9\-]+)', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'public_track_by_order_number'),
+            'permission_callback' => '__return_true' // Public endpoint
+        ));
+        
+        // Public tracking by phone number (returns list of recent orders for that phone)
+        register_rest_route($zaikon_namespace, '/track/phone/(?P<phone>[0-9\+\-\s]{7,20})', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'public_track_by_phone'),
+            'permission_callback' => '__return_true' // Public endpoint
+        ));
+        
         // Update order tracking status (KDS, POS)
         register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/tracking-status', array(
             'methods' => 'PUT',
@@ -725,6 +739,39 @@ class RPOS_REST_API {
             return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
         }
         
+        // Sync status to zaikon_orders table for tracking functionality
+        // Map KDS status to tracking status
+        $tracking_status_map = array(
+            'new' => 'pending',
+            'cooking' => 'cooking',
+            'ready' => 'ready',
+            'completed' => 'delivered'
+        );
+        
+        if (isset($tracking_status_map[$new_status])) {
+            $tracking_status = $tracking_status_map[$new_status];
+            
+            // Get the order number from rpos_orders to find matching zaikon_orders
+            $order_number = $wpdb->get_var($wpdb->prepare(
+                "SELECT order_number FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
+                $id
+            ));
+            
+            if ($order_number) {
+                // Find corresponding zaikon_orders record
+                $zaikon_order_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}zaikon_orders WHERE order_number = %s",
+                    $order_number
+                ));
+                
+                if ($zaikon_order_id) {
+                    // Update zaikon_orders with tracking status
+                    Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status);
+                    error_log('RPOS REST API: Synced status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status);
+                }
+            }
+        }
+        
         // Log kitchen activity only if status actually changed
         if ($old_status !== $new_status) {
             $current_user_id = get_current_user_id();
@@ -853,6 +900,8 @@ class RPOS_REST_API {
      * Update rider delivery status
      */
     public function update_rider_delivery_status($request) {
+        global $wpdb;
+        
         $params = $request->get_json_params();
         
         if (!isset($params['order_id']) || !isset($params['status'])) {
@@ -871,6 +920,28 @@ class RPOS_REST_API {
         
         if ($result === false) {
             return new WP_Error('update_failed', 'Failed to update delivery status', array('status' => 500));
+        }
+        
+        // Sync status to zaikon_orders for tracking
+        // Get the order number from rpos_orders to find matching zaikon_orders
+        $order_number = $wpdb->get_var($wpdb->prepare(
+            "SELECT order_number FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        if ($order_number) {
+            // Find corresponding zaikon_orders record
+            $zaikon_order_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}zaikon_orders WHERE order_number = %s",
+                $order_number
+            ));
+            
+            if ($zaikon_order_id) {
+                // Map rider status to tracking status
+                $tracking_status = ($status === 'out_for_delivery') ? 'dispatched' : 'delivered';
+                Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status);
+                error_log('RPOS REST API: Synced rider status to tracking for order #' . $zaikon_order_id . ' -> ' . $tracking_status);
+            }
         }
         
         return array(
@@ -1643,10 +1714,15 @@ class RPOS_REST_API {
     public function get_order_by_tracking_token($request) {
         $token = $request->get_param('token');
         
+        // Validate token format (current tokens are 32 chars, allow 16-64 for flexibility)
+        if (empty($token) || !preg_match('/^[a-f0-9]{16,64}$/', $token)) {
+            return new WP_Error('invalid_token', 'Invalid tracking link. Please check your URL.', array('status' => 400));
+        }
+        
         $order = Zaikon_Order_Tracking::get_order_by_token($token);
         
         if (!$order) {
-            return new WP_Error('not_found', 'Order not found', array('status' => 404));
+            return new WP_Error('not_found', 'Order not found. The tracking link may have expired or the order does not exist.', array('status' => 404));
         }
         
         // Get ETA information
@@ -1656,6 +1732,147 @@ class RPOS_REST_API {
             'success' => true,
             'order' => $order,
             'eta' => $eta
+        ));
+    }
+    
+    /**
+     * Public tracking by order number (returns full order data)
+     * This allows customers to track using their order number
+     */
+    public function public_track_by_order_number($request) {
+        global $wpdb;
+        
+        $order_number = sanitize_text_field($request->get_param('order_number'));
+        
+        if (empty($order_number)) {
+            return new WP_Error('invalid_order_number', 'Please provide a valid order number.', array('status' => 400));
+        }
+        
+        // Get order with delivery details
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
+                    o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
+                    o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
+                    o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
+                    o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
+                    o.created_at, o.updated_at, o.tracking_token,
+                    d.customer_name, d.customer_phone, d.location_name, 
+                    d.delivery_status, d.special_instruction,
+                    d.delivery_charges_rs AS delivery_charges_rs,
+                    d.delivered_at,
+                    r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
+             FROM {$wpdb->prefix}zaikon_orders o
+             LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
+             WHERE o.order_number = %s",
+            $order_number
+        ));
+        
+        if (!$order) {
+            return new WP_Error('not_found', 'Order not found. Please check your order number and try again.', array('status' => 404));
+        }
+        
+        // Get order items
+        $order->items = $wpdb->get_results($wpdb->prepare(
+            "SELECT product_name, qty, unit_price_rs, line_total_rs
+             FROM {$wpdb->prefix}zaikon_order_items
+             WHERE order_id = %d
+             ORDER BY id ASC",
+            $order->id
+        ));
+        
+        // Generate tracking token if it doesn't exist
+        if (empty($order->tracking_token)) {
+            $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+            $order->tracking_token = $tracking_token;
+        }
+        
+        // Get ETA information
+        $eta = Zaikon_Order_Tracking::get_remaining_eta($order->id);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'order' => $order,
+            'eta' => $eta,
+            'tracking_url' => Zaikon_Order_Tracking::get_tracking_url($order->tracking_token)
+        ));
+    }
+    
+    /**
+     * Public tracking by phone number (returns list of recent delivery orders)
+     * This allows customers to track all their recent orders by phone number
+     */
+    public function public_track_by_phone($request) {
+        global $wpdb;
+        
+        $phone = sanitize_text_field($request->get_param('phone'));
+        
+        if (empty($phone) || strlen($phone) < 7) {
+            return new WP_Error('invalid_phone', 'Please provide a valid phone number.', array('status' => 400));
+        }
+        
+        // Clean up phone number for matching - keep only digits
+        $phone_cleaned = preg_replace('/[^\d]/', '', $phone);
+        
+        if (strlen($phone_cleaned) < 7) {
+            return new WP_Error('invalid_phone', 'Please provide a valid phone number with at least 7 digits.', array('status' => 400));
+        }
+        
+        // Search for recent delivery orders with this phone number (last 30 days)
+        // Include items count in the query to avoid N+1 problem
+        $orders = $wpdb->get_results($wpdb->prepare(
+            "SELECT o.id, o.order_number, o.order_type, o.order_status, o.tracking_token,
+                    o.grand_total_rs, o.created_at, o.items_subtotal_rs,
+                    o.delivery_charges_rs AS order_delivery_charges_rs,
+                    d.customer_name, d.customer_phone, d.location_name, 
+                    d.delivery_status, d.delivery_charges_rs,
+                    (SELECT COALESCE(SUM(i.qty), 0) FROM {$wpdb->prefix}zaikon_order_items i WHERE i.order_id = o.id) AS items_count
+             FROM {$wpdb->prefix}zaikon_orders o
+             INNER JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             WHERE REPLACE(REPLACE(REPLACE(d.customer_phone, '-', ''), ' ', ''), '+', '') LIKE %s
+             AND o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+             ORDER BY o.created_at DESC
+             LIMIT 10",
+            '%' . $phone_cleaned . '%'
+        ));
+        
+        if (empty($orders)) {
+            return new WP_Error('not_found', 'No delivery orders found for this phone number in the last 30 days.', array('status' => 404));
+        }
+        
+        // Process orders to include tracking URLs
+        $result_orders = array();
+        foreach ($orders as $order) {
+            // Generate tracking token if it doesn't exist
+            if (empty($order->tracking_token)) {
+                $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+            } else {
+                $tracking_token = $order->tracking_token;
+            }
+            
+            $tracking_url = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
+            
+            $result_orders[] = array(
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'order_type' => $order->order_type,
+                'order_status' => $order->order_status,
+                'delivery_status' => $order->delivery_status,
+                'customer_name' => $order->customer_name,
+                'customer_phone' => $order->customer_phone,
+                'location_name' => $order->location_name,
+                'grand_total_rs' => $order->grand_total_rs,
+                'items_count' => intval($order->items_count ?: 0),
+                'created_at' => $order->created_at,
+                'tracking_url' => $tracking_url,
+                'tracking_token' => $tracking_token
+            );
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'orders' => $result_orders,
+            'count' => count($result_orders)
         ));
     }
     
