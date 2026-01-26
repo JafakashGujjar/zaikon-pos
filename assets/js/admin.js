@@ -1263,7 +1263,7 @@
                 $('#rpos-print-rider-slip').show();
                 
                 // Auto-generate tracking link for delivery orders
-                if (order.tracking_url) {
+                if (order && order.tracking_url) {
                     console.log('📍 Tracking Link Generated:', order.tracking_url);
                     console.log('📱 Share this link with customer for order tracking');
                 }
