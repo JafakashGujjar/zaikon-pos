@@ -110,6 +110,13 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                             <span class="zaikon-category-name"><?php echo esc_html($category->name); ?></span>
                         </button>
                         <?php endforeach; ?>
+                        <!-- Expense Button in Menu Area -->
+                        <button class="zaikon-category-modern" id="zaikon-menu-expenses-btn">
+                            <div class="zaikon-category-circle" style="background-color: #10B981">
+                                <span class="dashicons dashicons-money-alt"></span>
+                            </div>
+                            <span class="zaikon-category-name"><?php echo esc_html__('Expenses', 'restaurant-pos'); ?></span>
+                        </button>
                     </div>
                 </div>
                 <button class="zaikon-scroll-arrow zaikon-scroll-right" id="zaikon-scroll-categories-right">
@@ -347,6 +354,10 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
             </button>
             <button class="zaikon-btn zaikon-btn-secondary zaikon-btn-lg" id="rpos-print-rider-slip" style="display: none;">
                 <?php echo esc_html__('Print Rider Slip', 'restaurant-pos'); ?>
+            </button>
+            <button class="zaikon-btn zaikon-btn-success zaikon-btn-lg" id="rpos-receipt-get-tracking-link" style="display: none;">
+                <span class="dashicons dashicons-admin-site"></span>
+                <?php echo esc_html__('Get Tracking Link', 'restaurant-pos'); ?>
             </button>
             <button class="zaikon-btn zaikon-btn-yellow zaikon-btn-lg" id="rpos-new-order">
                 <?php echo esc_html__('New Order', 'restaurant-pos'); ?>
