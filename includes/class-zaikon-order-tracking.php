@@ -40,8 +40,9 @@ class Zaikon_Order_Tracking {
         );
         
         // Verify the update was successful
-        if ($result === false) {
-            error_log('ZAIKON: Failed to save tracking token for order ' . $order_id . '. Error: ' . $wpdb->last_error);
+        // $wpdb->update() returns false on error, 0 if no rows matched (order_id doesn't exist)
+        if ($result === false || $result === 0) {
+            error_log('ZAIKON: Failed to save tracking token for order ' . $order_id . ' (update returned: ' . ($result === false ? 'false' : '0') . ')');
             return null;
         }
         
@@ -52,7 +53,7 @@ class Zaikon_Order_Tracking {
         ));
         
         if ($saved_token !== $token) {
-            error_log('ZAIKON: Tracking token mismatch after save for order ' . $order_id . '. Expected: ' . $token . ', Got: ' . ($saved_token ?: 'NULL'));
+            error_log('ZAIKON: Tracking token verification failed for order ' . $order_id);
             return null;
         }
         
