@@ -297,6 +297,13 @@ class RPOS_REST_API {
             'permission_callback' => array($this, 'check_permission')
         ));
         
+        // Get tracking URL by order number
+        register_rest_route($zaikon_namespace, '/orders/by-number/(?P<order_number>[a-zA-Z0-9\-]+)/tracking-url', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_order_tracking_url_by_number'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
         // Extend cooking ETA
         register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/extend-eta', array(
             'methods' => 'POST',
@@ -1705,7 +1712,7 @@ class RPOS_REST_API {
         $order_id = $request->get_param('id');
         
         $order = $wpdb->get_row($wpdb->prepare(
-            "SELECT tracking_token, order_number FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            "SELECT tracking_token, order_number, order_type, order_status FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
             $order_id
         ));
         
@@ -1726,7 +1733,45 @@ class RPOS_REST_API {
             'success' => true,
             'tracking_url' => $tracking_url,
             'tracking_token' => $tracking_token,
-            'order_number' => $order->order_number
+            'order_number' => $order->order_number,
+            'order_type' => $order->order_type,
+            'order_status' => $order->order_status
+        ));
+    }
+    
+    /**
+     * Get tracking URL by order number
+     */
+    public function get_order_tracking_url_by_number($request) {
+        global $wpdb;
+        
+        $order_number = $request->get_param('order_number');
+        
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, tracking_token, order_number, order_type, order_status FROM {$wpdb->prefix}zaikon_orders WHERE order_number = %s",
+            $order_number
+        ));
+        
+        if (!$order) {
+            return new WP_Error('not_found', 'Order not found. Please check the order number.', array('status' => 404));
+        }
+        
+        // Generate token if it doesn't exist
+        if (empty($order->tracking_token)) {
+            $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+        } else {
+            $tracking_token = $order->tracking_token;
+        }
+        
+        $tracking_url = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'tracking_url' => $tracking_url,
+            'tracking_token' => $tracking_token,
+            'order_number' => $order->order_number,
+            'order_type' => $order->order_type,
+            'order_status' => $order->order_status
         ));
     }
     
