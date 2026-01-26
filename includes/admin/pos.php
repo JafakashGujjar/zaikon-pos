@@ -112,7 +112,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                         <?php endforeach; ?>
                         <!-- Expense Button in Menu Area -->
                         <button class="zaikon-category-modern" id="zaikon-menu-expenses-btn">
-                            <div class="zaikon-category-circle" style="background-color: #10B981">
+                            <div class="zaikon-category-circle" style="background-color: var(--stock-good)">
                                 <span class="dashicons dashicons-money-alt"></span>
                             </div>
                             <span class="zaikon-category-name"><?php echo esc_html__('Expenses', 'restaurant-pos'); ?></span>

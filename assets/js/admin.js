@@ -508,13 +508,16 @@
                     },
                     success: function(response) {
                         if (response.success && response.tracking_url) {
+                            var successMsg = 'Tracking link copied to clipboard!\n\n' + response.tracking_url;
+                            var warningMsg = 'Tracking link:\n' + response.tracking_url;
+                            
                             // Copy tracking URL to clipboard
                             if (navigator.clipboard && navigator.clipboard.writeText) {
                                 navigator.clipboard.writeText(response.tracking_url).then(function() {
-                                    ZAIKON_Toast.success('Tracking link copied to clipboard!\n\n' + response.tracking_url, 5000);
+                                    ZAIKON_Toast.success(successMsg, 5000);
                                 }).catch(function(error) {
                                     console.error('Error copying to clipboard:', error);
-                                    ZAIKON_Toast.warning('Tracking link:\n' + response.tracking_url, 8000);
+                                    ZAIKON_Toast.warning(warningMsg, 8000);
                                 });
                             } else {
                                 // Fallback for older browsers
@@ -526,9 +529,9 @@
                                 textArea.select();
                                 try {
                                     document.execCommand('copy');
-                                    ZAIKON_Toast.success('Tracking link copied to clipboard!\n\n' + response.tracking_url, 5000);
+                                    ZAIKON_Toast.success(successMsg, 5000);
                                 } catch (err) {
-                                    ZAIKON_Toast.warning('Tracking link:\n' + response.tracking_url, 8000);
+                                    ZAIKON_Toast.warning(warningMsg, 8000);
                                 }
                                 document.body.removeChild(textArea);
                             }
