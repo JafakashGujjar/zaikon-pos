@@ -611,26 +611,30 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
 
 <!-- Delivery Tracking Modal -->
 <div id="rpos-delivery-tracking-modal" class="zaikon-modal" style="display: none;">
-    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 600px;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 650px;">
         <div class="zaikon-modal-header">
             <h3><?php echo esc_html__('Delivery Tracking', 'restaurant-pos'); ?></h3>
             <button class="zaikon-modal-close" id="rpos-delivery-tracking-close">&times;</button>
         </div>
         <div class="zaikon-modal-body">
             <p style="margin-bottom: var(--space-4); color: var(--zaikon-dark-secondary);">
-                <?php echo esc_html__('Search for an order to get its tracking link. You can share the tracking link with customers so they can track their delivery in real-time.', 'restaurant-pos'); ?>
+                <?php echo esc_html__('Search by order number or customer phone number to get tracking details. You can share the tracking link with customers so they can track their delivery in real-time.', 'restaurant-pos'); ?>
             </p>
             
             <div class="zaikon-order-field" style="margin-bottom: var(--space-4);">
-                <label><?php echo esc_html__('Order Number:', 'restaurant-pos'); ?> <span style="color: var(--zaikon-red);">*</span></label>
-                <input type="text" id="rpos-tracking-order-number" placeholder="<?php echo esc_attr__('Enter order number (e.g., ORD-20240125-001)', 'restaurant-pos'); ?>" style="width: 100%; padding: 10px; font-size: 16px;">
+                <label><?php echo esc_html__('Order Number or Phone Number:', 'restaurant-pos'); ?></label>
+                <input type="text" id="rpos-tracking-search-input" placeholder="<?php echo esc_attr__('e.g., ORD-20240125-001 or 03001234567', 'restaurant-pos'); ?>" style="width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 6px;">
+                <small style="color: var(--zaikon-dark-secondary); margin-top: 4px; display: block;">
+                    <?php echo esc_html__('Enter delivery order number (e.g., ORD-...) or customer phone number', 'restaurant-pos'); ?>
+                </small>
             </div>
             
-            <button class="zaikon-btn zaikon-btn-primary" id="rpos-get-tracking-link" style="width: 100%; margin-bottom: var(--space-4);">
+            <button class="zaikon-btn zaikon-btn-primary" id="rpos-get-tracking-link" style="width: 100%; margin-bottom: var(--space-4); padding: 12px;">
                 <span class="dashicons dashicons-search" style="vertical-align: middle;"></span>
-                <?php echo esc_html__('Get Tracking Link', 'restaurant-pos'); ?>
+                <?php echo esc_html__('Search & Get Tracking Link', 'restaurant-pos'); ?>
             </button>
             
+            <!-- Single Order Result (for order number search) -->
             <div id="rpos-tracking-result" style="display: none;">
                 <div style="padding: var(--space-4); background: var(--zaikon-gray-light); border-radius: 8px; margin-bottom: var(--space-3);">
                     <h4 style="margin-top: 0; color: var(--zaikon-dark);"><?php echo esc_html__('Order Found', 'restaurant-pos'); ?></h4>
@@ -665,6 +669,20 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                         <span class="dashicons dashicons-external" style="vertical-align: middle;"></span>
                         <?php echo esc_html__('Open', 'restaurant-pos'); ?>
                     </button>
+                </div>
+            </div>
+            
+            <!-- Multiple Orders Result (for phone number search) -->
+            <div id="rpos-tracking-phone-results" style="display: none;">
+                <div style="padding: var(--space-3); background: var(--zaikon-gray-light); border-radius: 8px; margin-bottom: var(--space-3);">
+                    <h4 style="margin-top: 0; color: var(--zaikon-dark);">
+                        <span class="dashicons dashicons-phone" style="vertical-align: middle;"></span>
+                        <?php echo esc_html__('Delivery Orders Found', 'restaurant-pos'); ?>
+                        <span id="rpos-phone-results-count" style="font-size: 14px; font-weight: normal; color: var(--zaikon-dark-secondary);"></span>
+                    </h4>
+                </div>
+                <div id="rpos-phone-orders-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Orders will be rendered here -->
                 </div>
             </div>
             

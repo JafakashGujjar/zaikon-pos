@@ -1111,70 +1111,184 @@
             var self = this;
             
             // Reset modal state
-            $('#rpos-tracking-order-number').val('');
+            $('#rpos-tracking-search-input').val('');
             $('#rpos-tracking-result').hide();
+            $('#rpos-tracking-phone-results').hide();
             $('#rpos-tracking-error').hide();
             
             // Show modal
             $('#rpos-delivery-tracking-modal').fadeIn();
-            $('#rpos-tracking-order-number').focus();
+            $('#rpos-tracking-search-input').focus();
             
             // Bind modal close handlers (unbind first to prevent duplicates)
             $('#rpos-delivery-tracking-close, #rpos-delivery-tracking-close-btn').off('click').on('click', function() {
                 $('#rpos-delivery-tracking-modal').fadeOut();
             });
             
+            // Helper function to determine if input looks like a phone number
+            function isPhoneNumber(input) {
+                // Phone numbers typically start with 0, +, or contain only digits, spaces, and dashes
+                // Order numbers typically contain letters like "ORD-"
+                var cleaned = input.replace(/[\s\-\+]/g, '');
+                // If it's all digits and at least 7 characters, treat as phone
+                if (/^\d{7,}$/.test(cleaned)) {
+                    return true;
+                }
+                // If it starts with + followed by digits
+                if (/^\+\d+$/.test(input.replace(/[\s\-]/g, ''))) {
+                    return true;
+                }
+                return false;
+            }
+            
+            // Helper function to render phone search results
+            function renderPhoneResults(orders) {
+                var $list = $('#rpos-phone-orders-list');
+                $list.empty();
+                
+                $('#rpos-phone-results-count').text('(' + orders.length + ' order' + (orders.length > 1 ? 's' : '') + ')');
+                
+                orders.forEach(function(order) {
+                    var statusColor = {
+                        'pending': '#f59e0b',
+                        'confirmed': '#3b82f6',
+                        'cooking': '#8b5cf6',
+                        'ready': '#10b981',
+                        'dispatched': '#06b6d4',
+                        'delivered': '#22c55e',
+                        'cancelled': '#ef4444'
+                    };
+                    
+                    var html = '<div class="rpos-phone-order-item" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">';
+                    html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">';
+                    html += '<div>';
+                    html += '<strong style="font-size: 16px; color: #1f2937;">#' + order.order_number + '</strong>';
+                    html += '<div style="font-size: 13px; color: #6b7280; margin-top: 4px;">' + order.customer_name + ' • ' + order.customer_phone + '</div>';
+                    if (order.location_name) {
+                        html += '<div style="font-size: 12px; color: #9ca3af; margin-top: 2px;">📍 ' + order.location_name + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<div style="text-align: right;">';
+                    html += '<span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ' + (statusColor[order.order_status] || '#6b7280') + '20; color: ' + (statusColor[order.order_status] || '#6b7280') + ';">' + order.order_status + '</span>';
+                    html += '<div style="font-size: 14px; font-weight: 600; color: #1f2937; margin-top: 6px;">Rs ' + parseFloat(order.grand_total_rs || 0).toFixed(2) + '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    html += '<div style="display: flex; gap: 8px; flex-wrap: wrap;">';
+                    html += '<button class="zaikon-btn zaikon-btn-info zaikon-btn-sm rpos-copy-phone-link" data-url="' + order.tracking_url + '" style="flex: 1; min-width: 80px; padding: 8px 12px; font-size: 12px;">';
+                    html += '<span class="dashicons dashicons-admin-page" style="font-size: 14px; vertical-align: middle;"></span> Copy';
+                    html += '</button>';
+                    html += '<button class="zaikon-btn zaikon-btn-success zaikon-btn-sm rpos-whatsapp-phone-link" data-url="' + order.tracking_url + '" data-order="' + order.order_number + '" style="flex: 1; min-width: 80px; padding: 8px 12px; font-size: 12px;">';
+                    html += '<span class="dashicons dashicons-whatsapp" style="font-size: 14px; vertical-align: middle;"></span> WhatsApp';
+                    html += '</button>';
+                    html += '<button class="zaikon-btn zaikon-btn-primary zaikon-btn-sm rpos-open-phone-link" data-url="' + order.tracking_url + '" style="flex: 1; min-width: 80px; padding: 8px 12px; font-size: 12px;">';
+                    html += '<span class="dashicons dashicons-external" style="font-size: 14px; vertical-align: middle;"></span> Track';
+                    html += '</button>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    $list.append(html);
+                });
+                
+                // Bind click handlers for dynamically created buttons
+                $list.find('.rpos-copy-phone-link').off('click').on('click', function() {
+                    var url = $(this).data('url');
+                    self.copyToClipboard(url);
+                    ZAIKON_Toast.success('Tracking link copied!');
+                });
+                
+                $list.find('.rpos-whatsapp-phone-link').off('click').on('click', function() {
+                    var url = $(this).data('url');
+                    var orderNum = $(this).data('order');
+                    var message = encodeURIComponent('Track your order #' + orderNum + ': ' + url);
+                    window.open('https://wa.me/?text=' + message, '_blank');
+                });
+                
+                $list.find('.rpos-open-phone-link').off('click').on('click', function() {
+                    var url = $(this).data('url');
+                    window.open(url, '_blank');
+                });
+                
+                $('#rpos-tracking-phone-results').show();
+            }
+            
             // Get tracking link button handler
             $('#rpos-get-tracking-link').off('click').on('click', function() {
-                var orderNumber = $('#rpos-tracking-order-number').val().trim();
+                var searchInput = $('#rpos-tracking-search-input').val().trim();
                 
-                if (!orderNumber) {
-                    $('#rpos-tracking-error-msg').text('Please enter an order number');
+                if (!searchInput) {
+                    $('#rpos-tracking-error-msg').text('Please enter an order number or phone number');
                     $('#rpos-tracking-error').show();
                     $('#rpos-tracking-result').hide();
+                    $('#rpos-tracking-phone-results').hide();
                     return;
                 }
                 
                 // Hide previous results
                 $('#rpos-tracking-result').hide();
+                $('#rpos-tracking-phone-results').hide();
                 $('#rpos-tracking-error').hide();
                 
                 // Show loading state
                 var $btn = $(this);
                 var originalText = $btn.html();
-                $btn.prop('disabled', true).html('<span class="dashicons dashicons-update zaikon-spin"></span> Loading...');
+                $btn.prop('disabled', true).html('<span class="dashicons dashicons-update zaikon-spin"></span> Searching...');
                 
-                // Fetch tracking URL from API
+                // Determine search type
+                var isPhone = isPhoneNumber(searchInput);
+                var apiUrl;
+                
+                if (isPhone) {
+                    // Phone number search
+                    apiUrl = rposData.zaikonRestUrl + 'orders/by-phone/' + encodeURIComponent(searchInput) + '/tracking';
+                } else {
+                    // Order number search
+                    apiUrl = rposData.zaikonRestUrl + 'orders/by-number/' + encodeURIComponent(searchInput) + '/tracking-url';
+                }
+                
+                // Fetch tracking data from API
                 $.ajax({
-                    url: rposData.zaikonRestUrl + 'orders/by-number/' + encodeURIComponent(orderNumber) + '/tracking-url',
+                    url: apiUrl,
                     method: 'GET',
                     beforeSend: function(xhr) {
                         xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
                     },
                     success: function(response) {
-                        if (response.success && response.tracking_url) {
-                            // Display tracking information
-                            $('#rpos-tracking-order-num').text(response.order_number);
-                            $('#rpos-tracking-order-type').text((response.order_type || 'N/A').toUpperCase());
-                            $('#rpos-tracking-order-status').text((response.order_status || 'pending').toUpperCase());
-                            $('#rpos-tracking-url').text(response.tracking_url);
-                            
-                            // Store tracking URL for button actions
-                            $('#rpos-tracking-result').data('tracking-url', response.tracking_url);
-                            
-                            $('#rpos-tracking-result').show();
-                            ZAIKON_Toast.success('Tracking link retrieved successfully!');
+                        if (isPhone) {
+                            // Phone search returns multiple orders
+                            if (response.success && response.orders && response.orders.length > 0) {
+                                renderPhoneResults(response.orders);
+                                ZAIKON_Toast.success('Found ' + response.orders.length + ' delivery order(s)!');
+                            } else {
+                                $('#rpos-tracking-error-msg').text('No delivery orders found for this phone number.');
+                                $('#rpos-tracking-error').show();
+                            }
                         } else {
-                            $('#rpos-tracking-error-msg').text(response.message || 'Failed to get tracking link');
-                            $('#rpos-tracking-error').show();
+                            // Order number search returns single order
+                            if (response.success && response.tracking_url) {
+                                // Display tracking information
+                                $('#rpos-tracking-order-num').text(response.order_number);
+                                $('#rpos-tracking-order-type').text((response.order_type || 'N/A').toUpperCase());
+                                $('#rpos-tracking-order-status').text((response.order_status || 'pending').toUpperCase());
+                                $('#rpos-tracking-url').text(response.tracking_url);
+                                
+                                // Store tracking URL for button actions
+                                $('#rpos-tracking-result').data('tracking-url', response.tracking_url);
+                                
+                                $('#rpos-tracking-result').show();
+                                ZAIKON_Toast.success('Tracking link retrieved successfully!');
+                            } else {
+                                $('#rpos-tracking-error-msg').text(response.message || 'Failed to get tracking link');
+                                $('#rpos-tracking-error').show();
+                            }
                         }
                     },
                     error: function(xhr) {
-                        var errorMsg = 'Failed to retrieve tracking link';
+                        var errorMsg = 'Failed to retrieve tracking information';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMsg = xhr.responseJSON.message;
                         } else if (xhr.status === 404) {
-                            errorMsg = 'Order not found. Please check the order number.';
+                            errorMsg = isPhone ? 'No delivery orders found for this phone number.' : 'Order not found. Please check the order number.';
                         }
                         $('#rpos-tracking-error-msg').text(errorMsg);
                         $('#rpos-tracking-error').show();
@@ -1189,30 +1303,8 @@
             // Copy tracking link button handler
             $('#rpos-copy-tracking-link').off('click').on('click', function() {
                 var trackingUrl = $('#rpos-tracking-result').data('tracking-url');
-                
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(trackingUrl).then(function() {
-                        ZAIKON_Toast.success('Tracking link copied to clipboard!');
-                    }).catch(function(error) {
-                        console.error('Error copying to clipboard:', error);
-                        ZAIKON_Toast.error('Failed to copy link');
-                    });
-                } else {
-                    // Fallback for older browsers
-                    var textArea = document.createElement('textarea');
-                    textArea.value = trackingUrl;
-                    textArea.style.position = 'absolute';
-                    textArea.style.left = '-9999px';
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        ZAIKON_Toast.success('Tracking link copied to clipboard!');
-                    } catch (err) {
-                        ZAIKON_Toast.error('Failed to copy link');
-                    }
-                    document.body.removeChild(textArea);
-                }
+                self.copyToClipboard(trackingUrl);
+                ZAIKON_Toast.success('Tracking link copied to clipboard!');
             });
             
             // Share via WhatsApp button handler
@@ -1231,11 +1323,34 @@
             });
             
             // Allow Enter key to submit
-            $('#rpos-tracking-order-number').off('keypress').on('keypress', function(e) {
+            $('#rpos-tracking-search-input').off('keypress').on('keypress', function(e) {
                 if (e.which === 13) {
                     $('#rpos-get-tracking-link').click();
                 }
             });
+        },
+        
+        // Helper function to copy text to clipboard
+        copyToClipboard: function(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).catch(function(error) {
+                    console.error('Error copying to clipboard:', error);
+                });
+            } else {
+                // Fallback for older browsers
+                var textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'absolute';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback: Could not copy text:', err);
+                }
+                document.body.removeChild(textArea);
+            }
         },
         
         showReceipt: function(order, orderData) {

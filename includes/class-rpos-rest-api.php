@@ -304,6 +304,13 @@ class RPOS_REST_API {
             'permission_callback' => array($this, 'check_permission')
         ));
         
+        // Get delivery orders by customer phone number
+        register_rest_route($zaikon_namespace, '/orders/by-phone/(?P<phone>[0-9\+\-\s]+)/tracking', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_delivery_orders_by_phone'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+        
         // Extend cooking ETA
         register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/extend-eta', array(
             'methods' => 'POST',
@@ -1772,6 +1779,69 @@ class RPOS_REST_API {
             'order_number' => $order->order_number,
             'order_type' => $order->order_type,
             'order_status' => $order->order_status
+        ));
+    }
+    
+    /**
+     * Get delivery orders by customer phone number
+     */
+    public function get_delivery_orders_by_phone($request) {
+        global $wpdb;
+        
+        $phone = $request->get_param('phone');
+        // Clean phone number - remove spaces and dashes for flexible matching
+        $phone_cleaned = preg_replace('/[\s\-]+/', '', $phone);
+        
+        // Search for delivery orders with this phone number
+        // Use REPLACE to normalize phone numbers in database for comparison
+        $orders = $wpdb->get_results($wpdb->prepare(
+            "SELECT o.id, o.order_number, o.order_type, o.order_status, o.tracking_token,
+                    o.grand_total_rs, o.created_at, d.customer_name, d.customer_phone,
+                    d.location_name, d.delivery_status
+             FROM {$wpdb->prefix}zaikon_orders o
+             INNER JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             WHERE REPLACE(REPLACE(d.customer_phone, '-', ''), ' ', '') LIKE %s
+             ORDER BY o.created_at DESC
+             LIMIT 10",
+            '%' . $wpdb->esc_like($phone_cleaned) . '%'
+        ));
+        
+        if (empty($orders)) {
+            return new WP_Error('not_found', 'No delivery orders found for this phone number.', array('status' => 404));
+        }
+        
+        // Process orders to include tracking URLs
+        $result_orders = array();
+        foreach ($orders as $order) {
+            // Generate tracking token if it doesn't exist
+            if (empty($order->tracking_token)) {
+                $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
+            } else {
+                $tracking_token = $order->tracking_token;
+            }
+            
+            $tracking_url = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
+            
+            $result_orders[] = array(
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'order_type' => $order->order_type,
+                'order_status' => $order->order_status,
+                'delivery_status' => $order->delivery_status,
+                'customer_name' => $order->customer_name,
+                'customer_phone' => $order->customer_phone,
+                'location_name' => $order->location_name,
+                'grand_total_rs' => $order->grand_total_rs,
+                'created_at' => $order->created_at,
+                'tracking_url' => $tracking_url,
+                'tracking_token' => $tracking_token
+            );
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'orders' => $result_orders,
+            'count' => count($result_orders)
         ));
     }
     
