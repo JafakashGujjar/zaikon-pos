@@ -153,13 +153,6 @@
                 self.renderProducts();
             });
             
-            // Menu expenses button
-            $('#zaikon-menu-expenses-btn').on('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                $('#rpos-expenses-btn').trigger('click');
-            });
-            
             // Sidebar Navigation Buttons
             $('.zaikon-sidebar-btn').on('click', function() {
                 var buttonId = $(this).attr('id');
