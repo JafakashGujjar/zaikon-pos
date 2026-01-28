@@ -25,20 +25,19 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 <?php else: ?>
                     <div class="zaikon-pos-logo-text"><?php echo esc_html($restaurant_name); ?></div>
                 <?php endif; ?>
-                <div class="zaikon-developer-credit">Developed by<br>Muhammad Jafakash Nawaz</div>
             </div>
             
             <div class="zaikon-sidebar-divider"></div>
             
             <!-- New Sidebar Buttons -->
+            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-search" title="<?php echo esc_attr__('Search', 'restaurant-pos'); ?>">
+                <span class="dashicons dashicons-search"></span>
+                <span class="zaikon-sidebar-label"><?php echo esc_html__('Search', 'restaurant-pos'); ?></span>
+            </button>
             <button class="zaikon-sidebar-btn" id="zaikon-sidebar-notification" title="<?php echo esc_attr__('Notifications', 'restaurant-pos'); ?>">
                 <span class="dashicons dashicons-bell"></span>
                 <span class="zaikon-sidebar-label"><?php echo esc_html__('Notifications', 'restaurant-pos'); ?></span>
                 <span class="zaikon-notification-badge" id="rpos-notification-badge" style="display: none;">0</span>
-            </button>
-            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-search" title="<?php echo esc_attr__('Search', 'restaurant-pos'); ?>">
-                <span class="dashicons dashicons-search"></span>
-                <span class="zaikon-sidebar-label"><?php echo esc_html__('Search', 'restaurant-pos'); ?></span>
             </button>
             <button class="zaikon-sidebar-btn" id="zaikon-sidebar-expenses" title="<?php echo esc_attr__('Expenses', 'restaurant-pos'); ?>">
                 <span class="dashicons dashicons-money-alt"></span>
@@ -94,7 +93,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                     <div class="zaikon-categories-wrapper">
                         <button class="zaikon-category-modern active rpos-category-btn" data-category="0">
                             <div class="zaikon-category-circle" style="background-color: #718096">
-                                <span class="dashicons dashicons-menu"></span>
+                                <span class="dashicons dashicons-screenoptions"></span>
                             </div>
                             <span class="zaikon-category-name"><?php echo esc_html__('All', 'restaurant-pos'); ?></span>
                         </button>
@@ -110,13 +109,6 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                             <span class="zaikon-category-name"><?php echo esc_html($category->name); ?></span>
                         </button>
                         <?php endforeach; ?>
-                        <!-- Expense Button in Menu Area -->
-                        <button class="zaikon-category-modern" id="zaikon-menu-expenses-btn">
-                            <div class="zaikon-category-circle" style="background-color: var(--stock-good)">
-                                <span class="dashicons dashicons-money-alt"></span>
-                            </div>
-                            <span class="zaikon-category-name"><?php echo esc_html__('Expenses', 'restaurant-pos'); ?></span>
-                        </button>
                     </div>
                 </div>
                 <button class="zaikon-scroll-arrow zaikon-scroll-right" id="zaikon-scroll-categories-right">
