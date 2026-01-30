@@ -159,7 +159,7 @@ $user_roles = (array) $current_user->roles;
                    class="zaikon-nav-item <?php echo $page === 'dashboard' ? 'active' : ''; ?>">
                     Dashboard
                 </a>
-                <a href="<?php echo home_url('/zaikon-pos/pos/'); ?>" 
+                <a href="<?php echo home_url('/pos/'); ?>" 
                    class="zaikon-nav-item <?php echo $page === 'pos' ? 'active' : ''; ?>">
                     POS
                 </a>
@@ -168,7 +168,7 @@ $user_roles = (array) $current_user->roles;
             
             if (in_array('administrator', $user_roles) || in_array('restaurant_admin', $user_roles) || in_array('kitchen_staff', $user_roles)) {
                 ?>
-                <a href="<?php echo home_url('/zaikon-pos/kds/'); ?>" 
+                <a href="<?php echo home_url('/kitchen/'); ?>" 
                    class="zaikon-nav-item <?php echo $page === 'kds' ? 'active' : ''; ?>">
                     Kitchen Display
                 </a>
