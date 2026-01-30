@@ -540,7 +540,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 <div class="zaikon-delivery-fields-row">
                     <div class="zaikon-delivery-field zaikon-delivery-field-full">
                         <label for="zaikon-delivery-instructions"><?php echo esc_html__('Delivery Instructions', 'restaurant-pos'); ?></label>
-                        <input type="text" id="zaikon-delivery-instructions" placeholder="<?php echo esc_attr__('e.g., Near mosque, Call on arrival, Extra spicy', 'restaurant-pos'); ?>">
+                        <input type="text" id="zaikon-delivery-instructions" placeholder="<?php echo esc_attr__('e.g., Near mosque, Call on arrival, Ring doorbell', 'restaurant-pos'); ?>">
                     </div>
                 </div>
             </div>

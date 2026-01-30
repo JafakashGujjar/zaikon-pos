@@ -1360,20 +1360,23 @@
 @media (max-width: 768px) {
     .zaikon-delivery-modal-content {
         max-width: 100%;
+        width: 100%;
         margin: 0;
         border-radius: 0;
-        min-height: 100vh;
-        max-height: 100vh;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     
     .zaikon-delivery-modal-header {
         padding: 16px 20px;
+        flex-shrink: 0;
     }
     
     .zaikon-delivery-modal-body {
         padding: 20px;
         overflow-y: auto;
-        max-height: calc(100vh - 160px);
+        flex: 1;
     }
     
     .zaikon-delivery-fields-row,
@@ -1392,11 +1395,10 @@
     }
     
     .zaikon-delivery-modal-footer {
-        flex-direction: column-reverse;
+        flex-direction: column;
         gap: 10px;
         padding: 16px 20px;
-        position: sticky;
-        bottom: 0;
+        flex-shrink: 0;
         background: #fff;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
     }
@@ -1405,6 +1407,11 @@
     .zaikon-delivery-modal-footer .zaikon-btn-secondary,
     .zaikon-delivery-btn-primary {
         width: 100%;
+    }
+    
+    /* Ensure primary button comes first on mobile */
+    .zaikon-delivery-modal-footer .zaikon-delivery-btn-primary {
+        order: -1;
     }
     
     /* Larger touch targets on mobile */
