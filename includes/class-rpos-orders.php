@@ -1,6 +1,9 @@
 <?php
 /**
  * Orders Management Class
+ * 
+ * Enterprise-grade order management with transaction safety,
+ * full traceability, and fault tolerance.
  */
 
 if (!defined('ABSPATH')) {
@@ -17,10 +20,22 @@ class RPOS_Orders {
     }
     
     /**
-     * Create order
+     * Create order with transaction safety
+     * 
+     * All order creation operations are wrapped in a transaction
+     * to ensure data reliability and atomicity.
+     * 
+     * @param array $data Order data
+     * @return int|false Order ID on success, false on failure
      */
     public static function create($data) {
         global $wpdb;
+        
+        // Validate required data
+        $missing_fields = RPOS_Database::validate_required_fields($data, array('items'));
+        if (!empty($missing_fields) && empty($data['items'])) {
+            RPOS_Database::log_error('create_order', 'Missing required fields', implode(', ', $missing_fields));
+        }
         
         // Generate order number
         $order_number = self::generate_order_number();
@@ -61,47 +76,86 @@ class RPOS_Orders {
             $formats = array_merge($formats, array('%d', '%f', '%d', '%s', '%s'));
         }
         
-        // Insert order
-        $result = $wpdb->insert(
-            $wpdb->prefix . 'rpos_orders',
-            $order_data,
-            $formats
-        );
-        
-        if (!$result) {
+        // Start transaction for atomic operation
+        if (!RPOS_Database::begin_transaction()) {
+            RPOS_Database::log_error('create_order', 'Failed to start transaction');
             return false;
         }
         
-        $order_id = $wpdb->insert_id;
-        
-        // Insert order items
-        if (!empty($data['items'])) {
-            foreach ($data['items'] as $item) {
-                $product = RPOS_Products::get($item['product_id']);
-                $inventory = RPOS_Inventory::get_by_product($item['product_id']);
-                
-                $wpdb->insert(
-                    $wpdb->prefix . 'rpos_order_items',
-                    array(
-                        'order_id' => $order_id,
-                        'product_id' => $item['product_id'],
-                        'product_name' => $product ? $product->name : '',
-                        'quantity' => intval($item['quantity']),
-                        'unit_price' => floatval($item['unit_price']),
-                        'line_total' => floatval($item['line_total']),
-                        'cost_price' => $inventory ? floatval($inventory->cost_price) : 0
-                    ),
-                    array('%d', '%d', '%s', '%d', '%f', '%f', '%f')
+        try {
+            // Insert order with retry for fault tolerance
+            $result = RPOS_Database::with_retry(function() use ($wpdb, $order_data, $formats) {
+                return $wpdb->insert(
+                    $wpdb->prefix . 'rpos_orders',
+                    $order_data,
+                    $formats
                 );
+            });
+            
+            if (!$result) {
+                throw new Exception('Failed to insert order: ' . $wpdb->last_error);
             }
+            
+            $order_id = $wpdb->insert_id;
+            
+            // Insert order items
+            if (!empty($data['items'])) {
+                foreach ($data['items'] as $item) {
+                    $product = RPOS_Products::get($item['product_id']);
+                    $inventory = RPOS_Inventory::get_by_product($item['product_id']);
+                    
+                    $item_result = $wpdb->insert(
+                        $wpdb->prefix . 'rpos_order_items',
+                        array(
+                            'order_id' => $order_id,
+                            'product_id' => $item['product_id'],
+                            'product_name' => $product ? $product->name : '',
+                            'quantity' => intval($item['quantity']),
+                            'unit_price' => floatval($item['unit_price']),
+                            'line_total' => floatval($item['line_total']),
+                            'cost_price' => $inventory ? floatval($inventory->cost_price) : 0
+                        ),
+                        array('%d', '%d', '%s', '%d', '%f', '%f', '%f')
+                    );
+                    
+                    if (!$item_result) {
+                        throw new Exception('Failed to insert order item: ' . $wpdb->last_error);
+                    }
+                }
+            }
+            
+            // Commit transaction
+            if (!RPOS_Database::commit()) {
+                throw new Exception('Failed to commit transaction');
+            }
+            
+            // Log successful order creation (outside transaction for audit trail)
+            Zaikon_System_Events::log('order', $order_id, 'create', array(
+                'order_number' => $order_number,
+                'order_type' => $order_data['order_type'],
+                'total' => $total,
+                'item_count' => count($data['items'] ?? array()),
+                'payment_type' => $order_data['payment_type']
+            ));
             
             // Deduct inventory if order is completed
             if (($data['status'] ?? 'new') === 'completed') {
                 self::deduct_stock_for_order($order_id, $data['items']);
             }
+            
+            return $order_id;
+            
+        } catch (Exception $e) {
+            RPOS_Database::rollback('Order creation failed: ' . $e->getMessage());
+            
+            // Log failure event
+            Zaikon_System_Events::log_error('order', 0, 'create_failed', $e->getMessage(), array(
+                'order_number' => $order_number,
+                'error_trace' => $e->getTraceAsString()
+            ));
+            
+            return false;
         }
-        
-        return $order_id;
     }
     
     /**
@@ -213,47 +267,86 @@ class RPOS_Orders {
     }
     
     /**
-     * Update order status
+     * Update order status with transaction safety and audit logging
+     * 
+     * @param int $id Order ID
+     * @param string $status New status
+     * @param string $reason Optional reason for status change
+     * @return bool True on success, false on failure
      */
-    public static function update_status($id, $status) {
+    public static function update_status($id, $status, $reason = '') {
         global $wpdb;
         
         $old_order = self::get($id);
         
         if (!$old_order) {
-            error_log('RPOS Orders: update_status called for non-existent order #' . $id);
+            RPOS_Database::log_error('update_status', 'Order not found', 'Order ID: ' . $id);
             return false;
         }
         
+        $old_status = $old_order->status;
+        
         // If status is already the same, consider it a success (idempotent)
-        if ($old_order->status === $status) {
+        if ($old_status === $status) {
             error_log('RPOS Orders: Order #' . $id . ' already has status "' . $status . '", no change needed');
             return true;
         }
         
-        error_log('RPOS Orders: Updating order #' . $id . ' from "' . $old_order->status . '" to "' . $status . '"');
+        error_log('RPOS Orders: Updating order #' . $id . ' from "' . $old_status . '" to "' . $status . '"');
         
-        $result = $wpdb->update(
-            $wpdb->prefix . 'rpos_orders',
-            array('status' => sanitize_text_field($status)),
-            array('id' => $id),
-            array('%s'),
-            array('%d')
-        );
-        
-        // $wpdb->update returns false on error, 0 if no rows changed, or number of rows changed
-        if ($result === false) {
-            error_log('RPOS Orders: Database error updating order #' . $id . ': ' . $wpdb->last_error);
+        // Start transaction for status update
+        if (!RPOS_Database::begin_transaction()) {
             return false;
         }
         
-        // If status changed to completed and inventory wasn't deducted yet
-        if ($status === 'completed') {
-            error_log('RPOS Orders: Order #' . $id . ' completed, triggering stock deduction');
-            self::deduct_stock_for_order($id, $old_order->items);
+        try {
+            // Update status with retry for fault tolerance
+            $result = RPOS_Database::with_retry(function() use ($wpdb, $id, $status) {
+                return $wpdb->update(
+                    $wpdb->prefix . 'rpos_orders',
+                    array('status' => sanitize_text_field($status)),
+                    array('id' => $id),
+                    array('%s'),
+                    array('%d')
+                );
+            });
+            
+            // $wpdb->update returns false on error, 0 if no rows changed, or number of rows changed
+            if ($result === false) {
+                throw new Exception('Database error: ' . $wpdb->last_error);
+            }
+            
+            // Commit the status update
+            if (!RPOS_Database::commit()) {
+                throw new Exception('Failed to commit status update');
+            }
+            
+            // Log status change event
+            Zaikon_System_Events::log('order', $id, 'status_change', array(
+                'old_status' => $old_status,
+                'new_status' => $status,
+                'reason' => $reason,
+                'order_number' => $old_order->order_number
+            ));
+            
+            // If status changed to completed, trigger stock deduction
+            if ($status === 'completed') {
+                error_log('RPOS Orders: Order #' . $id . ' completed, triggering stock deduction');
+                self::deduct_stock_for_order($id, $old_order->items);
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            RPOS_Database::rollback('Status update failed: ' . $e->getMessage());
+            
+            Zaikon_System_Events::log_error('order', $id, 'status_update_failed', $e->getMessage(), array(
+                'old_status' => $old_status,
+                'new_status' => $status
+            ));
+            
+            return false;
         }
-        
-        return true;
     }
     
     /**
@@ -303,7 +396,7 @@ class RPOS_Orders {
     }
     
     /**
-     * Deduct stock for an order - centralized single-point deduction
+     * Deduct stock for an order - centralized single-point deduction with transaction safety
      * Prevents double-run via ingredients_deducted flag
      * 
      * @param int $order_id The order ID to deduct stock for
@@ -311,7 +404,7 @@ class RPOS_Orders {
      * @return bool|int False if already deducted, otherwise result of mark_ingredients_deducted
      */
     public static function deduct_stock_for_order($order_id, $order_items = null) {
-        // Prevent double deduction
+        // Prevent double deduction with early check
         if (self::has_ingredients_deducted($order_id)) {
             error_log('RPOS Orders: Stock already deducted for order #' . $order_id . ', skipping');
             return false;
@@ -333,23 +426,55 @@ class RPOS_Orders {
         $item_count = count($order_items);
         error_log('RPOS Orders: Starting stock deduction for order #' . $order_id . ' with ' . $item_count . ' items');
         
-        // Deduct product stock
-        RPOS_Inventory::deduct_for_order($order_id, $order_items);
+        // Start transaction for atomic stock deduction
+        if (!RPOS_Database::begin_transaction()) {
+            RPOS_Database::log_error('deduct_stock', 'Failed to start transaction', 'Order: ' . $order_id);
+            return false;
+        }
         
-        // Deduct ingredient stock
-        RPOS_Recipes::deduct_ingredients_for_order($order_id, $order_items);
-        
-        // Track cylinder consumption (enterprise feature)
-        RPOS_Gas_Cylinders::record_consumption($order_id, $order_items);
-        
-        // Track fryer oil usage (enterprise feature)
-        RPOS_Fryer_Usage::record_usage_from_order($order_id, $order_items);
-        
-        // Mark as deducted
-        $result = self::mark_ingredients_deducted($order_id);
-        error_log('RPOS Orders: Completed stock deduction for order #' . $order_id);
-        
-        return $result;
+        try {
+            // Double-check deduction flag within transaction to prevent race condition
+            if (self::has_ingredients_deducted($order_id)) {
+                RPOS_Database::rollback('Stock already deducted (race condition prevented)');
+                return false;
+            }
+            
+            // Deduct product stock
+            RPOS_Inventory::deduct_for_order($order_id, $order_items);
+            
+            // Deduct ingredient stock
+            RPOS_Recipes::deduct_ingredients_for_order($order_id, $order_items);
+            
+            // Track cylinder consumption (enterprise feature)
+            RPOS_Gas_Cylinders::record_consumption($order_id, $order_items);
+            
+            // Track fryer oil usage (enterprise feature)
+            RPOS_Fryer_Usage::record_usage_from_order($order_id, $order_items);
+            
+            // Mark as deducted within the same transaction
+            $result = self::mark_ingredients_deducted($order_id);
+            
+            // Commit the transaction
+            if (!RPOS_Database::commit()) {
+                throw new Exception('Failed to commit stock deduction');
+            }
+            
+            // Log successful stock deduction
+            Zaikon_System_Events::log('order', $order_id, 'stock_deducted', array(
+                'item_count' => $item_count
+            ));
+            
+            error_log('RPOS Orders: Completed stock deduction for order #' . $order_id);
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            RPOS_Database::rollback('Stock deduction failed: ' . $e->getMessage());
+            
+            Zaikon_System_Events::log_error('order', $order_id, 'stock_deduction_failed', $e->getMessage());
+            
+            return false;
+        }
     }
     
     /**
@@ -389,5 +514,47 @@ class RPOS_Orders {
         ));
         
         return intval($result) === 1;
+    }
+    
+    /**
+     * Cancel an order with reason tracking
+     * 
+     * @param int $id Order ID
+     * @param string $reason Cancellation reason
+     * @return bool True on success
+     */
+    public static function cancel($id, $reason = '') {
+        $order = self::get($id);
+        
+        if (!$order) {
+            return false;
+        }
+        
+        // Cannot cancel completed orders
+        if ($order->status === 'completed') {
+            Zaikon_System_Events::log_warning('order', $id, 'cancel_rejected', 
+                'Cannot cancel completed order');
+            return false;
+        }
+        
+        // Log cancellation with reason
+        Zaikon_System_Events::log('order', $id, 'cancelled', array(
+            'previous_status' => $order->status,
+            'reason' => $reason,
+            'order_number' => $order->order_number,
+            'total' => $order->total
+        ));
+        
+        return self::update_status($id, 'cancelled', $reason);
+    }
+    
+    /**
+     * Get order history (audit trail) for an order
+     * 
+     * @param int $order_id Order ID
+     * @return array Array of audit events
+     */
+    public static function get_order_history($order_id) {
+        return Zaikon_System_Events::get_entity_events('order', $order_id);
     }
 }
