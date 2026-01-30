@@ -442,7 +442,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-category-modern.active .zaikon-category-icon {
-    background: rgba(255, 255, 255, 0.2);
+    /* Keep the same background as before click - no visual change */
+    background: var(--zaikon-bg-secondary);
 }
 
 .zaikon-category-icon .dashicons {
@@ -484,7 +485,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-category-modern.active .zaikon-category-circle {
-    box-shadow: 0 0 0 3px #fff, 0 0 0 5px #2271b1;
+    /* Keep the same appearance as before click - no visual change */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .zaikon-category-name {
@@ -499,7 +501,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
 }
 
 .zaikon-category-modern.active .zaikon-category-name {
-    color: #2271b1;
+    /* Keep the same text color as before click - no visual change */
+    color: #1d2327;
 }
 
 .zaikon-scroll-arrow {
