@@ -14,6 +14,8 @@ $current_user = wp_get_current_user();
 $user_name = $current_user->display_name;
 $user_roles = (array) $current_user->roles;
 
+// Check if this is an operational screen (POS or KDS) - these need clean, focused UI without header
+$is_operational_screen = in_array($page, array('pos', 'kds'));
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -44,7 +46,7 @@ $user_roles = (array) $current_user->roles;
             margin-top: 0 !important;
         }
         
-        /* Header Navigation */
+        /* Header Navigation - only for dashboard/non-operational pages */
         .zaikon-frontend-header {
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
@@ -130,9 +132,9 @@ $user_roles = (array) $current_user->roles;
             min-height: calc(100vh - 60px);
         }
         
-        /* POS and KDS need full height */
+        /* POS and KDS need full viewport height (no header) */
         .zaikon-frontend-content.full-height {
-            height: calc(100vh - 60px);
+            height: 100vh;
             overflow: hidden;
         }
         
@@ -144,7 +146,8 @@ $user_roles = (array) $current_user->roles;
     </style>
 </head>
 <body>
-    <!-- Header -->
+    <?php if (!$is_operational_screen): ?>
+    <!-- Header - only shown for dashboard/non-operational pages -->
     <header class="zaikon-frontend-header">
         <a href="<?php echo home_url('/zaikon-pos/'); ?>" class="zaikon-frontend-logo">
             <?php echo esc_html(get_bloginfo('name')); ?> POS
@@ -195,9 +198,10 @@ $user_roles = (array) $current_user->roles;
             </a>
         </div>
     </header>
+    <?php endif; ?>
     
     <!-- Main Content -->
-    <main class="zaikon-frontend-content <?php echo in_array($page, array('pos', 'kds')) ? 'full-height' : ''; ?>">
+    <main class="zaikon-frontend-content <?php echo $is_operational_screen ? 'full-height' : ''; ?>">
         <?php
         // Load the appropriate screen based on page
         switch ($page) {
