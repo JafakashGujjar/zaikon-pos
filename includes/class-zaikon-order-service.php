@@ -96,7 +96,10 @@ class Zaikon_Order_Service {
                     $item_id = Zaikon_Order_Items::create($item);
                     
                     if (!$item_id) {
-                        throw new Exception('Failed to create order item: ' . ($item['product_name'] ?? 'unknown'));
+                        $item_identifier = isset($item['product_id']) 
+                            ? 'product_id=' . $item['product_id'] 
+                            : ($item['product_name'] ?? 'unknown');
+                        throw new Exception('Failed to create order item: ' . $item_identifier);
                     }
                 }
             }

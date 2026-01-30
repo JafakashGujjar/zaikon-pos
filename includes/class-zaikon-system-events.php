@@ -250,8 +250,12 @@ class Zaikon_System_Events {
         
         // Filter by severity in metadata (JSON search)
         if (!empty($args['severity'])) {
-            $where[] = 'metadata LIKE %s';
-            $where_values[] = '%"severity":"' . esc_sql($args['severity']) . '"%';
+            // Validate severity against known values
+            $valid_severities = array(self::SEVERITY_DEBUG, self::SEVERITY_INFO, self::SEVERITY_WARNING, self::SEVERITY_ERROR, self::SEVERITY_CRITICAL);
+            if (in_array($args['severity'], $valid_severities, true)) {
+                $where[] = 'metadata LIKE %s';
+                $where_values[] = '%"severity":"' . $args['severity'] . '"%';
+            }
         }
         
         // Filter by user_id in metadata (JSON search)

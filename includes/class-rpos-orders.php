@@ -31,10 +31,11 @@ class RPOS_Orders {
     public static function create($data) {
         global $wpdb;
         
-        // Validate required data
-        $missing_fields = RPOS_Database::validate_required_fields($data, array('items'));
-        if (!empty($missing_fields) && empty($data['items'])) {
-            RPOS_Database::log_error('create_order', 'Missing required fields', implode(', ', $missing_fields));
+        // Validate that items array exists and is not empty
+        if (empty($data['items'])) {
+            RPOS_Database::log_error('create_order', 'Missing or empty items array');
+            // Note: We allow order creation without items for edge cases,
+            // but log the issue for visibility
         }
         
         // Generate order number

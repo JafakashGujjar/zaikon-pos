@@ -323,7 +323,9 @@ class RPOS_Inventory {
                 continue;
             }
             
-            // Use direct database update when in transaction to avoid nested transaction issues
+            // When inside an existing transaction (from order processing), use direct method
+            // to avoid nested transaction conflicts. The outer transaction handles atomicity.
+            // When called standalone, use the full transactional adjust_stock method.
             if (RPOS_Database::in_transaction()) {
                 $updated_quantity = self::adjust_stock_direct($product_id, -$quantity, 'Order #' . $order_id, $order_id);
             } else {

@@ -329,9 +329,27 @@ class RPOS_Database {
         $where_clauses = array();
         $where_values = array();
         
+        // Allowlist of valid column names for security
+        $valid_columns = self::get_valid_columns($table);
+        
         foreach ($where as $column => $value) {
-            $where_clauses[] = "`" . esc_sql($column) . "` = %s";
+            // Validate column name against allowlist if available
+            if (!empty($valid_columns) && !in_array($column, $valid_columns, true)) {
+                self::log_error('lock_for_update', 'Invalid column name: ' . $column);
+                continue;
+            }
+            // Ensure column name only contains safe characters
+            if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $column)) {
+                self::log_error('lock_for_update', 'Invalid column name format: ' . $column);
+                continue;
+            }
+            $where_clauses[] = "`" . $column . "` = %s";
             $where_values[] = $value;
+        }
+        
+        if (empty($where_clauses)) {
+            self::log_error('lock_for_update', 'No valid where conditions');
+            return null;
         }
         
         $where_sql = implode(' AND ', $where_clauses);
@@ -443,5 +461,25 @@ class RPOS_Database {
         self::$transaction_level = 0;
         
         self::log_error('reset_transaction_state', 'Transaction state was reset');
+    }
+    
+    /**
+     * Get valid column names for a table
+     * Used for security validation in dynamic queries
+     * 
+     * @param string $table Table name without prefix
+     * @return array List of valid column names
+     */
+    private static function get_valid_columns($table) {
+        // Define allowlists for tables commonly used with lock_for_update
+        $column_allowlists = array(
+            'orders' => array('id', 'order_number', 'status', 'cashier_id', 'created_at'),
+            'inventory' => array('id', 'product_id', 'quantity', 'unit', 'cost_price'),
+            'products' => array('id', 'name', 'sku', 'category_id', 'is_active'),
+            'ingredients' => array('id', 'name', 'unit', 'current_stock_quantity'),
+            'deliveries' => array('id', 'order_id', 'delivery_status', 'assigned_rider_id'),
+        );
+        
+        return isset($column_allowlists[$table]) ? $column_allowlists[$table] : array();
     }
 }
