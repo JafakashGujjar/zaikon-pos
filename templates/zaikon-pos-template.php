@@ -135,7 +135,6 @@ $is_operational_screen = in_array($page, array('pos', 'kds'));
         /* POS and KDS need full viewport height (no header) */
         .zaikon-frontend-content.full-height {
             height: 100vh;
-            min-height: 100vh;
             overflow: hidden;
         }
         
