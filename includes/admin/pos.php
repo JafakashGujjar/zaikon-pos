@@ -567,17 +567,27 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
     </div>
 </div>
 
-<!-- Notification Dropdown -->
-<div id="rpos-notification-dropdown" class="zaikon-notification-dropdown" style="display: none;">
-    <div class="zaikon-notification-header">
-        <h3><?php echo esc_html__('Notifications', 'restaurant-pos'); ?></h3>
-        <button class="zaikon-btn-link" id="rpos-mark-all-read">
-            <?php echo esc_html__('Mark all as read', 'restaurant-pos'); ?>
-        </button>
-    </div>
-    <div class="zaikon-notification-list" id="rpos-notification-list">
-        <div class="zaikon-notification-empty">
-            <?php echo esc_html__('No new notifications', 'restaurant-pos'); ?>
+<!-- Notification Modal -->
+<div id="rpos-notification-dropdown" class="zaikon-modal" style="display: none;">
+    <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 500px;">
+        <div class="zaikon-modal-header" style="background: var(--zaikon-yellow);">
+            <h3><?php echo esc_html__('Notifications', 'restaurant-pos'); ?></h3>
+            <button class="zaikon-modal-close" id="rpos-notification-close">&times;</button>
+        </div>
+        <div class="zaikon-modal-body" style="padding: 0;">
+            <div style="padding: var(--space-3); border-bottom: 1px solid var(--zaikon-border-light); display: flex; justify-content: flex-end;">
+                <button class="zaikon-btn-link" id="rpos-mark-all-read">
+                    <?php echo esc_html__('Mark all as read', 'restaurant-pos'); ?>
+                </button>
+            </div>
+            <div class="zaikon-notification-list" id="rpos-notification-list" style="max-height: 400px; overflow-y: auto;">
+                <div class="zaikon-notification-empty">
+                    <?php echo esc_html__('No new notifications', 'restaurant-pos'); ?>
+                </div>
+            </div>
+        </div>
+        <div class="zaikon-modal-footer">
+            <button class="zaikon-btn zaikon-btn-secondary" id="rpos-notification-close-btn"><?php echo esc_html__('Close', 'restaurant-pos'); ?></button>
         </div>
     </div>
 </div>

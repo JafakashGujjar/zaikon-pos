@@ -703,6 +703,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    align-items: center;
+    text-align: center;
     gap: 6px;
 }
 
@@ -717,6 +719,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     -webkit-box-orient: vertical;
     overflow: hidden;
     letter-spacing: -0.2px;
+    text-align: center;
+    width: 100%;
 }
 
 .zaikon-product-description {
@@ -729,6 +733,8 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     overflow: hidden;
     margin-bottom: 4px;
     opacity: 0.85;
+    text-align: center;
+    width: 100%;
 }
 
 .zaikon-product-price {
@@ -739,7 +745,9 @@ html.wp-toolbar.restaurant-pos_page_restaurant-pos-cashier {
     margin-top: auto;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
+    width: 100%;
 }
 
 .zaikon-product-unavailable {
