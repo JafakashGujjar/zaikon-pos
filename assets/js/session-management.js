@@ -50,11 +50,8 @@
                 $('#rpos-expenses-dropdown').fadeOut(200);
             });
             
-            // Close dropdown when clicking outside (no longer needed since using modal, but keep for safety)
+            // Close close-shift dropdown when clicking outside
             $(document).on('click', function(e) {
-                if (!$(e.target).closest('#rpos-expenses-btn, #rpos-expenses-dropdown').length) {
-                    $('#rpos-expenses-dropdown').fadeOut(200);
-                }
                 if (!$(e.target).closest('#rpos-close-shift-icon-btn, #rpos-close-shift-btn, #rpos-close-shift-dropdown').length) {
                     $('#rpos-close-shift-dropdown').fadeOut(200);
                 }
@@ -332,64 +329,23 @@
             });
         },
         
+        // Add expense from dropdown form (no suffix)
         addExpense: function() {
-            var self = this;
-            var amount = parseFloat($('#rpos-expense-amount').val()) || 0;
-            var category = $('#rpos-expense-category').val();
-            var riderId = $('#rpos-expense-rider').val();
-            var description = $('#rpos-expense-description').val();
-            
-            if (amount <= 0) {
-                window.ZaikonToast.error('Please enter a valid amount');
-                return;
-            }
-            
-            if (!category) {
-                window.ZaikonToast.error('Please select a category');
-                return;
-            }
-            
-            $.ajax({
-                url: rposData.zaikonRestUrl + 'expenses',
-                method: 'POST',
-                contentType: 'application/json',
-                beforeSend: function(xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
-                },
-                data: JSON.stringify({
-                    session_id: self.currentSession.id,
-                    amount_rs: amount,
-                    category: category,
-                    rider_id: riderId || null,
-                    description: description
-                }),
-                success: function(response) {
-                    window.ZaikonToast.success('Expense added successfully');
-                    
-                    // Clear form
-                    $('#rpos-expense-amount').val('');
-                    $('#rpos-expense-category').val('');
-                    $('#rpos-expense-rider').val('');
-                    $('#rpos-expense-description').val('');
-                    $('#rpos-expense-rider-field').hide();
-                    
-                    // Reload expenses list
-                    self.loadExpenses();
-                },
-                error: function(xhr) {
-                    console.error('Error adding expense:', xhr);
-                    window.ZaikonToast.error(xhr.responseJSON?.message || 'Failed to add expense');
-                }
-            });
+            this._addExpenseWithSuffix('');
         },
         
-        // Add expense from modal (uses -modal suffixed IDs)
+        // Add expense from modal form (uses -modal suffix)
         addExpenseModal: function() {
+            this._addExpenseWithSuffix('-modal');
+        },
+        
+        // Internal function to add expense, suffix determines which form elements to use
+        _addExpenseWithSuffix: function(suffix) {
             var self = this;
-            var amount = parseFloat($('#rpos-expense-amount-modal').val()) || 0;
-            var category = $('#rpos-expense-category-modal').val();
-            var riderId = $('#rpos-expense-rider-modal').val();
-            var description = $('#rpos-expense-description-modal').val();
+            var amount = parseFloat($('#rpos-expense-amount' + suffix).val()) || 0;
+            var category = $('#rpos-expense-category' + suffix).val();
+            var riderId = $('#rpos-expense-rider' + suffix).val();
+            var description = $('#rpos-expense-description' + suffix).val();
             
             if (amount <= 0) {
                 window.ZaikonToast.error('Please enter a valid amount');
@@ -419,11 +375,11 @@
                     window.ZaikonToast.success('Expense added successfully');
                     
                     // Clear form
-                    $('#rpos-expense-amount-modal').val('');
-                    $('#rpos-expense-category-modal').val('');
-                    $('#rpos-expense-rider-modal').val('');
-                    $('#rpos-expense-description-modal').val('');
-                    $('#rpos-expense-rider-field-modal').hide();
+                    $('#rpos-expense-amount' + suffix).val('');
+                    $('#rpos-expense-category' + suffix).val('');
+                    $('#rpos-expense-rider' + suffix).val('');
+                    $('#rpos-expense-description' + suffix).val('');
+                    $('#rpos-expense-rider-field' + suffix).hide();
                     
                     // Reload expenses list
                     self.loadExpenses();

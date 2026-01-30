@@ -484,7 +484,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
     </div>
 </div>
 
-<!-- Expenses Modal (Keep for backward compatibility but will use dropdown instead) -->
+<!-- Expenses Modal (main expenses popup - opens centered like Orders modal) -->
 <div id="rpos-expenses-modal" class="zaikon-modal" style="display: none;">
     <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 700px;">
         <div class="zaikon-modal-header">
@@ -567,7 +567,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
     </div>
 </div>
 
-<!-- Notification Modal -->
+<!-- Notification Modal (ID kept as 'rpos-notification-dropdown' for backward compatibility with existing JavaScript) -->
 <div id="rpos-notification-dropdown" class="zaikon-modal" style="display: none;">
     <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 500px;">
         <div class="zaikon-modal-header" style="background: var(--zaikon-yellow);">
