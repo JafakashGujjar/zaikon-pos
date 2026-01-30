@@ -495,7 +495,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
 <!-- Delivery Details Modal (positioned same as Orders modal) -->
 <div id="zaikon-delivery-panel" class="zaikon-modal" style="display: none;">
     <div class="zaikon-modal-content zaikon-animate-scaleIn" style="max-width: 950px;">
-        <div class="zaikon-modal-header" style="background: #fbbf24;">
+        <div class="zaikon-modal-header" style="background: var(--zaikon-yellow);">
             <h3><?php echo esc_html__('Delivery Details', 'restaurant-pos'); ?></h3>
             <button class="zaikon-modal-close" id="zaikon-delivery-modal-close">&times;</button>
         </div>
