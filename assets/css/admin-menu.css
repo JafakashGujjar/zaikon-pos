@@ -1,141 +1,353 @@
 /**
- * ZAIKON POS - Admin Menu Styles
- * Styles for organized menu with section headers and separators
+ * ZAIKON POS - Modern Admin Menu Styles
+ * Enterprise-level SaaS-style menu with SVG icons
+ * Clean, professional design for restaurant POS backend
  */
 
-/* Section Headers - Styled as category headers */
-#adminmenu .rpos-menu-section-header {
-    display: inline-block;
-    font-weight: 600;
-    font-size: 12px;
-    color: #2271b1;
-    letter-spacing: 0.3px;
-    padding: 2px 0;
+/* ===== SVG ICON STYLES ===== */
+.rpos-menu-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
 }
 
-/* Hover effect for section headers */
-#adminmenu li:hover .rpos-menu-section-header {
-    color: #135e96;
+/* Icon colors for submenu items */
+#adminmenu .wp-submenu .rpos-menu-icon {
+    stroke: #8c8f94;
 }
 
-/* Remove default link styling from section headers */
-#adminmenu a[href*="rpos-products-header"],
-#adminmenu a[href*="rpos-inventory-header"],
-#adminmenu a[href*="rpos-orders-header"],
-#adminmenu a[href*="rpos-delivery-header"] {
-    cursor: default;
-    pointer-events: none;
+#adminmenu .wp-submenu li:hover .rpos-menu-icon,
+#adminmenu .wp-submenu li.current .rpos-menu-icon {
+    stroke: #FF8A00;
 }
 
-/* Separators - Visual dividers between sections */
-#adminmenu .rpos-menu-separator {
-    display: inline-block;
-    color: #c3c4c7;
+/* Icon colors for section headers */
+.rpos-section-header .rpos-menu-icon {
+    stroke: #FF8A00;
+    width: 16px;
+    height: 16px;
+}
+
+/* ===== MENU ITEM STRUCTURE ===== */
+.rpos-menu-item,
+.rpos-submenu-item {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+}
+
+.rpos-menu-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== SECTION HEADERS ===== */
+.rpos-section-header {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
     font-size: 11px;
-    letter-spacing: 1px;
-    opacity: 0.5;
-    padding: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #50575e;
+    padding: 4px 0;
 }
 
-/* Remove default link styling from separators */
-#adminmenu a[href*="rpos-separator"] {
+.rpos-section-header span:last-child {
+    flex: 1;
+}
+
+/* Section header menu item styling */
+#adminmenu a[href*="rpos-section-"] {
     cursor: default;
     pointer-events: none;
-    padding: 3px 0 !important;
-    min-height: auto !important;
+    padding: 8px 12px !important;
+    margin-top: 12px;
+    background: linear-gradient(to right, rgba(255, 138, 0, 0.06), transparent) !important;
+    border-left: 3px solid #FF8A00;
+    border-radius: 0 6px 6px 0;
 }
 
-/* Menu item spacing for separators and headers */
-#adminmenu li[id*="rpos-separator"],
-#adminmenu li[id*="header"] {
-    margin: 0;
-}
-
-/* Submenu items indentation is handled via &nbsp; in the menu titles */
-
-/* Styling for the active menu states */
-#adminmenu .wp-submenu li.current a .rpos-menu-section-header {
-    color: #fff;
-}
-
-#adminmenu .wp-submenu li.current a .rpos-menu-separator {
-    color: #a7aaad;
-}
-
-/* Compact spacing for better visual hierarchy */
-#adminmenu .wp-submenu li {
-    margin: 0;
-}
-
-/* Make sure section headers stand out slightly */
-/* Fallback for browsers without :has() support */
-#adminmenu li a[href*="rpos-products-header"],
-#adminmenu li a[href*="rpos-inventory-header"],
-#adminmenu li a[href*="rpos-orders-header"],
-#adminmenu li a[href*="rpos-delivery-header"] {
-    background-color: #f6f7f7;
+/* First section header shouldn't have top margin */
+#adminmenu a[href*="rpos-section-pos"] {
     margin-top: 4px;
 }
 
-/* Modern browser enhancement with :has() */
-@supports selector(:has(*)) {
-    #adminmenu li a:has(.rpos-menu-section-header) {
-        background-color: #f6f7f7;
-        margin-top: 4px;
+/* ===== SUBMENU ITEM STYLING ===== */
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu li {
+    margin: 0;
+}
+
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 8px 20px !important;
+    font-size: 13px;
+    font-weight: 400;
+    color: #50575e;
+    transition: all 0.2s ease;
+    border-radius: 0 6px 6px 0;
+    margin: 1px 8px 1px 0;
+    border-left: 3px solid transparent;
+}
+
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover {
+    background: rgba(255, 138, 0, 0.08);
+    color: #1d2327;
+    border-left-color: rgba(255, 138, 0, 0.4);
+}
+
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+    background: linear-gradient(to right, rgba(255, 138, 0, 0.12), rgba(255, 138, 0, 0.04));
+    color: #1d2327;
+    font-weight: 500;
+    border-left-color: #FF8A00;
+}
+
+/* ===== MAIN MENU ITEM (TOP LEVEL) ===== */
+#adminmenu #toplevel_page_restaurant-pos > a {
+    font-weight: 600 !important;
+}
+
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu > a,
+#adminmenu #toplevel_page_restaurant-pos.current > a {
+    background: linear-gradient(135deg, #FF8A00 0%, #E07D00 100%) !important;
+}
+
+/* Main menu icon */
+#adminmenu #toplevel_page_restaurant-pos .wp-menu-image img,
+#adminmenu #toplevel_page_restaurant-pos .wp-menu-image svg {
+    opacity: 1;
+}
+
+/* ===== SUBMENU CONTAINER ===== */
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu {
+    background: #f9fafb !important;
+    border-radius: 0 0 8px 0;
+    box-shadow: inset 0 1px 0 rgba(0,0,0,0.04);
+    padding: 8px 0 12px 0 !important;
+}
+
+/* First item in submenu (Dashboard) */
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu li:first-child {
+    display: none; /* Hide duplicate dashboard link */
+}
+
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu li:nth-child(2) {
+    margin-top: 0;
+}
+
+/* ===== COLLAPSED MENU STATE ===== */
+.folded #adminmenu #toplevel_page_restaurant-pos .wp-submenu {
+    background: #fff !important;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    border: 1px solid #e4e6eb;
+    margin-left: 6px;
+}
+
+.folded #adminmenu #toplevel_page_restaurant-pos .wp-submenu a {
+    padding-left: 16px !important;
+}
+
+/* ===== SMOOTH TRANSITIONS ===== */
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu,
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu a,
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu li {
+    transition: all 0.2s ease;
+}
+
+/* ===== ANIMATIONS FOR OPEN/CLOSE ===== */
+@keyframes rpos-slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-/* Dark mode support for section headers */
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li {
+    animation: rpos-slideDown 0.2s ease forwards;
+}
+
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(1) { animation-delay: 0ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(2) { animation-delay: 15ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(3) { animation-delay: 30ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(4) { animation-delay: 45ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(5) { animation-delay: 60ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(6) { animation-delay: 75ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(7) { animation-delay: 90ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(8) { animation-delay: 105ms; }
+#adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(n+9) { animation-delay: 120ms; }
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media screen and (max-width: 782px) {
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu a {
+        padding: 12px 16px !important;
+        font-size: 14px;
+    }
+    
+    .rpos-menu-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .rpos-section-header {
+        font-size: 10px;
+    }
+}
+
+/* ===== WORDPRESS COLOR SCHEME OVERRIDES ===== */
+/* Light scheme */
+body.admin-color-light #adminmenu #toplevel_page_restaurant-pos .wp-submenu {
+    background: #fff !important;
+}
+
+body.admin-color-light #adminmenu #toplevel_page_restaurant-pos .wp-submenu a {
+    color: #3c434a;
+}
+
+/* Modern scheme (default) */
+body.admin-color-modern #adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu > a {
+    background: linear-gradient(135deg, #FF8A00 0%, #E07D00 100%) !important;
+}
+
+/* Blue scheme */
+body.admin-color-blue #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover,
+body.admin-color-blue #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+    border-left-color: #096484;
+}
+
+body.admin-color-blue .rpos-section-header .rpos-menu-icon {
+    stroke: #096484;
+}
+
+/* Coffee scheme */
+body.admin-color-coffee #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover,
+body.admin-color-coffee #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+    border-left-color: #c7a589;
+}
+
+body.admin-color-coffee .rpos-section-header .rpos-menu-icon {
+    stroke: #c7a589;
+}
+
+/* Ectoplasm scheme */
+body.admin-color-ectoplasm #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover,
+body.admin-color-ectoplasm #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+    border-left-color: #a3b745;
+}
+
+body.admin-color-ectoplasm .rpos-section-header .rpos-menu-icon {
+    stroke: #a3b745;
+}
+
+/* Midnight scheme */
+body.admin-color-midnight #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover,
+body.admin-color-midnight #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+    border-left-color: #e14d43;
+}
+
+body.admin-color-midnight .rpos-section-header .rpos-menu-icon {
+    stroke: #e14d43;
+}
+
+/* Ocean scheme */
+body.admin-color-ocean #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover,
+body.admin-color-ocean #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+    border-left-color: #9ebaa0;
+}
+
+body.admin-color-ocean .rpos-section-header .rpos-menu-icon {
+    stroke: #9ebaa0;
+}
+
+/* Sunrise scheme */
+body.admin-color-sunrise #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover,
+body.admin-color-sunrise #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+    border-left-color: #dd823b;
+}
+
+body.admin-color-sunrise .rpos-section-header .rpos-menu-icon {
+    stroke: #dd823b;
+}
+
+/* ===== DARK MODE SUPPORT ===== */
 @media (prefers-color-scheme: dark) {
-    #adminmenu .rpos-menu-section-header {
-        color: #72aee6;
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu {
+        background: #1e1e1e !important;
     }
     
-    #adminmenu li:hover .rpos-menu-section-header {
-        color: #9ec2e6;
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu a {
+        color: #c3c4c7;
     }
     
-    /* Fallback for browsers without :has() support */
-    #adminmenu li a[href*="rpos-products-header"],
-    #adminmenu li a[href*="rpos-inventory-header"],
-    #adminmenu li a[href*="rpos-orders-header"],
-    #adminmenu li a[href*="rpos-delivery-header"] {
-        background-color: #1e1e1e;
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover,
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+        background: rgba(255, 138, 0, 0.15);
+        color: #fff;
     }
     
-    /* Modern browser enhancement with :has() */
-    @supports selector(:has(*)) {
-        #adminmenu li a:has(.rpos-menu-section-header) {
-            background-color: #1e1e1e;
-        }
+    .rpos-section-header {
+        color: #a7aaad;
+    }
+    
+    #adminmenu a[href*="rpos-section-"] {
+        background: linear-gradient(to right, rgba(255, 138, 0, 0.1), transparent) !important;
+    }
+    
+    #adminmenu .wp-submenu .rpos-menu-icon {
+        stroke: #a7aaad;
+    }
+    
+    #adminmenu .wp-submenu li:hover .rpos-menu-icon,
+    #adminmenu .wp-submenu li.current .rpos-menu-icon {
+        stroke: #FFB347;
+    }
+    
+    .rpos-section-header .rpos-menu-icon {
+        stroke: #FFB347;
     }
 }
 
-/* WordPress admin color scheme support */
-body.admin-color-light #adminmenu li a[href*="header"] {
-    background-color: #f6f7f7;
+/* ===== ACCESSIBILITY ===== */
+#adminmenu #toplevel_page_restaurant-pos .wp-submenu a:focus {
+    outline: 2px solid #FF8A00;
+    outline-offset: -2px;
+    box-shadow: none;
 }
 
-body.admin-color-blue #adminmenu .rpos-menu-section-header {
-    color: #52accc;
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu a {
+        border-left-width: 4px;
+    }
+    
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
+        border-left-color: #000;
+        background: #fff;
+    }
+    
+    .rpos-section-header {
+        font-weight: 800;
+    }
 }
 
-body.admin-color-coffee #adminmenu .rpos-menu-section-header {
-    color: #c7a589;
-}
-
-body.admin-color-ectoplasm #adminmenu .rpos-menu-section-header {
-    color: #a3b745;
-}
-
-body.admin-color-midnight #adminmenu .rpos-menu-section-header {
-    color: #e14d43;
-}
-
-body.admin-color-ocean #adminmenu .rpos-menu-section-header {
-    color: #9ebaa0;
-}
-
-body.admin-color-sunrise #adminmenu .rpos-menu-section-header {
-    color: #dd823b;
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu,
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu a,
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu li,
+    .rpos-menu-icon {
+        transition: none !important;
+        animation: none !important;
+    }
 }
