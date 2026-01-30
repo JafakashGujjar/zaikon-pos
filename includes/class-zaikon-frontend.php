@@ -149,7 +149,8 @@ class Zaikon_Frontend {
         }
         
         // Common assets
-        wp_enqueue_style('zaikon-design-system', RPOS_PLUGIN_URL . 'assets/css/zaikon-design-system.css', array(), RPOS_VERSION);
+        wp_enqueue_style('dashicons'); // Required for icons on frontend
+        wp_enqueue_style('zaikon-design-system', RPOS_PLUGIN_URL . 'assets/css/zaikon-design-system.css', array('dashicons'), RPOS_VERSION);
         wp_enqueue_style('zaikon-components', RPOS_PLUGIN_URL . 'assets/css/zaikon-components.css', array('zaikon-design-system'), RPOS_VERSION);
         wp_enqueue_script('jquery');
         
