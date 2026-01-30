@@ -1018,99 +1018,189 @@
     }
 }
 
-.zaikon-delivery-panel-header {
-    background: #fbbf24;
-    color: #1f2937;
-    padding: 10px 16px;
+/* ============================================
+   DELIVERY DETAILS MODAL - REDESIGNED UI/UX
+   Enterprise-level, modern, touch-friendly
+   ============================================ */
+
+/* Modal Content Container */
+.zaikon-delivery-modal-content {
+    max-width: 700px;
+    width: 95%;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
-.zaikon-delivery-panel-header h4 {
+/* Modal Header - Yellow with Black Text for Accessibility */
+.zaikon-delivery-modal-header {
+    background: var(--zaikon-yellow);
+    color: #000;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: none;
+}
+
+.zaikon-delivery-modal-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: -0.3px;
+}
+
+.zaikon-delivery-modal-close {
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 24px;
+    color: #000;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    line-height: 1;
+}
+
+.zaikon-delivery-modal-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Modal Body */
+.zaikon-delivery-modal-body {
+    padding: 24px;
+    background: #fff;
+}
+
+/* Section Grouping */
+.zaikon-delivery-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.zaikon-delivery-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.zaikon-delivery-section-title {
+    margin: 0 0 16px 0;
+    font-size: 14px;
     font-weight: 600;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.zaikon-delivery-panel-body {
-    padding: 12px;
+.zaikon-delivery-section-title::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: var(--zaikon-yellow);
+    border-radius: 2px;
 }
 
-/* Two-column grid layout for desktop */
-.zaikon-delivery-fields-grid {
+/* Field Rows */
+.zaikon-delivery-fields-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
-/* Three-column compact layout */
-.zaikon-delivery-fields-grid.zaikon-delivery-compact {
+.zaikon-delivery-fields-row:last-child {
+    margin-bottom: 0;
+}
+
+.zaikon-delivery-fields-row-3 {
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px 12px;
 }
 
+/* Individual Fields */
 .zaikon-delivery-field {
     margin-bottom: 0;
     position: relative;
 }
 
-/* Full-width fields */
-.zaikon-delivery-field.full-width {
+.zaikon-delivery-field-full {
     grid-column: 1 / -1;
 }
 
 .zaikon-delivery-field label {
     display: block;
-    margin-bottom: 4px;
-    font-weight: 500;
+    margin-bottom: 8px;
+    font-weight: 600;
     font-size: 13px;
-    color: #2c3e50;
-}
-
-/* Compact layout labels */
-.zaikon-delivery-compact .zaikon-delivery-field label {
-    font-size: 12px;
-    margin-bottom: 3px;
+    color: #000;
+    letter-spacing: 0.1px;
 }
 
 .zaikon-delivery-field .required {
-    color: #e74c3c;
-    font-weight: bold;
+    color: #dc2626;
+    font-weight: 700;
+    margin-left: 2px;
 }
 
+/* Input Styling - Touch-Friendly */
 .zaikon-delivery-field input[type="text"],
 .zaikon-delivery-field input[type="tel"],
 .zaikon-delivery-field select,
 .zaikon-delivery-field textarea {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #cbd5e0;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    background: white;
+    padding: 14px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #000;
+    background: #fff;
+    transition: all 0.2s ease;
+    min-height: 48px; /* Touch-friendly */
+    box-sizing: border-box;
 }
 
-/* Compact layout input fields */
-.zaikon-delivery-compact .zaikon-delivery-field input[type="text"],
-.zaikon-delivery-compact .zaikon-delivery-field input[type="tel"],
-.zaikon-delivery-compact .zaikon-delivery-field select {
-    padding: 6px 10px;
-    height: 32px;
-    font-size: 13px;
+.zaikon-delivery-field input[type="text"]::placeholder,
+.zaikon-delivery-field input[type="tel"]::placeholder,
+.zaikon-delivery-field textarea::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
 }
 
+.zaikon-delivery-field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 44px;
+    cursor: pointer;
+}
+
+/* Focus States */
 .zaikon-delivery-field input[type="text"]:focus,
 .zaikon-delivery-field input[type="tel"]:focus,
 .zaikon-delivery-field select:focus,
 .zaikon-delivery-field textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: var(--zaikon-yellow);
+    box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.2);
 }
 
+/* Readonly Fields */
 .zaikon-delivery-field input[readonly] {
-    background: #e9ecef;
-    color: #495057;
-    cursor: not-allowed;
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: default;
+    border-color: #e5e7eb;
 }
 
 .zaikon-delivery-field textarea {
@@ -1118,35 +1208,107 @@
     min-height: 60px;
 }
 
-.zaikon-free-badge {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 4px 10px;
-    background: #10b981;
-    color: white;
-    font-size: 11px;
-    font-weight: bold;
-    border-radius: 12px;
-    vertical-align: middle;
+/* Delivery Charge Wrapper */
+.zaikon-delivery-charge-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
+.zaikon-delivery-charge-wrapper input {
+    flex: 1;
+}
+
+/* Free Delivery Badge */
+.zaikon-free-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: #10b981;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Modal Footer - Delivery Specific */
+.zaikon-delivery-modal-footer {
+    padding: 20px 24px;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Primary Button - Yellow with Black Text */
+.zaikon-delivery-btn-primary {
+    background: var(--zaikon-yellow);
+    color: #000;
+    border: 2px solid var(--zaikon-yellow);
+    padding: 14px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 48px;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
+}
+
+.zaikon-delivery-btn-primary:hover {
+    background: var(--zaikon-yellow-dark);
+    border-color: var(--zaikon-yellow-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.35);
+}
+
+.zaikon-delivery-btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+}
+
+/* Secondary Button - Neutral/Dark for Cancel */
+.zaikon-delivery-modal-footer .zaikon-btn-secondary {
+    background: #fff;
+    color: #374151;
+    border: 2px solid #d1d5db;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 48px;
+}
+
+.zaikon-delivery-modal-footer .zaikon-btn-secondary:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+/* Legacy Button Styles (kept for backwards compatibility) */
 .zaikon-delivery-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid #e0e5eb;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
 }
 
 .zaikon-btn {
-    padding: 10px 20px;
+    padding: 14px 24px;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 10px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    flex: 1;
+    min-height: 48px;
 }
 
 .zaikon-btn-primary {
@@ -1166,7 +1328,7 @@
 .zaikon-btn-secondary {
     background: white;
     color: #64748b;
-    border: 1px solid #cbd5e0;
+    border: 2px solid #d1d5db;
 }
 
 .zaikon-btn-secondary:hover {
@@ -1174,32 +1336,102 @@
     border-color: #94a3b8;
 }
 
-/* Responsive: Tablets - Two Column Layout */
-@media (max-width: 1024px) and (min-width: 769px) {
-    .zaikon-delivery-fields-grid.zaikon-delivery-compact {
+/* ============================================
+   DELIVERY MODAL - RESPONSIVE STYLES
+   Touch-friendly for POS usage
+   ============================================ */
+
+/* Tablets */
+@media (max-width: 1024px) {
+    .zaikon-delivery-modal-content {
+        max-width: 90%;
+    }
+    
+    .zaikon-delivery-fields-row-3 {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .zaikon-delivery-fields-row-3 > .zaikon-delivery-field:last-child {
+        grid-column: 1 / -1;
     }
 }
 
-/* Responsive: Tablets and Mobile - Single Column Layout */
+/* Mobile and Touch Devices */
 @media (max-width: 768px) {
-    .zaikon-delivery-fields-grid {
+    .zaikon-delivery-modal-content {
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .zaikon-delivery-modal-header {
+        padding: 16px 20px;
+        flex-shrink: 0;
+    }
+    
+    .zaikon-delivery-modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .zaikon-delivery-fields-row,
+    .zaikon-delivery-fields-row-3 {
         grid-template-columns: 1fr;
         gap: 14px;
     }
     
-    .zaikon-delivery-fields-grid.zaikon-delivery-compact {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    
-    .zaikon-delivery-panel {
-        margin: 10px;
-        max-width: 100%;
-    }
-    
-    .zaikon-delivery-field.full-width {
+    .zaikon-delivery-fields-row-3 > .zaikon-delivery-field:last-child {
         grid-column: 1;
+    }
+    
+    .zaikon-delivery-section {
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+    }
+    
+    .zaikon-delivery-modal-footer {
+        flex-direction: column;
+        gap: 10px;
+        padding: 16px 20px;
+        flex-shrink: 0;
+        background: #fff;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .zaikon-delivery-modal-footer .zaikon-btn,
+    .zaikon-delivery-modal-footer .zaikon-btn-secondary,
+    .zaikon-delivery-btn-primary {
+        width: 100%;
+    }
+    
+    /* Ensure primary button comes first on mobile */
+    .zaikon-delivery-modal-footer .zaikon-delivery-btn-primary {
+        order: -1;
+    }
+    
+    /* Larger touch targets on mobile */
+    .zaikon-delivery-field input[type="text"],
+    .zaikon-delivery-field input[type="tel"],
+    .zaikon-delivery-field select {
+        padding: 16px;
+        font-size: 16px;
+        min-height: 52px;
+    }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+    .zaikon-delivery-modal-header h3 {
+        font-size: 18px;
+    }
+    
+    .zaikon-delivery-section-title {
+        font-size: 13px;
     }
 }
 
