@@ -24,6 +24,11 @@ class Zaikon_Frontend {
      * Add custom rewrite rules
      */
     public static function add_rewrite_rules() {
+        // Primary frontend URLs for POS operations (simple, enterprise-friendly)
+        add_rewrite_rule('^pos/?$', 'index.php?zaikon_pos_page=pos', 'top');
+        add_rewrite_rule('^kitchen/?$', 'index.php?zaikon_pos_page=kds', 'top');
+        
+        // Legacy zaikon-pos prefixed URLs (for backwards compatibility)
         add_rewrite_rule('^zaikon-pos/?$', 'index.php?zaikon_pos_page=dashboard', 'top');
         add_rewrite_rule('^zaikon-pos/pos/?$', 'index.php?zaikon_pos_page=pos', 'top');
         add_rewrite_rule('^zaikon-pos/kds/?$', 'index.php?zaikon_pos_page=kds', 'top');
@@ -69,7 +74,16 @@ class Zaikon_Frontend {
         
         // Check if user is logged in for POS pages
         if (!is_user_logged_in()) {
-            wp_redirect(wp_login_url(home_url('/zaikon-pos/')));
+            // Determine the redirect URL based on the requested page
+            $redirect_url = home_url('/zaikon-pos/');
+            if ($page === 'pos') {
+                $redirect_url = home_url('/pos/');
+            } elseif ($page === 'kds') {
+                $redirect_url = home_url('/kitchen/');
+            } elseif ($page === 'deliveries') {
+                $redirect_url = home_url('/zaikon-pos/deliveries/');
+            }
+            wp_redirect(wp_login_url($redirect_url));
             exit;
         }
         

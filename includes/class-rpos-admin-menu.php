@@ -126,7 +126,45 @@ class RPOS_Admin_Menu {
         // but only for authenticated users who can see the menu
         if (is_admin() && current_user_can('read')) {
             wp_enqueue_style('rpos-admin-menu', RPOS_PLUGIN_URL . 'assets/css/admin-menu.css', array(), RPOS_VERSION);
+            
+            // Add inline script to handle menu redirects to frontend URLs
+            $this->add_menu_redirect_script();
         }
+    }
+    
+    /**
+     * Add inline script to redirect POS and KDS menu items to frontend
+     * Uses vanilla JavaScript without jQuery dependency for faster load
+     */
+    private function add_menu_redirect_script() {
+        // URLs are escaped for safe use in JavaScript
+        $pos_url = esc_url(home_url('/pos/'));
+        $kds_url = esc_url(home_url('/kitchen/'));
+        
+        // Add footer script hook to ensure DOM is ready
+        add_action('admin_footer', function() use ($pos_url, $kds_url) {
+            ?>
+            <script>
+            (function() {
+                // Find POS Screen menu item and redirect to frontend
+                var posLinks = document.querySelectorAll('a[href*="restaurant-pos-cashier"]');
+                posLinks.forEach(function(link) {
+                    link.setAttribute('href', <?php echo wp_json_encode($pos_url); ?>);
+                    link.setAttribute('target', '_blank');
+                    link.setAttribute('rel', 'noopener');
+                });
+                
+                // Find Kitchen Display menu item and redirect to frontend
+                var kdsLinks = document.querySelectorAll('a[href*="restaurant-pos-kds"]');
+                kdsLinks.forEach(function(link) {
+                    link.setAttribute('href', <?php echo wp_json_encode($kds_url); ?>);
+                    link.setAttribute('target', '_blank');
+                    link.setAttribute('rel', 'noopener');
+                });
+            })();
+            </script>
+            <?php
+        });
     }
     
     /**
@@ -185,24 +223,24 @@ class RPOS_Admin_Menu {
             array($this, 'dashboard_page')
         );
         
-        // POS Screen
+        // POS Screen - Links to frontend (no longer in wp-admin)
         add_submenu_page(
             'restaurant-pos',
             __('POS Screen', 'restaurant-pos'),
-            self::menu_label(__('POS Screen', 'restaurant-pos'), 'pos', true),
+            self::menu_label(__('POS Screen', 'restaurant-pos') . ' ↗', 'pos', true),
             'rpos_view_pos',
             'restaurant-pos-cashier',
-            array($this, 'pos_page')
+            array($this, 'pos_redirect_page')
         );
         
-        // Kitchen Display
+        // Kitchen Display - Links to frontend (no longer in wp-admin)
         add_submenu_page(
             'restaurant-pos',
             __('Kitchen Display', 'restaurant-pos'),
-            self::menu_label(__('Kitchen Display', 'restaurant-pos'), 'kitchen', true),
+            self::menu_label(__('Kitchen Display', 'restaurant-pos') . ' ↗', 'kitchen', true),
             'rpos_view_kds',
             'restaurant-pos-kds',
-            array($this, 'kds_page')
+            array($this, 'kds_redirect_page')
         );
         
         // Orders
@@ -558,14 +596,54 @@ class RPOS_Admin_Menu {
     }
     
     /**
-     * POS page
+     * POS page - Redirect to frontend
+     * POS operations are now on the frontend for enterprise-level performance
+     */
+    public function pos_redirect_page() {
+        $pos_url = esc_url(home_url('/pos/'));
+        echo '<div class="wrap">';
+        echo '<h1>' . esc_html__('POS Screen', 'restaurant-pos') . '</h1>';
+        echo '<div class="notice notice-info" style="padding: 20px; margin-top: 20px;">';
+        echo '<h2 style="margin-top: 0;">' . esc_html__('POS Has Moved to Frontend', 'restaurant-pos') . '</h2>';
+        echo '<p style="font-size: 14px;">' . esc_html__('For better performance and security, the POS Cashier screen is now available on the frontend.', 'restaurant-pos') . '</p>';
+        echo '<p><a href="' . esc_url($pos_url) . '" class="button button-primary button-hero" target="_blank" rel="noopener">';
+        echo esc_html__('Open POS Screen', 'restaurant-pos') . ' &#8599;</a></p>';
+        echo '<p style="color: #666; margin-bottom: 0;"><strong>' . esc_html__('Frontend URL:', 'restaurant-pos') . '</strong> <code>' . esc_html($pos_url) . '</code></p>';
+        echo '</div></div>';
+        
+        // Auto-redirect after a short delay using properly encoded URL
+        echo '<script>setTimeout(function() { window.location.href = ' . wp_json_encode($pos_url) . '; }, 2000);</script>';
+    }
+    
+    /**
+     * POS page (legacy method - kept for backwards compatibility with direct includes)
      */
     public function pos_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/pos.php';
     }
     
     /**
-     * Kitchen Display page
+     * Kitchen Display page - Redirect to frontend
+     * Kitchen Display is now on the frontend for enterprise-level usage
+     */
+    public function kds_redirect_page() {
+        $kds_url = esc_url(home_url('/kitchen/'));
+        echo '<div class="wrap">';
+        echo '<h1>' . esc_html__('Kitchen Display', 'restaurant-pos') . '</h1>';
+        echo '<div class="notice notice-info" style="padding: 20px; margin-top: 20px;">';
+        echo '<h2 style="margin-top: 0;">' . esc_html__('Kitchen Display Has Moved to Frontend', 'restaurant-pos') . '</h2>';
+        echo '<p style="font-size: 14px;">' . esc_html__('For better performance and security, the Kitchen Display System is now available on the frontend.', 'restaurant-pos') . '</p>';
+        echo '<p><a href="' . esc_url($kds_url) . '" class="button button-primary button-hero" target="_blank" rel="noopener">';
+        echo esc_html__('Open Kitchen Display', 'restaurant-pos') . ' &#8599;</a></p>';
+        echo '<p style="color: #666; margin-bottom: 0;"><strong>' . esc_html__('Frontend URL:', 'restaurant-pos') . '</strong> <code>' . esc_html($kds_url) . '</code></p>';
+        echo '</div></div>';
+        
+        // Auto-redirect after a short delay using properly encoded URL
+        echo '<script>setTimeout(function() { window.location.href = ' . wp_json_encode($kds_url) . '; }, 2000);</script>';
+    }
+    
+    /**
+     * Kitchen Display page (legacy method - kept for backwards compatibility with direct includes)
      */
     public function kds_page() {
         include RPOS_PLUGIN_DIR . 'includes/admin/kds.php';
