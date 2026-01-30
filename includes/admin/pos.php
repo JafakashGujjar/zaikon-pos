@@ -51,22 +51,6 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 <span class="dashicons dashicons-location"></span>
                 <span class="zaikon-sidebar-label"><?php echo esc_html__('Delivery Tracking', 'restaurant-pos'); ?></span>
             </button>
-            
-            <div class="zaikon-sidebar-divider"></div>
-            
-            <!-- Existing Sidebar Buttons -->
-            <button class="zaikon-sidebar-btn active" id="zaikon-sidebar-home" title="<?php echo esc_attr__('Home / Menu', 'restaurant-pos'); ?>">
-                <span class="dashicons dashicons-admin-home"></span>
-                <span class="zaikon-sidebar-label"><?php echo esc_html__('Home', 'restaurant-pos'); ?></span>
-            </button>
-            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-history" title="<?php echo esc_attr__('Order History', 'restaurant-pos'); ?>">
-                <span class="dashicons dashicons-clock"></span>
-                <span class="zaikon-sidebar-label"><?php echo esc_html__('History', 'restaurant-pos'); ?></span>
-            </button>
-            <button class="zaikon-sidebar-btn" id="zaikon-sidebar-settings" title="<?php echo esc_attr__('Settings', 'restaurant-pos'); ?>">
-                <span class="dashicons dashicons-admin-settings"></span>
-                <span class="zaikon-sidebar-label"><?php echo esc_html__('Settings', 'restaurant-pos'); ?></span>
-            </button>
         </div>
         
         <!-- Slide-out Search Panel -->
@@ -91,12 +75,6 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 </button>
                 <div class="zaikon-categories-scroll-container">
                     <div class="zaikon-categories-wrapper">
-                        <button class="zaikon-category-modern active rpos-category-btn" data-category="0">
-                            <div class="zaikon-category-circle" style="background-color: #718096">
-                                <span class="dashicons dashicons-screenoptions"></span>
-                            </div>
-                            <span class="zaikon-category-name"><?php echo esc_html__('All', 'restaurant-pos'); ?></span>
-                        </button>
                         <?php foreach ($categories as $category): ?>
                         <button class="zaikon-category-modern rpos-category-btn" data-category="<?php echo esc_attr($category->id); ?>">
                             <div class="zaikon-category-circle" style="background-color: <?php echo esc_attr($category->bg_color ?: '#4A5568'); ?>">

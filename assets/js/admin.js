@@ -194,25 +194,6 @@
                     self.showDeliveryTrackingModal();
                     return;
                 }
-                
-                // Update active state for other buttons
-                $('.zaikon-sidebar-btn').removeClass('active');
-                $(this).addClass('active');
-                
-                // Handle different navigation actions
-                if (buttonId === 'zaikon-sidebar-home') {
-                    // Already on home/menu view - reset to all categories
-                    $('.rpos-category-btn.active').removeClass('active');
-                    $('.rpos-category-btn').first().addClass('active').trigger('click');
-                    window.scrollTo(0, 0);
-                } else if (buttonId === 'zaikon-sidebar-history') {
-                    // Open order history - could be implemented differently from orders
-                    // For now, show info that this is a future feature
-                    ZAIKON_Toast.info('Order History view coming soon');
-                } else if (buttonId === 'zaikon-sidebar-settings') {
-                    // Could open settings modal in the future
-                    ZAIKON_Toast.info('Settings functionality coming soon');
-                }
             });
             
             // Close search panel button
