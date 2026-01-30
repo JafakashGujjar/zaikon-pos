@@ -44,27 +44,34 @@
             // Expenses
             $('#rpos-expenses-btn').on('click', this.showExpensesModal.bind(this));
             $('#rpos-add-expense').on('click', this.addExpense.bind(this));
+            $('#rpos-add-expense-modal').on('click', this.addExpenseModal.bind(this));
             $('#rpos-close-expenses, #rpos-expenses-modal-close, #rpos-expenses-dropdown-close').on('click', function() {
                 $('#rpos-expenses-modal').fadeOut(200);
                 $('#rpos-expenses-dropdown').fadeOut(200);
             });
             
-            // Close dropdown when clicking outside
+            // Close close-shift dropdown when clicking outside
             $(document).on('click', function(e) {
-                if (!$(e.target).closest('#rpos-expenses-btn, #rpos-expenses-dropdown').length) {
-                    $('#rpos-expenses-dropdown').fadeOut(200);
-                }
                 if (!$(e.target).closest('#rpos-close-shift-icon-btn, #rpos-close-shift-btn, #rpos-close-shift-dropdown').length) {
                     $('#rpos-close-shift-dropdown').fadeOut(200);
                 }
             });
             
-            // Show rider field when rider_payout category is selected
+            // Show rider field when rider_payout category is selected (dropdown)
             $('#rpos-expense-category').on('change', function() {
                 if ($(this).val() === 'rider_payout') {
                     $('#rpos-expense-rider-field').show();
                 } else {
                     $('#rpos-expense-rider-field').hide();
+                }
+            });
+            
+            // Show rider field when rider_payout category is selected (modal)
+            $('#rpos-expense-category-modal').on('change', function() {
+                if ($(this).val() === 'rider_payout') {
+                    $('#rpos-expense-rider-field-modal').show();
+                } else {
+                    $('#rpos-expense-rider-field-modal').hide();
                 }
             });
             
@@ -292,21 +299,12 @@
                 return;
             }
             
-            // Toggle dropdown instead of modal
-            var dropdown = $('#rpos-expenses-dropdown');
-            if (dropdown.is(':visible')) {
-                dropdown.fadeOut(200);
+            // Use modal instead of dropdown (same as Orders modal behavior)
+            var modal = $('#rpos-expenses-modal');
+            if (modal.is(':visible')) {
+                modal.fadeOut(200);
             } else {
-                // Position dropdown below the button relative to viewport
-                var btn = $('#rpos-expenses-btn');
-                var btnRect = btn[0].getBoundingClientRect();
-                
-                dropdown.css({
-                    top: (btnRect.bottom + 8) + 'px',
-                    left: (btnRect.right - 450) + 'px'  // Right-align with button (450 is dropdown width)
-                });
-                
-                dropdown.fadeIn(200);
+                modal.fadeIn(200);
                 this.loadExpenses();
                 this.loadRiders();
             }
@@ -320,22 +318,34 @@
                     xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
                 },
                 success: function(riders) {
-                    var select = $('#rpos-expense-rider');
-                    select.html('<option value="">-- Select Rider --</option>');
+                    // Update both dropdown and modal rider selects
+                    var selects = $('#rpos-expense-rider, #rpos-expense-rider-modal');
+                    selects.html('<option value="">-- Select Rider --</option>');
                     
                     riders.forEach(function(rider) {
-                        select.append('<option value="' + rider.id + '">' + rider.name + '</option>');
+                        selects.append('<option value="' + rider.id + '">' + rider.name + '</option>');
                     });
                 }
             });
         },
         
+        // Add expense from dropdown form (no suffix)
         addExpense: function() {
+            this._addExpenseWithSuffix('');
+        },
+        
+        // Add expense from modal form (uses -modal suffix)
+        addExpenseModal: function() {
+            this._addExpenseWithSuffix('-modal');
+        },
+        
+        // Internal function to add expense, suffix determines which form elements to use
+        _addExpenseWithSuffix: function(suffix) {
             var self = this;
-            var amount = parseFloat($('#rpos-expense-amount').val()) || 0;
-            var category = $('#rpos-expense-category').val();
-            var riderId = $('#rpos-expense-rider').val();
-            var description = $('#rpos-expense-description').val();
+            var amount = parseFloat($('#rpos-expense-amount' + suffix).val()) || 0;
+            var category = $('#rpos-expense-category' + suffix).val();
+            var riderId = $('#rpos-expense-rider' + suffix).val();
+            var description = $('#rpos-expense-description' + suffix).val();
             
             if (amount <= 0) {
                 window.ZaikonToast.error('Please enter a valid amount');
@@ -365,11 +375,11 @@
                     window.ZaikonToast.success('Expense added successfully');
                     
                     // Clear form
-                    $('#rpos-expense-amount').val('');
-                    $('#rpos-expense-category').val('');
-                    $('#rpos-expense-rider').val('');
-                    $('#rpos-expense-description').val('');
-                    $('#rpos-expense-rider-field').hide();
+                    $('#rpos-expense-amount' + suffix).val('');
+                    $('#rpos-expense-category' + suffix).val('');
+                    $('#rpos-expense-rider' + suffix).val('');
+                    $('#rpos-expense-description' + suffix).val('');
+                    $('#rpos-expense-rider-field' + suffix).hide();
                     
                     // Reload expenses list
                     self.loadExpenses();
@@ -391,10 +401,11 @@
                     xhr.setRequestHeader('X-WP-Nonce', rposData.nonce);
                 },
                 success: function(expenses) {
-                    var list = $('#rpos-expenses-list');
+                    // Update both dropdown and modal expense lists
+                    var lists = $('#rpos-expenses-list, #rpos-expenses-list-modal');
                     
                     if (expenses.length === 0) {
-                        list.html('<p style="text-align: center; color: var(--zaikon-gray-dark);">No expenses recorded yet</p>');
+                        lists.html('<p style="text-align: center; color: var(--zaikon-gray-dark);">No expenses recorded yet</p>');
                         return;
                     }
                     
@@ -415,7 +426,7 @@
                         html += '</div>';
                     });
                     
-                    list.html(html);
+                    lists.html(html);
                 },
                 error: function(xhr) {
                     console.error('Error loading expenses:', xhr);

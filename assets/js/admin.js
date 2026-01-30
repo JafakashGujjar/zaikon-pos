@@ -870,11 +870,9 @@
                 self.markAsRead(notificationId);
             });
             
-            // Close dropdown when clicking outside
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('#rpos-notification-bell, #rpos-notification-dropdown').length) {
-                    $('#rpos-notification-dropdown').hide();
-                }
+            // Bind notification modal close buttons
+            $('#rpos-notification-close, #rpos-notification-close-btn').on('click', function() {
+                $('#rpos-notification-dropdown').fadeOut(200);
             });
             
             // Bind order detail modal close buttons
@@ -1010,7 +1008,12 @@
         },
         
         toggleNotificationDropdown: function() {
-            $('#rpos-notification-dropdown').toggle();
+            var $modal = $('#rpos-notification-dropdown');
+            if ($modal.is(':visible')) {
+                $modal.fadeOut(200);
+            } else {
+                $modal.fadeIn(200);
+            }
         },
         
         markAsRead: function(notificationId) {
