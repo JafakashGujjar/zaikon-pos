@@ -168,7 +168,7 @@ class Zaikon_Frontend {
                 
             case 'kds':
                 wp_enqueue_style('zaikon-kds-screen', RPOS_PLUGIN_URL . 'assets/css/zaikon-kds-screen.css', array('zaikon-components'), RPOS_VERSION);
-                wp_enqueue_script('rpos-kds', RPOS_PLUGIN_URL . 'assets/js/kds.js', array('jquery'), RPOS_VERSION, true);
+                wp_enqueue_script('rpos-admin', RPOS_PLUGIN_URL . 'assets/js/admin.js', array('jquery'), RPOS_VERSION, true);
                 break;
                 
             case 'deliveries':
