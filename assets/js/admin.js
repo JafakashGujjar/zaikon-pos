@@ -269,7 +269,7 @@
                 } else {
                     // Clear delivery data if switching away from delivery
                     self.deliveryData = null;
-                    $('#zaikon-delivery-panel').slideUp();
+                    $('#zaikon-delivery-panel').fadeOut(200);
                     self.updateTotals();
                 }
             });
@@ -281,6 +281,11 @@
             
             // Cancel Delivery handler
             $('#zaikon-cancel-delivery').on('click', function() {
+                self.cancelDelivery();
+            });
+            
+            // Delivery Modal close button handler
+            $('#zaikon-delivery-modal-close').on('click', function() {
                 self.cancelDelivery();
             });
             
@@ -1608,8 +1613,8 @@
         openDeliveryPanel: function() {
             var self = this;
             
-            // Show delivery panel with animation
-            $('#zaikon-delivery-panel').slideDown();
+            // Show delivery panel with animation (modal behavior)
+            $('#zaikon-delivery-panel').fadeIn(200);
             
             // Load delivery areas
             $.ajax({
@@ -1764,7 +1769,7 @@
             $('#rpos-order-type').val('delivery');
             
             // Hide delivery panel
-            $('#zaikon-delivery-panel').slideUp();
+            $('#zaikon-delivery-panel').fadeOut(200);
             
             // Update totals to show delivery charge
             this.updateTotals();
@@ -1781,7 +1786,7 @@
             this.deliveryCalculation = null;
             
             // Hide delivery panel
-            $('#zaikon-delivery-panel').slideUp();
+            $('#zaikon-delivery-panel').fadeOut(200);
             
             // Clear all fields
             $('#zaikon-delivery-phone').val('');
