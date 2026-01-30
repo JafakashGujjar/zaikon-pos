@@ -14,8 +14,12 @@ class RPOS_Admin_Menu {
     
     /**
      * SVG Icons for menu items (clean, consistent, same stroke weight)
+     * Note: These SVG icons are hardcoded trusted values - do not make filterable without proper sanitization
      */
     private static $icons = array(
+        // Main menu icon (for top-level Zaikon POS menu)
+        'main' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v18H3z" rx="2"/><path d="M7 8h4v4H7z"/><path d="M13 8h4"/><path d="M13 12h4"/><path d="M7 16h10"/></svg>',
+        
         // Dashboard / Screen icon
         'dashboard' => '<svg class="rpos-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>',
         
@@ -153,7 +157,7 @@ class RPOS_Admin_Menu {
             'read',
             'restaurant-pos',
             array($this, 'dashboard_page'),
-            'data:image/svg+xml;base64,' . base64_encode('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v18H3z" rx="2"/><path d="M7 8h4v4H7z"/><path d="M13 8h4"/><path d="M13 12h4"/><path d="M7 16h10"/></svg>'),
+            'data:image/svg+xml;base64,' . base64_encode(self::get_icon('main')),
             30
         );
         

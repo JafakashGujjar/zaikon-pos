@@ -133,9 +133,19 @@
     padding: 8px 0 12px 0 !important;
 }
 
-/* First item in submenu (Dashboard) */
+/* 
+ * First item in submenu (WordPress auto-adds duplicate Dashboard link)
+ * Hide properly for accessibility - using visibility and aria-hidden 
+ * would require JS, so we use this approach with proper screen reader handling
+ */
 #adminmenu #toplevel_page_restaurant-pos .wp-submenu li:first-child {
-    display: none; /* Hide duplicate dashboard link */
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
 #adminmenu #toplevel_page_restaurant-pos .wp-submenu li:nth-child(2) {
@@ -178,6 +188,11 @@
     animation: rpos-slideDown 0.2s ease forwards;
 }
 
+/* 
+ * Staggered animation delays for menu items to create a cascade effect
+ * Items 1-8 get individual delays, items 9+ share the same delay
+ * This creates a smooth visual flow when the menu expands
+ */
 #adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(1) { animation-delay: 0ms; }
 #adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(2) { animation-delay: 15ms; }
 #adminmenu #toplevel_page_restaurant-pos.wp-has-current-submenu .wp-submenu li:nth-child(3) { animation-delay: 30ms; }
@@ -325,19 +340,31 @@ body.admin-color-sunrise .rpos-section-header .rpos-menu-icon {
     box-shadow: none;
 }
 
-/* High contrast mode */
+/* High contrast mode - use system colors for proper contrast */
 @media (prefers-contrast: high) {
     #adminmenu #toplevel_page_restaurant-pos .wp-submenu a {
         border-left-width: 4px;
     }
     
     #adminmenu #toplevel_page_restaurant-pos .wp-submenu li.current a {
-        border-left-color: #000;
-        background: #fff;
+        border-left-color: CanvasText;
+        background: Canvas;
+        color: CanvasText;
+    }
+    
+    #adminmenu #toplevel_page_restaurant-pos .wp-submenu a:hover {
+        background: Highlight;
+        color: HighlightText;
     }
     
     .rpos-section-header {
         font-weight: 800;
+        color: CanvasText;
+    }
+    
+    .rpos-menu-icon,
+    .rpos-section-header .rpos-menu-icon {
+        stroke: CanvasText;
     }
 }
 
