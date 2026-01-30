@@ -194,10 +194,6 @@
                     self.showDeliveryTrackingModal();
                     return;
                 }
-                
-                // Update active state for other buttons
-                $('.zaikon-sidebar-btn').removeClass('active');
-                $(this).addClass('active');
             });
             
             // Close search panel button
