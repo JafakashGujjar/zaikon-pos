@@ -542,7 +542,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
             </div>
         </div>
         <div class="zaikon-modal-footer">
-            <button type="button" class="zaikon-btn zaikon-btn-primary" id="zaikon-save-delivery"><?php echo esc_html__('Save Delivery Details', 'restaurant-pos'); ?></button>
+            <button type="button" class="zaikon-btn zaikon-btn-yellow" id="zaikon-save-delivery"><?php echo esc_html__('Save Delivery Details', 'restaurant-pos'); ?></button>
             <button type="button" class="zaikon-btn zaikon-btn-secondary" id="zaikon-cancel-delivery"><?php echo esc_html__('Cancel Delivery', 'restaurant-pos'); ?></button>
         </div>
     </div>
