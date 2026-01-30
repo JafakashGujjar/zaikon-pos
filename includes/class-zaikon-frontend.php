@@ -80,6 +80,8 @@ class Zaikon_Frontend {
                 $redirect_url = home_url('/pos/');
             } elseif ($page === 'kds') {
                 $redirect_url = home_url('/kitchen/');
+            } elseif ($page === 'deliveries') {
+                $redirect_url = home_url('/zaikon-pos/deliveries/');
             }
             wp_redirect(wp_login_url($redirect_url));
             exit;
