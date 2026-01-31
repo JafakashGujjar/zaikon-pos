@@ -680,11 +680,11 @@ class RPOS_REST_API {
                 }
                 
                 if ($attempt < self::TRACKING_TOKEN_MAX_RETRIES) {
-                    error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' failed, retrying...');
+                    error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' failed for order #' . $order->order_number . ' (ID: ' . $zaikon_order_id . '), retrying...');
                     usleep(self::TRACKING_TOKEN_RETRY_DELAY_US);
                 }
             } catch (Exception $e) {
-                error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' threw exception: ' . $e->getMessage());
+                error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' threw exception for order #' . $order->order_number . ' (ID: ' . $zaikon_order_id . '): ' . $e->getMessage());
                 if ($attempt < self::TRACKING_TOKEN_MAX_RETRIES) {
                     usleep(self::TRACKING_TOKEN_RETRY_DELAY_US);
                 }
