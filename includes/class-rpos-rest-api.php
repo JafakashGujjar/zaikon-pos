@@ -11,6 +11,34 @@ class RPOS_REST_API {
     
     protected static $_instance = null;
     
+    /**
+     * Status mapping from zaikon/POS statuses to rpos/KDS statuses
+     * Used for bidirectional sync between order tables
+     */
+    const STATUS_MAP_ZAIKON_TO_RPOS = array(
+        'active' => 'new',
+        'pending' => 'new',
+        'confirmed' => 'new',
+        'cooking' => 'cooking',
+        'ready' => 'ready',
+        'dispatched' => 'ready',
+        'delivered' => 'completed',
+        'completed' => 'completed',
+        'cancelled' => 'cancelled',
+        'replacement' => 'cancelled'
+    );
+    
+    /**
+     * Status mapping from rpos/KDS statuses to zaikon/tracking statuses
+     * Used for syncing KDS updates to tracking system
+     */
+    const STATUS_MAP_RPOS_TO_ZAIKON = array(
+        'new' => 'pending',
+        'cooking' => 'cooking',
+        'ready' => 'ready',
+        'completed' => 'delivered'
+    );
+    
     public static function instance() {
         if (is_null(self::$_instance)) {
             self::$_instance = new self();
@@ -509,6 +537,9 @@ class RPOS_REST_API {
     
     /**
      * Create order
+     * 
+     * Creates orders in both rpos_orders (for KDS) and zaikon_orders (for POS popup)
+     * to ensure synchronization across all system components.
      */
     public function create_order($request) {
         $data = $request->get_json_params();
@@ -518,7 +549,8 @@ class RPOS_REST_API {
             return $this->create_delivery_order_v2($data);
         }
         
-        // For non-delivery orders, use legacy system
+        // For non-delivery orders (dine-in, takeaway), create in both systems
+        // 1. Create in legacy rpos_orders for KDS compatibility
         $order_id = RPOS_Orders::create($data);
         
         if (!$order_id) {
@@ -526,7 +558,113 @@ class RPOS_REST_API {
         }
         
         $order = RPOS_Orders::get($order_id);
+        
+        // 2. Also create in zaikon_orders for POS popup synchronization
+        // This ensures orders appear in "My Orders" modal on POS screen
+        $this->sync_order_to_zaikon($order, $data);
+        
         return rest_ensure_response($order);
+    }
+    
+    /**
+     * Sync order from rpos_orders to zaikon_orders table
+     * 
+     * Creates a corresponding entry in zaikon_orders for orders created through
+     * the legacy system, ensuring synchronization across POS, KDS, and Backend.
+     * 
+     * @param object $order The order object from rpos_orders
+     * @param array $data Original order data with items
+     * @return int|false The zaikon order ID on success, false on failure
+     */
+    private function sync_order_to_zaikon($order, $data) {
+        if (!$order || !isset($order->order_number)) {
+            error_log('ZAIKON: sync_order_to_zaikon - Invalid order object');
+            return false;
+        }
+        
+        // Map order data to zaikon_orders format
+        // Note: taxes_rs is set from $data if available since rpos_orders may not have tax field
+        $zaikon_order_data = array(
+            'order_number' => $order->order_number,
+            'order_type' => sanitize_text_field($order->order_type ?? $data['order_type'] ?? 'takeaway'),
+            'items_subtotal_rs' => floatval($order->subtotal ?? 0),
+            'delivery_charges_rs' => floatval($order->delivery_charge ?? 0),
+            'discounts_rs' => floatval($order->discount ?? 0),
+            'taxes_rs' => floatval($data['tax'] ?? $data['taxes'] ?? $order->tax ?? 0),
+            'grand_total_rs' => floatval($order->total ?? 0),
+            'payment_type' => sanitize_text_field($order->payment_type ?? $data['payment_type'] ?? 'cash'),
+            'payment_status' => sanitize_text_field($order->payment_status ?? $data['payment_status'] ?? 'paid'),
+            'order_status' => 'active',
+            'special_instructions' => sanitize_textarea_field($order->special_instructions ?? ''),
+            'cashier_id' => absint($order->cashier_id ?? get_current_user_id())
+        );
+        
+        // Create in zaikon_orders
+        $zaikon_order_id = Zaikon_Orders::create($zaikon_order_data);
+        
+        if (!$zaikon_order_id) {
+            error_log('ZAIKON: sync_order_to_zaikon - Failed to create zaikon order for order #' . $order->order_number);
+            return false;
+        }
+        
+        // Pre-fetch product names for items that don't have them to avoid N+1 queries
+        $product_ids_missing_names = array();
+        if (!empty($data['items'])) {
+            foreach ($data['items'] as $item) {
+                if (empty($item['product_name']) && !empty($item['product_id'])) {
+                    $product_ids_missing_names[] = absint($item['product_id']);
+                }
+            }
+        }
+        
+        $product_names_cache = array();
+        if (!empty($product_ids_missing_names)) {
+            // Bulk fetch product names
+            foreach (array_unique($product_ids_missing_names) as $product_id) {
+                $product = RPOS_Products::get($product_id);
+                if ($product) {
+                    $product_names_cache[$product_id] = $product->name;
+                }
+            }
+        }
+        
+        // Create order items in zaikon_order_items
+        $items_failed = 0;
+        if (!empty($data['items'])) {
+            foreach ($data['items'] as $item) {
+                $product_id = absint($item['product_id']);
+                $product_name = isset($item['product_name']) ? sanitize_text_field($item['product_name']) : '';
+                
+                // Use cached product name if not provided
+                if (empty($product_name) && isset($product_names_cache[$product_id])) {
+                    $product_name = $product_names_cache[$product_id];
+                }
+                
+                $item_data = array(
+                    'order_id' => $zaikon_order_id,
+                    'product_id' => $product_id,
+                    'product_name' => $product_name,
+                    'qty' => absint($item['quantity']),
+                    'unit_price_rs' => floatval($item['unit_price']),
+                    'line_total_rs' => floatval($item['line_total'])
+                );
+                
+                $item_result = Zaikon_Order_Items::create($item_data);
+                if (!$item_result) {
+                    $items_failed++;
+                    error_log('ZAIKON: sync_order_to_zaikon - Failed to create item for product #' . $product_id . ' in order #' . $order->order_number);
+                }
+            }
+        }
+        
+        // Log any item creation failures (order still synced but may be incomplete)
+        if ($items_failed > 0) {
+            error_log('ZAIKON: sync_order_to_zaikon - ' . $items_failed . ' item(s) failed to sync for order #' . $order->order_number);
+        }
+        
+        error_log('ZAIKON: sync_order_to_zaikon - Successfully synced order #' . $order->order_number . ' to zaikon_orders (ID: ' . $zaikon_order_id . ')');
+        
+        return $zaikon_order_id;
     }
     
     /**
@@ -740,16 +878,9 @@ class RPOS_REST_API {
         }
         
         // Sync status to zaikon_orders table for tracking functionality
-        // Map KDS status to tracking status
-        $tracking_status_map = array(
-            'new' => 'pending',
-            'cooking' => 'cooking',
-            'ready' => 'ready',
-            'completed' => 'delivered'
-        );
-        
-        if (isset($tracking_status_map[$new_status])) {
-            $tracking_status = $tracking_status_map[$new_status];
+        // Map KDS status to tracking status using class constant
+        if (isset(self::STATUS_MAP_RPOS_TO_ZAIKON[$new_status])) {
+            $tracking_status = self::STATUS_MAP_RPOS_TO_ZAIKON[$new_status];
             
             // Get the order number from rpos_orders to find matching zaikon_orders
             $order_number = $wpdb->get_var($wpdb->prepare(
@@ -1443,6 +1574,8 @@ class RPOS_REST_API {
     
     /**
      * Update order status (active/completed/cancelled/replacement)
+     * 
+     * Updates status in zaikon_orders and syncs to rpos_orders for KDS visibility.
      */
     public function update_order_order_status($request) {
         global $wpdb;
@@ -1471,6 +1604,9 @@ class RPOS_REST_API {
             return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
         }
         
+        // Sync status to rpos_orders for KDS visibility
+        $this->sync_status_to_legacy_order($order_id, $order_status);
+        
         return rest_ensure_response(array(
             'success' => true,
             'message' => 'Order status updated successfully'
@@ -1479,6 +1615,8 @@ class RPOS_REST_API {
     
     /**
      * Mark order as delivered
+     * 
+     * Updates status in zaikon_orders and syncs to rpos_orders for KDS visibility.
      */
     public function mark_order_delivered($request) {
         global $wpdb;
@@ -1500,6 +1638,9 @@ class RPOS_REST_API {
         if ($result === false) {
             return new WP_Error('update_failed', 'Failed to mark order as delivered', array('status' => 500));
         }
+        
+        // Sync status to rpos_orders for KDS visibility
+        $this->sync_status_to_legacy_order($order_id, 'completed');
         
         // Also update zaikon_deliveries table
         $delivery_result = $wpdb->update(
@@ -2229,5 +2370,57 @@ class RPOS_REST_API {
             'success' => true,
             'eta' => $eta
         ));
+    }
+    
+    /**
+     * Sync order status from zaikon_orders to rpos_orders
+     * 
+     * Maps zaikon status to rpos status and updates the corresponding
+     * record in rpos_orders for KDS visibility and synchronization.
+     * 
+     * @param int $zaikon_order_id The zaikon order ID
+     * @param string $status The status to sync
+     * @return bool True on success, false on failure
+     */
+    private function sync_status_to_legacy_order($zaikon_order_id, $status) {
+        global $wpdb;
+        
+        // Get the order number from zaikon_orders
+        $order_number = $wpdb->get_var($wpdb->prepare(
+            "SELECT order_number FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            $zaikon_order_id
+        ));
+        
+        if (!$order_number) {
+            error_log('ZAIKON: sync_status_to_legacy_order - Order #' . $zaikon_order_id . ' not found in zaikon_orders');
+            return false;
+        }
+        
+        // Map zaikon status to rpos status using class constant
+        $rpos_status = isset(self::STATUS_MAP_ZAIKON_TO_RPOS[$status]) 
+            ? self::STATUS_MAP_ZAIKON_TO_RPOS[$status] 
+            : $status;
+        
+        // Find matching rpos_order by order_number
+        $rpos_order_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}rpos_orders WHERE order_number = %s",
+            $order_number
+        ));
+        
+        if (!$rpos_order_id) {
+            error_log('ZAIKON: sync_status_to_legacy_order - No matching rpos_order found for order #' . $order_number);
+            return false;
+        }
+        
+        // Update rpos_orders status
+        $result = RPOS_Orders::update_status($rpos_order_id, $rpos_status);
+        
+        if ($result) {
+            error_log('ZAIKON: sync_status_to_legacy_order - Successfully synced status "' . $status . '" -> "' . $rpos_status . '" for order #' . $order_number);
+        } else {
+            error_log('ZAIKON: sync_status_to_legacy_order - Failed to sync status for order #' . $order_number);
+        }
+        
+        return $result;
     }
 }
