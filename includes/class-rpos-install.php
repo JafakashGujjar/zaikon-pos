@@ -999,6 +999,8 @@ class RPOS_Install {
             cooking_started_at datetime DEFAULT NULL,
             ready_at datetime DEFAULT NULL,
             dispatched_at datetime DEFAULT NULL,
+            rider_assigned_at datetime DEFAULT NULL,
+            delivered_at datetime DEFAULT NULL,
             special_instructions text DEFAULT NULL,
             cashier_id bigint(20) unsigned,
             created_at datetime NOT NULL,
@@ -1697,6 +1699,26 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `dispatched_at` datetime DEFAULT NULL AFTER `ready_at`");
         }
         
+        // Add rider_assigned_at for tracking rider assignment events
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'rider_assigned_at'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `rider_assigned_at` datetime DEFAULT NULL AFTER `dispatched_at`");
+        }
+        
+        // Add delivered_at for tracking final delivery completion
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$orders_table}` LIKE %s",
+            'delivered_at'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$orders_table}` ADD COLUMN `delivered_at` datetime DEFAULT NULL AFTER `rider_assigned_at`");
+        }
+        
         // ========== Zaikon Deliveries Table Updates ==========
         $deliveries_table = $wpdb->prefix . 'zaikon_deliveries';
         
@@ -1739,6 +1761,65 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$deliveries_table}` ADD COLUMN `rider_avatar` varchar(500) DEFAULT NULL AFTER `rider_phone`");
         }
         
+        // ========== Event-Based Tracking: Zaikon Status Audit Updates ==========
+        $audit_table = $wpdb->prefix . 'zaikon_status_audit';
+        
+        // Add event_type column for event-based tracking
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
+            'event_type'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$audit_table}` ADD COLUMN `event_type` varchar(50) DEFAULT NULL AFTER `source`");
+        }
+        
+        // Add notes column for additional event context
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
+            'notes'
+        ));
+        
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE `{$audit_table}` ADD COLUMN `notes` text DEFAULT NULL AFTER `event_type`");
+        }
+        
+        // Standardize column names: status_from -> old_status, status_to -> new_status
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
+            'old_status'
+        ));
+        
+        if (empty($column_exists)) {
+            // Check if status_from exists first
+            $old_column = $wpdb->get_results($wpdb->prepare(
+                "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
+                'status_from'
+            ));
+            
+            if (!empty($old_column)) {
+                $wpdb->query("ALTER TABLE `{$audit_table}` CHANGE COLUMN `status_from` `old_status` varchar(50) DEFAULT NULL");
+            }
+        }
+        
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
+            'new_status'
+        ));
+        
+        if (empty($column_exists)) {
+            // Check if status_to exists first
+            $old_column = $wpdb->get_results($wpdb->prepare(
+                "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
+                'status_to'
+            ));
+            
+            if (!empty($old_column)) {
+                $wpdb->query("ALTER TABLE `{$audit_table}` CHANGE COLUMN `status_to` `new_status` varchar(50) NOT NULL");
+            }
+        }
+        
         error_log('RPOS: Delivery tracking migration completed successfully');
+        error_log('RPOS: Event-based order tracking migration completed successfully');
     }
 }
