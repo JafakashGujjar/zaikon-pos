@@ -896,10 +896,18 @@ class RPOS_REST_API {
                 ));
                 
                 if ($zaikon_order_id) {
-                    // Update zaikon_orders with tracking status
-                    Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status);
-                    error_log('RPOS REST API: Synced status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status);
+                    // Update zaikon_orders with tracking status and timestamps
+                    $sync_result = Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status);
+                    if (is_wp_error($sync_result)) {
+                        error_log('RPOS REST API: FAILED to sync status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status . '. Error: ' . $sync_result->get_error_message());
+                    } else {
+                        error_log('RPOS REST API: Synced status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status);
+                    }
+                } else {
+                    error_log('RPOS REST API: WARNING - No matching zaikon_orders record found for order_number: ' . $order_number . ' (KDS order #' . $id . ')');
                 }
+            } else {
+                error_log('RPOS REST API: WARNING - Could not get order_number for rpos_orders #' . $id);
             }
         }
         
