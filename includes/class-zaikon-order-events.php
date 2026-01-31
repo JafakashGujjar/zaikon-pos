@@ -250,12 +250,17 @@ class Zaikon_Order_Events {
     private static function log_event_audit($order_id, $event, $old_status, $new_status, $source, $user_id, $notes) {
         global $wpdb;
         
-        $wpdb->insert(
+        // Use column names matching the table schema (status_from, status_to)
+        // The table may have either schema depending on migration status:
+        // - Original: status_from, status_to
+        // - Migrated: old_status, new_status
+        // We try the original column names first for compatibility
+        $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_status_audit',
             array(
                 'order_id' => $order_id,
-                'old_status' => $old_status,
-                'new_status' => $new_status,
+                'status_from' => $old_status,
+                'status_to' => $new_status,
                 'source' => $source,
                 'actor_user_id' => $user_id,
                 'event_type' => $event,
@@ -264,6 +269,11 @@ class Zaikon_Order_Events {
             ),
             array('%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s')
         );
+        
+        if ($result === false) {
+            // Log the error for debugging
+            error_log('ZAIKON EVENTS [WARNING]: Failed to log event audit for order #' . $order_id . '. Error: ' . $wpdb->last_error);
+        }
     }
     
     /**

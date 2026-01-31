@@ -206,6 +206,82 @@ class Zaikon_Order_Status_Service {
         
         $issues = array();
         
+        // ========== Enterprise Requirement: Detect table desync ==========
+        
+        // Find orders in rpos_orders but NOT in zaikon_orders (missing sync)
+        $desync_rpos_only = $wpdb->get_results(
+            "SELECT r.id AS rpos_id, r.order_number, r.status AS rpos_status, r.created_at 
+             FROM {$wpdb->prefix}rpos_orders r
+             LEFT JOIN {$wpdb->prefix}zaikon_orders z ON r.order_number = z.order_number
+             WHERE z.id IS NULL
+             AND r.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+             ORDER BY r.id DESC LIMIT 50"
+        );
+        
+        foreach ($desync_rpos_only as $order) {
+            $issues[] = array(
+                'order_id' => $order->rpos_id,
+                'order_number' => $order->order_number,
+                'issue' => 'desync_missing_in_zaikon',
+                'status' => $order->rpos_status,
+                'missing_field' => null,
+                'table' => 'rpos_orders',
+                'description' => 'Order exists in rpos_orders but not synced to zaikon_orders'
+            );
+        }
+        
+        // Find orders in zaikon_orders but NOT in rpos_orders (opposite desync, less common)
+        $desync_zaikon_only = $wpdb->get_results(
+            "SELECT z.id AS zaikon_id, z.order_number, z.order_status AS zaikon_status, z.created_at 
+             FROM {$wpdb->prefix}zaikon_orders z
+             LEFT JOIN {$wpdb->prefix}rpos_orders r ON z.order_number = r.order_number
+             WHERE r.id IS NULL
+             AND z.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+             ORDER BY z.id DESC LIMIT 50"
+        );
+        
+        foreach ($desync_zaikon_only as $order) {
+            $issues[] = array(
+                'order_id' => $order->zaikon_id,
+                'order_number' => $order->order_number,
+                'issue' => 'desync_missing_in_rpos',
+                'status' => $order->zaikon_status,
+                'missing_field' => null,
+                'table' => 'zaikon_orders',
+                'description' => 'Order exists in zaikon_orders but not in rpos_orders (KDS may not see it)'
+            );
+        }
+        
+        // Find orders with status mismatch between tables
+        $status_mismatch = $wpdb->get_results(
+            "SELECT r.id AS rpos_id, z.id AS zaikon_id, r.order_number, 
+                    r.status AS rpos_status, z.order_status AS zaikon_status,
+                    r.created_at
+             FROM {$wpdb->prefix}rpos_orders r
+             INNER JOIN {$wpdb->prefix}zaikon_orders z ON r.order_number = z.order_number
+             WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+             AND (
+                 (r.status = 'completed' AND z.order_status NOT IN ('completed', 'delivered'))
+                 OR (r.status = 'cooking' AND z.order_status NOT IN ('cooking', 'ready', 'dispatched', 'delivered', 'completed'))
+                 OR (r.status = 'ready' AND z.order_status NOT IN ('ready', 'dispatched', 'delivered', 'completed'))
+             )
+             ORDER BY r.id DESC LIMIT 50"
+        );
+        
+        foreach ($status_mismatch as $order) {
+            $issues[] = array(
+                'order_id' => $order->zaikon_id,
+                'order_number' => $order->order_number,
+                'issue' => 'status_mismatch_between_tables',
+                'status' => $order->zaikon_status,
+                'rpos_status' => $order->rpos_status,
+                'missing_field' => null,
+                'description' => 'Status mismatch: rpos=' . $order->rpos_status . ', zaikon=' . $order->zaikon_status
+            );
+        }
+        
+        // ========== Original timestamp checks ==========
+        
         // Find orders with cooking status but no cooking_started_at
         $cooking_issues = $wpdb->get_results(
             "SELECT id, order_number, order_status, cooking_started_at 
@@ -386,9 +462,213 @@ class Zaikon_Order_Status_Service {
                     }
                 }
             }
+            
+            // Handle desync: order exists in rpos_orders but not in zaikon_orders
+            if ($issue['issue'] === 'desync_missing_in_zaikon') {
+                $order_number = $issue['order_number'];
+                
+                if ($dry_run) {
+                    $results['details'][] = array(
+                        'order_id' => $order_id,
+                        'order_number' => $order_number,
+                        'action' => 'would_sync_to_zaikon',
+                        'issue' => $issue['issue']
+                    );
+                    $results['skipped']++;
+                } else {
+                    // Get full order from rpos_orders and sync to zaikon_orders
+                    $rpos_order = RPOS_Orders::get($order_id);
+                    
+                    if ($rpos_order) {
+                        $sync_result = self::sync_rpos_order_to_zaikon($rpos_order);
+                        
+                        if ($sync_result) {
+                            $results['fixed']++;
+                            $results['details'][] = array(
+                                'order_id' => $order_id,
+                                'order_number' => $order_number,
+                                'action' => 'synced_to_zaikon',
+                                'zaikon_order_id' => $sync_result
+                            );
+                            
+                            Zaikon_System_Events::log('order', $order_id, 'auto_repair_sync', array(
+                                'issue' => $issue['issue'],
+                                'from_table' => 'rpos_orders',
+                                'to_table' => 'zaikon_orders',
+                                'zaikon_order_id' => $sync_result
+                            ));
+                        } else {
+                            $results['errors']++;
+                            $results['details'][] = array(
+                                'order_id' => $order_id,
+                                'order_number' => $order_number,
+                                'action' => 'error',
+                                'error' => 'Failed to sync order to zaikon_orders'
+                            );
+                        }
+                    } else {
+                        $results['errors']++;
+                        $results['details'][] = array(
+                            'order_id' => $order_id,
+                            'order_number' => $order_number,
+                            'action' => 'error',
+                            'error' => 'Could not fetch rpos_order data'
+                        );
+                    }
+                }
+            }
+            
+            // Handle status mismatch between tables - sync from latest timestamp
+            if ($issue['issue'] === 'status_mismatch_between_tables') {
+                $order_number = $issue['order_number'];
+                $rpos_status = $issue['rpos_status'];
+                $zaikon_status = $issue['status'];
+                
+                if ($dry_run) {
+                    $results['details'][] = array(
+                        'order_id' => $order_id,
+                        'order_number' => $order_number,
+                        'action' => 'would_sync_status',
+                        'rpos_status' => $rpos_status,
+                        'zaikon_status' => $zaikon_status
+                    );
+                    $results['skipped']++;
+                } else {
+                    // Use rpos_orders status as source of truth for KDS-driven orders
+                    // Map rpos status to zaikon status using KDS mapping
+                    $target_zaikon_status = self::map_rpos_to_zaikon_status($rpos_status);
+                    
+                    if ($target_zaikon_status) {
+                        $update_result = Zaikon_Order_Tracking::update_status($order_id, $target_zaikon_status, 0, self::SOURCE_SYSTEM);
+                        
+                        if (!is_wp_error($update_result)) {
+                            $results['fixed']++;
+                            $results['details'][] = array(
+                                'order_id' => $order_id,
+                                'order_number' => $order_number,
+                                'action' => 'synced_status',
+                                'from' => $zaikon_status,
+                                'to' => $target_zaikon_status
+                            );
+                            
+                            Zaikon_System_Events::log('order', $order_id, 'auto_repair_status_sync', array(
+                                'issue' => $issue['issue'],
+                                'rpos_status' => $rpos_status,
+                                'old_zaikon_status' => $zaikon_status,
+                                'new_zaikon_status' => $target_zaikon_status
+                            ));
+                        } else {
+                            $results['errors']++;
+                            $results['details'][] = array(
+                                'order_id' => $order_id,
+                                'order_number' => $order_number,
+                                'action' => 'error',
+                                'error' => $update_result->get_error_message()
+                            );
+                        }
+                    } else {
+                        $results['skipped']++;
+                        $results['details'][] = array(
+                            'order_id' => $order_id,
+                            'order_number' => $order_number,
+                            'action' => 'skipped',
+                            'reason' => 'No valid status mapping for: ' . $rpos_status
+                        );
+                    }
+                }
+            }
         }
         
         return $results;
+    }
+    
+    /**
+     * Map rpos_orders status to zaikon_orders status
+     * 
+     * @param string $rpos_status Status from rpos_orders
+     * @return string|null Mapped zaikon status or null if no mapping
+     */
+    private static function map_rpos_to_zaikon_status($rpos_status) {
+        $mapping = array(
+            'new' => 'pending',
+            'cooking' => 'cooking',
+            'ready' => 'ready',
+            'completed' => 'dispatched', // KDS complete triggers dispatch for delivery
+            'cancelled' => 'cancelled'
+        );
+        
+        return isset($mapping[$rpos_status]) ? $mapping[$rpos_status] : null;
+    }
+    
+    /**
+     * Sync an order from rpos_orders to zaikon_orders
+     * Used by auto-repair to fix desync issues
+     * 
+     * @param object $rpos_order The order object from RPOS_Orders::get()
+     * @return int|false The zaikon order ID on success, false on failure
+     */
+    private static function sync_rpos_order_to_zaikon($rpos_order) {
+        if (!$rpos_order || empty($rpos_order->order_number)) {
+            return false;
+        }
+        
+        // Check if already exists (safety check)
+        global $wpdb;
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}zaikon_orders WHERE order_number = %s",
+            $rpos_order->order_number
+        ));
+        
+        if ($existing) {
+            return $existing; // Already synced
+        }
+        
+        // Map order data to zaikon_orders format
+        $zaikon_order_data = array(
+            'order_number' => $rpos_order->order_number,
+            'order_type' => sanitize_text_field($rpos_order->order_type ?? 'takeaway'),
+            'items_subtotal_rs' => floatval($rpos_order->subtotal ?? 0),
+            'delivery_charges_rs' => floatval($rpos_order->delivery_charge ?? 0),
+            'discounts_rs' => floatval($rpos_order->discount ?? 0),
+            'taxes_rs' => 0,
+            'grand_total_rs' => floatval($rpos_order->total ?? 0),
+            'payment_type' => sanitize_text_field($rpos_order->payment_type ?? 'cash'),
+            'payment_status' => sanitize_text_field($rpos_order->payment_status ?? 'paid'),
+            'order_status' => self::map_rpos_to_zaikon_status($rpos_order->status) ?? 'pending',
+            'special_instructions' => sanitize_textarea_field($rpos_order->special_instructions ?? ''),
+            'cashier_id' => absint($rpos_order->cashier_id ?? 0)
+        );
+        
+        // Create in zaikon_orders
+        $zaikon_order_id = Zaikon_Orders::create($zaikon_order_data);
+        
+        if (!$zaikon_order_id) {
+            error_log('ZAIKON AUTO-REPAIR: Failed to create zaikon order for order #' . $rpos_order->order_number);
+            return false;
+        }
+        
+        // Sync order items if available
+        if (!empty($rpos_order->items)) {
+            foreach ($rpos_order->items as $item) {
+                $item_data = array(
+                    'order_id' => $zaikon_order_id,
+                    'product_id' => absint($item->product_id ?? 0),
+                    'product_name' => sanitize_text_field($item->product_name ?? ''),
+                    'qty' => absint($item->quantity ?? 1),
+                    'unit_price_rs' => floatval($item->unit_price ?? 0),
+                    'line_total_rs' => floatval($item->line_total ?? 0)
+                );
+                
+                Zaikon_Order_Items::create($item_data);
+            }
+        }
+        
+        // Generate tracking token
+        Zaikon_Order_Tracking::generate_tracking_token($zaikon_order_id);
+        
+        error_log('ZAIKON AUTO-REPAIR: Successfully synced order #' . $rpos_order->order_number . ' to zaikon_orders (ID: ' . $zaikon_order_id . ')');
+        
+        return $zaikon_order_id;
     }
     
     /**
