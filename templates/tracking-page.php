@@ -1056,6 +1056,45 @@
             return isNaN(parsed) ? null : parsed;
         }
         
+        // Helper function to calculate countdown timer state with overtime extension
+        function calculateCountdownState(startTime, defaultTimeMinutes, extensionMinutes) {
+            if (!startTime || isNaN(startTime)) {
+                return { isValid: false };
+            }
+            
+            const now = Date.now();
+            const elapsedMs = now - startTime;
+            const elapsedMinutes = elapsedMs / 60000;
+            
+            // Calculate current ETA with automatic overtime extension
+            let currentEtaMinutes = defaultTimeMinutes;
+            if (elapsedMinutes > defaultTimeMinutes) {
+                const overtimeMinutes = elapsedMinutes - defaultTimeMinutes;
+                const extensionsNeeded = Math.ceil(overtimeMinutes / extensionMinutes);
+                currentEtaMinutes = defaultTimeMinutes + (extensionsNeeded * extensionMinutes);
+            }
+            
+            const endTime = startTime + (currentEtaMinutes * 60 * 1000);
+            const remainingMs = endTime - now;
+            const isOvertime = elapsedMinutes > defaultTimeMinutes;
+            
+            let displayTime;
+            if (!isOvertime && remainingMs > 0) {
+                // Normal countdown
+                const mins = Math.floor(remainingMs / 60000);
+                const secs = Math.floor((remainingMs % 60000) / 1000);
+                displayTime = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                // Overtime display
+                const overtimeMs = Math.max(0, now - (startTime + (defaultTimeMinutes * 60 * 1000)));
+                const mins = Math.floor(overtimeMs / 60000);
+                const secs = Math.floor((overtimeMs % 60000) / 1000);
+                displayTime = `+${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            return { isValid: true, displayTime, isOvertime };
+        }
+        
         // Cooking countdown timer logic (Step 2)
         function startCookingCountdown() {
             if (countdownInterval) {
@@ -1073,44 +1112,21 @@
             
             if (!timerElement || !containerElement) return;
             
-            // Guard against null/undefined cookingStartedAt
-            if (!cookingStartedAt || isNaN(cookingStartedAt)) {
+            const state = calculateCountdownState(cookingStartedAt, DEFAULT_COOKING_TIME_MINUTES, OVERTIME_EXTENSION_MINUTES);
+            
+            if (!state.isValid) {
                 timerElement.textContent = '20:00';
                 return;
             }
             
-            const now = Date.now();
-            const elapsedMs = now - cookingStartedAt;
-            const elapsedMinutes = elapsedMs / 60000;
+            timerElement.textContent = state.displayTime;
             
-            // Calculate current ETA with automatic overtime extension
-            // Default: 20 min, then +5 min extensions
-            let currentEtaMinutes = DEFAULT_COOKING_TIME_MINUTES;
-            if (elapsedMinutes > DEFAULT_COOKING_TIME_MINUTES) {
-                // Calculate how many extensions needed
-                const overtimeMinutes = elapsedMinutes - DEFAULT_COOKING_TIME_MINUTES;
-                const extensionsNeeded = Math.ceil(overtimeMinutes / OVERTIME_EXTENSION_MINUTES);
-                currentEtaMinutes = DEFAULT_COOKING_TIME_MINUTES + (extensionsNeeded * OVERTIME_EXTENSION_MINUTES);
-            }
-            
-            const endTime = cookingStartedAt + (currentEtaMinutes * 60 * 1000);
-            const remainingMs = endTime - now;
-            
-            if (remainingMs > 0 && elapsedMinutes <= DEFAULT_COOKING_TIME_MINUTES) {
-                // Normal countdown (within default time)
-                const mins = Math.floor(remainingMs / 60000);
-                const secs = Math.floor((remainingMs % 60000) / 1000);
-                timerElement.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                containerElement.classList.remove('overtime');
-                if (messageElement) messageElement.textContent = 'Your food is being prepared with care!';
-            } else {
-                // Overtime - show time exceeded with auto-extension indicator
-                const overtimeMs = Math.max(0, now - (cookingStartedAt + (DEFAULT_COOKING_TIME_MINUTES * 60 * 1000)));
-                const mins = Math.floor(overtimeMs / 60000);
-                const secs = Math.floor((overtimeMs % 60000) / 1000);
-                timerElement.textContent = `+${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (state.isOvertime) {
                 containerElement.classList.add('overtime');
                 if (messageElement) messageElement.textContent = 'Taking a bit longer. Almost ready!';
+            } else {
+                containerElement.classList.remove('overtime');
+                if (messageElement) messageElement.textContent = 'Your food is being prepared with care!';
             }
         }
         
@@ -1134,43 +1150,21 @@
             // Use dispatched_at if available, otherwise use ready_at
             const deliveryStartTime = dispatchedAt || readyAt;
             
-            if (!deliveryStartTime || isNaN(deliveryStartTime)) {
+            const state = calculateCountdownState(deliveryStartTime, DEFAULT_DELIVERY_TIME_MINUTES, OVERTIME_EXTENSION_MINUTES);
+            
+            if (!state.isValid) {
                 timerElement.textContent = '10:00';
                 return;
             }
             
-            const now = Date.now();
-            const elapsedMs = now - deliveryStartTime;
-            const elapsedMinutes = elapsedMs / 60000;
+            timerElement.textContent = state.displayTime;
             
-            // Calculate current ETA with automatic overtime extension
-            // Default: 10 min, then +5 min extensions
-            let currentEtaMinutes = DEFAULT_DELIVERY_TIME_MINUTES;
-            if (elapsedMinutes > DEFAULT_DELIVERY_TIME_MINUTES) {
-                // Calculate how many extensions needed
-                const overtimeMinutes = elapsedMinutes - DEFAULT_DELIVERY_TIME_MINUTES;
-                const extensionsNeeded = Math.ceil(overtimeMinutes / OVERTIME_EXTENSION_MINUTES);
-                currentEtaMinutes = DEFAULT_DELIVERY_TIME_MINUTES + (extensionsNeeded * OVERTIME_EXTENSION_MINUTES);
-            }
-            
-            const endTime = deliveryStartTime + (currentEtaMinutes * 60 * 1000);
-            const remainingMs = endTime - now;
-            
-            if (remainingMs > 0 && elapsedMinutes <= DEFAULT_DELIVERY_TIME_MINUTES) {
-                // Normal countdown (within default time)
-                const mins = Math.floor(remainingMs / 60000);
-                const secs = Math.floor((remainingMs % 60000) / 1000);
-                timerElement.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                containerElement.classList.remove('overtime');
-                if (messageElement) messageElement.textContent = 'Your rider is on the way!';
-            } else {
-                // Overtime - show time exceeded with auto-extension indicator
-                const overtimeMs = Math.max(0, now - (deliveryStartTime + (DEFAULT_DELIVERY_TIME_MINUTES * 60 * 1000)));
-                const mins = Math.floor(overtimeMs / 60000);
-                const secs = Math.floor((overtimeMs % 60000) / 1000);
-                timerElement.textContent = `+${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (state.isOvertime) {
                 containerElement.classList.add('overtime');
                 if (messageElement) messageElement.textContent = 'Rider delayed. Thank you for your patience!';
+            } else {
+                containerElement.classList.remove('overtime');
+                if (messageElement) messageElement.textContent = 'Your rider is on the way!';
             }
         }
         
