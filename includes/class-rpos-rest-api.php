@@ -509,6 +509,9 @@ class RPOS_REST_API {
     
     /**
      * Create order
+     * 
+     * Creates orders in both rpos_orders (for KDS) and zaikon_orders (for POS popup)
+     * to ensure synchronization across all system components.
      */
     public function create_order($request) {
         $data = $request->get_json_params();
@@ -518,7 +521,8 @@ class RPOS_REST_API {
             return $this->create_delivery_order_v2($data);
         }
         
-        // For non-delivery orders, use legacy system
+        // For non-delivery orders (dine-in, takeaway), create in both systems
+        // 1. Create in legacy rpos_orders for KDS compatibility
         $order_id = RPOS_Orders::create($data);
         
         if (!$order_id) {
@@ -526,7 +530,81 @@ class RPOS_REST_API {
         }
         
         $order = RPOS_Orders::get($order_id);
+        
+        // 2. Also create in zaikon_orders for POS popup synchronization
+        // This ensures orders appear in "My Orders" modal on POS screen
+        $this->sync_order_to_zaikon($order, $data);
+        
         return rest_ensure_response($order);
+    }
+    
+    /**
+     * Sync order from rpos_orders to zaikon_orders table
+     * 
+     * Creates a corresponding entry in zaikon_orders for orders created through
+     * the legacy system, ensuring synchronization across POS, KDS, and Backend.
+     * 
+     * @param object $order The order object from rpos_orders
+     * @param array $data Original order data with items
+     * @return int|false The zaikon order ID on success, false on failure
+     */
+    private function sync_order_to_zaikon($order, $data) {
+        if (!$order || !isset($order->order_number)) {
+            error_log('ZAIKON: sync_order_to_zaikon - Invalid order object');
+            return false;
+        }
+        
+        // Map order data to zaikon_orders format
+        $zaikon_order_data = array(
+            'order_number' => $order->order_number,
+            'order_type' => sanitize_text_field($order->order_type ?? $data['order_type'] ?? 'takeaway'),
+            'items_subtotal_rs' => floatval($order->subtotal ?? 0),
+            'delivery_charges_rs' => floatval($order->delivery_charge ?? 0),
+            'discounts_rs' => floatval($order->discount ?? 0),
+            'taxes_rs' => 0,
+            'grand_total_rs' => floatval($order->total ?? 0),
+            'payment_type' => sanitize_text_field($order->payment_type ?? $data['payment_type'] ?? 'cash'),
+            'payment_status' => sanitize_text_field($order->payment_status ?? $data['payment_status'] ?? 'paid'),
+            'order_status' => 'active',
+            'special_instructions' => sanitize_textarea_field($order->special_instructions ?? ''),
+            'cashier_id' => absint($order->cashier_id ?? get_current_user_id())
+        );
+        
+        // Create in zaikon_orders
+        $zaikon_order_id = Zaikon_Orders::create($zaikon_order_data);
+        
+        if (!$zaikon_order_id) {
+            error_log('ZAIKON: sync_order_to_zaikon - Failed to create zaikon order for order #' . $order->order_number);
+            return false;
+        }
+        
+        // Create order items in zaikon_order_items
+        if (!empty($data['items'])) {
+            foreach ($data['items'] as $item) {
+                $item_data = array(
+                    'order_id' => $zaikon_order_id,
+                    'product_id' => absint($item['product_id']),
+                    'product_name' => isset($item['product_name']) ? sanitize_text_field($item['product_name']) : '',
+                    'qty' => absint($item['quantity']),
+                    'unit_price_rs' => floatval($item['unit_price']),
+                    'line_total_rs' => floatval($item['line_total'])
+                );
+                
+                // Get product name if not provided
+                if (empty($item_data['product_name'])) {
+                    $product = RPOS_Products::get($item['product_id']);
+                    if ($product) {
+                        $item_data['product_name'] = $product->name;
+                    }
+                }
+                
+                Zaikon_Order_Items::create($item_data);
+            }
+        }
+        
+        error_log('ZAIKON: sync_order_to_zaikon - Successfully synced order #' . $order->order_number . ' to zaikon_orders (ID: ' . $zaikon_order_id . ')');
+        
+        return $zaikon_order_id;
     }
     
     /**
