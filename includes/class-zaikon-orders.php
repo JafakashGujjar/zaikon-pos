@@ -245,23 +245,44 @@ class Zaikon_Orders {
             $orders = $wpdb->get_results($query);
         }
         
-        // Load items for each order (KDS needs this)
-        foreach ($orders as &$order) {
-            $order->items = Zaikon_Order_Items::get_by_order($order->id);
+        // Optimize: Load all items for all orders in a single query (prevents N+1)
+        if (!empty($orders)) {
+            $order_ids = array_map(function($order) { return $order->id; }, $orders);
+            $order_ids_placeholder = implode(',', array_fill(0, count($order_ids), '%d'));
             
-            // Map zaikon field names to rpos field names for backward compatibility
-            // KDS expects certain field names from the old rpos_orders table
-            if (!isset($order->status)) {
-                $order->status = $order->order_status; // Map order_status to status
+            $items_query = "SELECT * FROM {$wpdb->prefix}zaikon_order_items 
+                           WHERE order_id IN ($order_ids_placeholder)
+                           ORDER BY order_id, id";
+            
+            $all_items = $wpdb->get_results($wpdb->prepare($items_query, $order_ids));
+            
+            // Group items by order_id
+            $items_by_order = array();
+            foreach ($all_items as $item) {
+                if (!isset($items_by_order[$item->order_id])) {
+                    $items_by_order[$item->order_id] = array();
+                }
+                $items_by_order[$item->order_id][] = $item;
             }
-            if (!isset($order->subtotal)) {
-                $order->subtotal = $order->items_subtotal_rs; // Map items_subtotal_rs to subtotal
-            }
-            if (!isset($order->total)) {
-                $order->total = $order->grand_total_rs; // Map grand_total_rs to total
-            }
-            if (!isset($order->discount)) {
-                $order->discount = $order->discounts_rs; // Map discounts_rs to discount
+            
+            // Attach items to their respective orders
+            foreach ($orders as &$order) {
+                $order->items = isset($items_by_order[$order->id]) ? $items_by_order[$order->id] : array();
+                
+                // Map zaikon field names to rpos field names for backward compatibility
+                // KDS expects certain field names from the old rpos_orders table
+                if (!isset($order->status)) {
+                    $order->status = $order->order_status; // Map order_status to status
+                }
+                if (!isset($order->subtotal)) {
+                    $order->subtotal = $order->items_subtotal_rs; // Map items_subtotal_rs to subtotal
+                }
+                if (!isset($order->total)) {
+                    $order->total = $order->grand_total_rs; // Map grand_total_rs to total
+                }
+                if (!isset($order->discount)) {
+                    $order->discount = $order->discounts_rs; // Map discounts_rs to discount
+                }
             }
         }
         

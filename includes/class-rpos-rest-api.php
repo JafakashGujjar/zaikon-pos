@@ -667,7 +667,8 @@ class RPOS_REST_API {
         // Calculate totals
         $subtotal = floatval($data['subtotal'] ?? 0);
         $discount = floatval($data['discount'] ?? 0);
-        $total = $subtotal - $discount;
+        $tax = floatval($data['tax'] ?? $data['taxes'] ?? 0);
+        $total = $subtotal + $tax - $discount; // Include tax in total
         
         // Prepare Zaikon order data (SINGLE SOURCE OF TRUTH)
         $zaikon_order_data = array(
@@ -676,7 +677,7 @@ class RPOS_REST_API {
             'items_subtotal_rs' => $subtotal,
             'delivery_charges_rs' => 0,
             'discounts_rs' => $discount,
-            'taxes_rs' => floatval($data['tax'] ?? $data['taxes'] ?? 0),
+            'taxes_rs' => $tax,
             'grand_total_rs' => $total,
             'payment_type' => sanitize_text_field($data['payment_type'] ?? 'cash'),
             'payment_status' => sanitize_text_field($data['payment_status'] ?? 'paid'),
@@ -688,11 +689,42 @@ class RPOS_REST_API {
         // Prepare items
         $items = array();
         if (!empty($data['items'])) {
+            // Optimize: Collect all product IDs first, then load in single query
+            $product_ids = array();
             foreach ($data['items'] as $item) {
-                $product = RPOS_Products::get($item['product_id']);
+                if (!empty($item['product_id'])) {
+                    $product_ids[] = absint($item['product_id']);
+                }
+            }
+            
+            // Bulk load products to avoid N+1 queries
+            $products_cache = array();
+            if (!empty($product_ids)) {
+                $product_ids_unique = array_unique($product_ids);
+                $product_ids_placeholder = implode(',', array_fill(0, count($product_ids_unique), '%d'));
+                
+                global $wpdb;
+                $products_query = "SELECT * FROM {$wpdb->prefix}rpos_products 
+                                  WHERE id IN ($product_ids_placeholder)";
+                $products = $wpdb->get_results($wpdb->prepare($products_query, $product_ids_unique));
+                
+                foreach ($products as $product) {
+                    $products_cache[$product->id] = $product;
+                }
+            }
+            
+            // Build items array with cached product data
+            foreach ($data['items'] as $item) {
+                $product_id = absint($item['product_id']);
+                $product_name = '';
+                
+                if (isset($products_cache[$product_id])) {
+                    $product_name = $products_cache[$product_id]->name;
+                }
+                
                 $items[] = array(
-                    'product_id' => $item['product_id'],
-                    'product_name' => $product ? $product->name : '',
+                    'product_id' => $product_id,
+                    'product_name' => $product_name,
                     'qty' => intval($item['quantity']),
                     'unit_price_rs' => floatval($item['unit_price']),
                     'line_total_rs' => floatval($item['line_total'])
