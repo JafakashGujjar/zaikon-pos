@@ -793,6 +793,12 @@
         let countdownInterval = null;
         let deliveryCountdownInterval = null;
         
+        // Track previous state for change detection
+        let previousOrderStatus = null;
+        let previousCookingStartedAt = null;
+        let previousReadyAt = null;
+        let previousDispatchedAt = null;
+        
         // Server timestamps for countdown (from DB timestamps)
         let cookingStartedAt = null;
         let readyAt = null;
@@ -860,7 +866,9 @@
         function getTrackingStep(status) {
             // Step 1: Confirmed (pending, confirmed)
             // Step 2: Preparing (cooking)
-            // Step 3: On The Way (ready, dispatched, delivered)
+            // Step 3: On The Way (ready, dispatched, delivered, completed)
+            // Note: KDS "completed" is typically mapped to "dispatched" by the API,
+            // but we handle it here as well for robustness
             switch(status) {
                 case 'pending':
                 case 'confirmed':
@@ -870,10 +878,69 @@
                 case 'ready':
                 case 'dispatched':
                 case 'delivered':
+                case 'completed':
                     return 3;
                 default:
                     return 1;
             }
+        }
+        
+        // Show visual notification when KDS updates order
+        function showUpdateNotification(newStatus) {
+            const statusMessages = {
+                'cooking': '🔥 Your order is now being prepared!',
+                'ready': '✅ Your order is ready!',
+                'dispatched': '🚚 Your order is on the way!',
+                'completed': '🚚 Your order is on the way!',
+                'delivered': '🎉 Your order has been delivered!'
+            };
+            
+            const message = statusMessages[newStatus];
+            if (!message) return;
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, var(--zaikon-yellow) 0%, var(--zaikon-yellow-dark) 100%);
+                color: var(--text-on-yellow);
+                padding: 16px 24px;
+                border-radius: 12px;
+                box-shadow: var(--shadow-lg);
+                font-weight: 600;
+                font-size: 16px;
+                z-index: 10000;
+                animation: slideInRight 0.3s ease-out;
+                max-width: 300px;
+            `;
+            notification.textContent = message;
+            
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideInRight {
+                    from { transform: translateX(400px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOutRight {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(400px); opacity: 0; }
+                }
+            `;
+            if (!document.getElementById('tracking-notification-styles')) {
+                style.id = 'tracking-notification-styles';
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
         }
         
         // Get step status text
@@ -949,9 +1016,41 @@
             document.getElementById('current-status-text').textContent = statusText;
             
             // Parse and store server timestamps for countdown timers
-            cookingStartedAt = parseServerTimestamp(order.cooking_started_at);
-            readyAt = parseServerTimestamp(order.ready_at);
-            dispatchedAt = parseServerTimestamp(order.dispatched_at);
+            const newCookingStartedAt = parseServerTimestamp(order.cooking_started_at);
+            const newReadyAt = parseServerTimestamp(order.ready_at);
+            const newDispatchedAt = parseServerTimestamp(order.dispatched_at);
+            
+            // ====== KDS SYNC: Detect status changes from KDS updates ======
+            const statusChanged = previousOrderStatus !== null && previousOrderStatus !== order.order_status;
+            const cookingStarted = previousCookingStartedAt === null && newCookingStartedAt !== null;
+            const orderReady = previousReadyAt === null && newReadyAt !== null;
+            const orderDispatched = previousDispatchedAt === null && newDispatchedAt !== null;
+            
+            // Log KDS sync events for debugging
+            if (statusChanged || cookingStarted || orderReady || orderDispatched) {
+                console.log('🔄 KDS UPDATE DETECTED:', {
+                    statusChanged: statusChanged ? `${previousOrderStatus} → ${order.order_status}` : false,
+                    cookingStarted: cookingStarted,
+                    orderReady: orderReady,
+                    orderDispatched: orderDispatched,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Show visual notification to user (optional - can be styled)
+                showUpdateNotification(order.order_status);
+            }
+            
+            // Update timestamps
+            cookingStartedAt = newCookingStartedAt;
+            readyAt = newReadyAt;
+            dispatchedAt = newDispatchedAt;
+            
+            // Update previous state for next comparison
+            previousOrderStatus = order.order_status;
+            previousCookingStartedAt = newCookingStartedAt;
+            previousReadyAt = newReadyAt;
+            previousDispatchedAt = newDispatchedAt;
+            // ====== End KDS SYNC ======
             
             // Debug logging for timezone validation (can be enabled by adding ?debug=time to URL)
             if (window.location.search.includes('debug=time')) {
@@ -1034,8 +1133,8 @@
                     `;
                 }
                 
-                // Step 3: Show delivery countdown timer when active (for ready/dispatched)
-                if (step.showDeliveryCountdown && isActive && ['ready', 'dispatched'].includes(order.order_status)) {
+                // Step 3: Show delivery countdown timer when active (for ready/dispatched/completed)
+                if (step.showDeliveryCountdown && isActive && ['ready', 'dispatched', 'completed'].includes(order.order_status)) {
                     extraContent = `
                         <div class="countdown-timer" id="delivery-countdown-timer">
                             <div class="countdown-label">Estimated Delivery Time</div>
@@ -1081,8 +1180,17 @@
                 `;
             }).join('');
             
+            // ====== KDS SYNC: Start/restart timers when status changes ======
+            // Always clear and restart timers to ensure they reflect latest KDS data
+            // This ensures real-time sync when KDS updates order status
+            
             // Start cooking countdown if in cooking state
             if (currentStep === 2 && order.order_status === 'cooking') {
+                // Clear any existing countdown before starting
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
                 startCookingCountdown();
             } else if (countdownInterval) {
                 clearInterval(countdownInterval);
@@ -1090,12 +1198,18 @@
             }
             
             // Start delivery countdown if in ready/dispatched state
-            if (currentStep === 3 && ['ready', 'dispatched'].includes(order.order_status)) {
+            if (currentStep === 3 && ['ready', 'dispatched', 'completed'].includes(order.order_status)) {
+                // Clear any existing countdown before starting
+                if (deliveryCountdownInterval) {
+                    clearInterval(deliveryCountdownInterval);
+                    deliveryCountdownInterval = null;
+                }
                 startDeliveryCountdown();
             } else if (deliveryCountdownInterval) {
                 clearInterval(deliveryCountdownInterval);
                 deliveryCountdownInterval = null;
             }
+            // ====== End KDS SYNC ======
         }
         
         // Helper function to parse server timestamps
