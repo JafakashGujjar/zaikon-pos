@@ -50,6 +50,18 @@ class RPOS_REST_API {
         'completed' => 'dispatched'    // Step 3: KDS complete triggers dispatched for delivery countdown
     );
     
+    /**
+     * KDS status to lifecycle event mapping
+     * Maps KDS status changes to appropriate lifecycle events
+     * This enables event-based tracking with proper timestamp management
+     */
+    const KDS_STATUS_TO_EVENT = array(
+        'new' => Zaikon_Order_Events::EVENT_ORDER_CONFIRMED,
+        'cooking' => Zaikon_Order_Events::EVENT_COOKING_STARTED,
+        'ready' => Zaikon_Order_Events::EVENT_KITCHEN_COMPLETED,
+        'completed' => Zaikon_Order_Events::EVENT_ORDER_DISPATCHED
+    );
+    
     public static function instance() {
         if (is_null(self::$_instance)) {
             self::$_instance = new self();
@@ -954,10 +966,10 @@ class RPOS_REST_API {
             return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
         }
         
-        // Sync status to zaikon_orders table for tracking functionality
-        // Map KDS status to tracking status using class constant
-        if (isset(self::STATUS_MAP_RPOS_TO_ZAIKON[$new_status])) {
-            $tracking_status = self::STATUS_MAP_RPOS_TO_ZAIKON[$new_status];
+        // Sync status to zaikon_orders table using EVENT-BASED tracking
+        // Map KDS status to lifecycle events for proper timestamp management
+        if (isset(self::KDS_STATUS_TO_EVENT[$new_status])) {
+            $lifecycle_event = self::KDS_STATUS_TO_EVENT[$new_status];
             
             // Get the order number from rpos_orders to find matching zaikon_orders
             $order_number = $wpdb->get_var($wpdb->prepare(
@@ -973,28 +985,33 @@ class RPOS_REST_API {
                 ));
                 
                 if ($zaikon_order_id) {
-                    // Update zaikon_orders with tracking status and timestamps
-                    error_log('RPOS KDS SYNC: Starting sync for order #' . $order_number . ' (rpos_orders #' . $id . ' -> zaikon_orders #' . $zaikon_order_id . ') with status: ' . $tracking_status);
+                    // Dispatch lifecycle event instead of direct status update
+                    error_log('RPOS KDS SYNC: Dispatching event ' . $lifecycle_event . ' for order #' . $order_number . ' (rpos #' . $id . ' -> zaikon #' . $zaikon_order_id . ')');
                     
-                    $sync_result = Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status, null, 'kds');
+                    $event_result = Zaikon_Order_Events::dispatch($zaikon_order_id, $lifecycle_event, array(
+                        'source' => Zaikon_Order_Events::SOURCE_KDS,
+                        'user_id' => get_current_user_id()
+                    ));
                     
-                    if (is_wp_error($sync_result)) {
-                        error_log('RPOS KDS SYNC [ERROR]: FAILED to sync status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status . '. Error: ' . $sync_result->get_error_message());
+                    if (!$event_result['success']) {
+                        error_log('RPOS KDS SYNC [ERROR]: Event dispatch failed for zaikon_orders #' . $zaikon_order_id . '. Error: ' . $event_result['message']);
                     } else {
-                        // Verify the sync was successful by reading back the data
+                        // Verify the event was processed successfully
                         $verify = $wpdb->get_row($wpdb->prepare(
-                            "SELECT order_status, cooking_started_at, ready_at, dispatched_at 
+                            "SELECT order_status, cooking_started_at, ready_at, dispatched_at, delivered_at 
                              FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
                             $zaikon_order_id
                         ));
                         
                         if ($verify) {
-                            error_log('RPOS KDS SYNC [SUCCESS]: Order #' . $order_number . ' synced. Status: ' . $verify->order_status . 
+                            error_log('RPOS KDS SYNC [SUCCESS]: Event ' . $lifecycle_event . ' dispatched for order #' . $order_number . 
+                                '. Status: ' . $verify->order_status . 
                                 ', cooking_started_at: ' . ($verify->cooking_started_at ?: 'NULL') . 
                                 ', ready_at: ' . ($verify->ready_at ?: 'NULL') . 
-                                ', dispatched_at: ' . ($verify->dispatched_at ?: 'NULL'));
+                                ', dispatched_at: ' . ($verify->dispatched_at ?: 'NULL') . 
+                                ', delivered_at: ' . ($verify->delivered_at ?: 'NULL'));
                         } else {
-                            error_log('RPOS KDS SYNC [WARNING]: Could not verify sync for zaikon_orders #' . $zaikon_order_id);
+                            error_log('RPOS KDS SYNC [WARNING]: Could not verify event processing for zaikon_orders #' . $zaikon_order_id);
                         }
                     }
                 } else {
@@ -1003,6 +1020,8 @@ class RPOS_REST_API {
             } else {
                 error_log('RPOS KDS SYNC [WARNING]: Could not get order_number for rpos_orders #' . $id);
             }
+        } else {
+            error_log('RPOS KDS SYNC [INFO]: No lifecycle event mapping for KDS status "' . $new_status . '" - skipping event dispatch');
         }
         
         // Log kitchen activity only if status actually changed

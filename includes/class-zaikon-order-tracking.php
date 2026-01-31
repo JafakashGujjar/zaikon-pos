@@ -182,11 +182,11 @@ class Zaikon_Order_Tracking {
                     o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
                     o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
                     o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
+                    o.rider_assigned_at, o.delivered_at,
                     o.created_at, o.updated_at,
                     d.customer_name, d.customer_phone, d.location_name, 
                     d.delivery_status, d.special_instruction,
                     d.delivery_charges_rs AS delivery_charges_rs,
-                    d.delivered_at,
                     r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
              FROM {$wpdb->prefix}zaikon_orders o
              LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
@@ -209,6 +209,7 @@ class Zaikon_Order_Tracking {
                         taxes_rs, grand_total_rs, payment_status, payment_type, 
                         order_status, cooking_eta_minutes, delivery_eta_minutes,
                         confirmed_at, cooking_started_at, ready_at, dispatched_at,
+                        rider_assigned_at, delivered_at,
                         created_at, updated_at
                  FROM {$wpdb->prefix}zaikon_orders
                  WHERE id = %d",

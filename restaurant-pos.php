@@ -108,6 +108,7 @@ class Restaurant_POS {
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-order-service.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-order-tracking.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-order-status-service.php';
+        require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-order-events.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-reports.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-cashier-sessions.php';
         require_once RPOS_PLUGIN_DIR . 'includes/class-zaikon-expenses.php';
