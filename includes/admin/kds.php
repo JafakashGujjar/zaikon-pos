@@ -28,7 +28,7 @@ if (!defined('ABSPATH')) {
         <button class="zaikon-kds-filter-btn active rpos-kds-filter-btn" data-status="all">
             📋 <?php echo esc_html__('All Orders', 'restaurant-pos'); ?>
         </button>
-        <button class="zaikon-kds-filter-btn rpos-kds-filter-btn" data-status="new">
+        <button class="zaikon-kds-filter-btn rpos-kds-filter-btn" data-status="pending,confirmed,active">
             🆕 <?php echo esc_html__('New', 'restaurant-pos'); ?>
         </button>
         <button class="zaikon-kds-filter-btn rpos-kds-filter-btn" data-status="cooking">
