@@ -3,7 +3,7 @@
 <head>
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#FF8A00">
+    <meta name="theme-color" content="#FFD700">
     <title><?php echo esc_html(get_bloginfo('name')); ?> - Track Your Order</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,13 +11,25 @@
     
     <style>
         :root {
-            --primary: #FF8A00;
-            --primary-dark: #E07D00;
-            --primary-light: #FFB347;
+            /* Zaikon Yellow Theme */
+            --zaikon-yellow: #FFD700;
+            --zaikon-yellow-dark: #E0B200;
+            --zaikon-yellow-light: #FFE44D;
+            --zaikon-yellow-subtle: #FFF9E6;
+            
+            /* Dark text for contrast */
+            --text-on-yellow: #000000;
+            
+            /* Status colors */
             --success: #22C55E;
             --success-light: #DCFCE7;
             --warning: #F59E0B;
+            --warning-light: #FEF3C7;
+            --danger: #EF4444;
+            --danger-light: #FEE2E2;
             --info: #3B82F6;
+            
+            /* Neutrals */
             --gray-50: #F9FAFB;
             --gray-100: #F3F4F6;
             --gray-200: #E5E7EB;
@@ -29,18 +41,21 @@
             --gray-800: #1F2937;
             --gray-900: #111827;
             --white: #FFFFFF;
+            
+            /* Shadows */
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --shadow-yellow: 0 4px 14px 0 rgba(255, 215, 0, 0.4);
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 50%, #FED7AA 100%);
+            background: linear-gradient(135deg, var(--zaikon-yellow-subtle) 0%, #FFF8E1 50%, #FFFDE7 100%);
             min-height: 100vh;
             padding: 16px;
             line-height: 1.6;
@@ -62,9 +77,30 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+        }
+        
+        /* Header */
         .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: var(--white);
+            background: linear-gradient(135deg, var(--zaikon-yellow) 0%, var(--zaikon-yellow-dark) 100%);
+            color: var(--text-on-yellow);
             padding: 28px 24px;
             text-align: center;
             position: relative;
@@ -76,34 +112,61 @@
             position: absolute;
             top: -50%; left: -50%;
             width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
             animation: pulse 4s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
         }
         
         .header-content { position: relative; z-index: 1; }
         
         .header .brand-icon {
             width: 56px; height: 56px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.1);
             border-radius: 16px;
             display: inline-flex;
             align-items: center; justify-content: center;
             margin-bottom: 12px;
-            backdrop-filter: blur(10px);
         }
         
-        .header .brand-icon svg { width: 32px; height: 32px; fill: var(--white); }
+        .header .brand-icon svg { width: 32px; height: 32px; fill: var(--text-on-yellow); }
         
         .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
-        .header .order-number { font-size: 15px; opacity: 0.95; font-weight: 500; }
+        .header .order-number { font-size: 15px; opacity: 0.85; font-weight: 500; }
         
         .content { padding: 24px; }
         
+        /* Loading State */
+        .loading { text-align: center; padding: 60px 20px; }
+        
+        .loading-spinner {
+            width: 48px; height: 48px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        
+        .loading-spinner::before, .loading-spinner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+        
+        .loading-spinner::before {
+            border-top-color: var(--zaikon-yellow);
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading-spinner::after {
+            border-bottom-color: var(--zaikon-yellow-dark);
+            animation: spin 1s linear infinite reverse;
+            animation-delay: -0.5s;
+        }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .loading p { color: var(--gray-500); font-size: 15px; font-weight: 500; }
+        
+        /* Error State */
         .error-message {
             background: #FEF2F2;
             border: 1px solid #FECACA;
@@ -121,6 +184,7 @@
         .error-message .error-icon { display: flex; align-items: center; gap: 10px; }
         .error-message svg { width: 24px; height: 24px; flex-shrink: 0; }
         
+        /* Search Section */
         .search-section {
             margin-top: 24px;
             padding: 20px;
@@ -139,10 +203,7 @@
         
         .search-form { display: flex; flex-direction: column; gap: 12px; }
         
-        .search-input-group {
-            display: flex;
-            gap: 8px;
-        }
+        .search-input-group { display: flex; gap: 8px; }
         
         .search-input {
             flex: 1;
@@ -156,14 +217,14 @@
         }
         
         .search-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(255, 138, 0, 0.1);
+            border-color: var(--zaikon-yellow);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
         }
         
         .search-btn {
             padding: 12px 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: var(--white);
+            background: linear-gradient(135deg, var(--zaikon-yellow) 0%, var(--zaikon-yellow-dark) 100%);
+            color: var(--text-on-yellow);
             border: none;
             border-radius: 12px;
             font-size: 14px;
@@ -175,7 +236,7 @@
         
         .search-btn:hover {
             transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-yellow);
         }
         
         .search-btn:disabled {
@@ -184,115 +245,26 @@
             transform: none;
         }
         
-        .search-hint {
-            font-size: 12px;
-            color: var(--gray-500);
-            text-align: center;
-        }
+        .search-hint { font-size: 12px; color: var(--gray-500); text-align: center; }
         
-        .search-results {
-            margin-top: 16px;
-        }
-        
-        .search-result-item {
-            background: var(--white);
-            border: 1px solid var(--gray-200);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        
-        .search-result-item:hover {
-            border-color: var(--primary);
-            box-shadow: var(--shadow-md);
-        }
-        
-        .search-result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .search-result-order { font-weight: 600; color: var(--gray-800); }
-        
-        .search-result-status {
-            font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: 500;
-        }
-        
-        .search-result-status.pending { background: #FEF3C7; color: #D97706; }
-        .search-result-status.confirmed { background: #DBEAFE; color: #2563EB; }
-        .search-result-status.cooking { background: #FEE2E2; color: #DC2626; }
-        .search-result-status.ready { background: #D1FAE5; color: #059669; }
-        .search-result-status.dispatched { background: #E0E7FF; color: #4338CA; }
-        .search-result-status.delivered { background: #D1FAE5; color: #047857; }
-        
-        .search-result-details {
-            font-size: 13px;
-            color: var(--gray-500);
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .loading { text-align: center; padding: 60px 20px; }
-        
-        .loading-spinner {
-            width: 48px; height: 48px;
-            margin: 0 auto 20px;
-            position: relative;
-        }
-        
-        .loading-spinner::before, .loading-spinner::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 3px solid transparent;
-        }
-        
-        .loading-spinner::before {
-            border-top-color: var(--primary);
-            animation: spin 1s linear infinite;
-        }
-        
-        .loading-spinner::after {
-            border-bottom-color: var(--primary-light);
-            animation: spin 1s linear infinite reverse;
-            animation-delay: -0.5s;
-        }
-        
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        .loading p { color: var(--gray-500); font-size: 15px; font-weight: 500; }
-        
+        /* Current Status Badge */
         .current-status-badge {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: var(--white);
+            background: linear-gradient(135deg, var(--zaikon-yellow), var(--zaikon-yellow-dark));
+            color: var(--text-on-yellow);
             padding: 10px 20px;
             border-radius: 50px;
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 24px;
-            animation: bounceIn 0.5s ease-out;
-        }
-        
-        @keyframes bounceIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); opacity: 1; }
+            animation: fadeIn 0.5s ease-out;
         }
         
         .current-status-badge .pulse-dot {
             width: 8px; height: 8px;
-            background: var(--white);
+            background: var(--text-on-yellow);
             border-radius: 50%;
             animation: pulseDot 1.5s ease-in-out infinite;
         }
@@ -302,156 +274,228 @@
             50% { opacity: 0.5; transform: scale(1.3); }
         }
         
-        .status-timeline { position: relative; padding-left: 32px; margin: 24px 0; }
-        
-        .status-timeline::before {
-            content: '';
-            position: absolute;
-            left: 15px; top: 8px; bottom: 8px;
-            width: 2px;
-            background: var(--gray-200);
-            border-radius: 2px;
+        /* ===== 3-STEP TRACKING UI ===== */
+        .tracking-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 24px 0;
         }
         
-        .status-step {
+        .tracking-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 20px 0;
             position: relative;
-            padding-bottom: 28px;
             opacity: 0;
-            animation: fadeInStep 0.4s ease-out forwards;
+            animation: slideInLeft 0.4s ease-out forwards;
         }
         
-        .status-step:nth-child(1) { animation-delay: 0.1s; }
-        .status-step:nth-child(2) { animation-delay: 0.2s; }
-        .status-step:nth-child(3) { animation-delay: 0.3s; }
-        .status-step:nth-child(4) { animation-delay: 0.4s; }
-        .status-step:nth-child(5) { animation-delay: 0.5s; }
-        .status-step:nth-child(6) { animation-delay: 0.6s; }
+        .tracking-step:nth-child(1) { animation-delay: 0.1s; }
+        .tracking-step:nth-child(2) { animation-delay: 0.2s; }
+        .tracking-step:nth-child(3) { animation-delay: 0.3s; }
         
-        @keyframes fadeInStep {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        
-        .status-step:last-child { padding-bottom: 0; }
-        
-        .status-step.completed::before {
+        .tracking-step:not(:last-child)::after {
             content: '';
             position: absolute;
-            left: -17px; top: 32px;
+            left: 23px;
+            top: 68px;
             width: 2px;
-            height: calc(100% - 24px);
+            height: calc(100% - 48px);
+            background: var(--gray-200);
+            transition: background 0.3s ease;
+        }
+        
+        .tracking-step.completed:not(:last-child)::after {
             background: var(--success);
-            border-radius: 2px;
         }
         
-        .status-step.active::before {
-            content: '';
-            position: absolute;
-            left: -17px; top: 32px;
-            width: 2px;
-            height: calc(100% - 24px);
-            background: linear-gradient(to bottom, var(--primary), var(--gray-200));
-            border-radius: 2px;
+        .tracking-step.active:not(:last-child)::after {
+            background: linear-gradient(to bottom, var(--zaikon-yellow), var(--gray-200));
         }
         
-        .status-step:last-child::before { display: none; }
-        
-        .status-icon {
-            position: absolute;
-            left: -32px; top: 0;
-            width: 32px; height: 32px;
+        .step-indicator {
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             background: var(--gray-100);
             border: 2px solid var(--gray-200);
             display: flex;
-            align-items: center; justify-content: center;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
             transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
         }
         
-        .status-icon svg { width: 16px; height: 16px; fill: var(--gray-400); transition: fill 0.3s ease; }
+        .step-indicator svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--gray-400);
+            transition: fill 0.3s ease;
+        }
         
-        .status-step.completed .status-icon {
+        .tracking-step.completed .step-indicator {
             background: var(--success);
             border-color: var(--success);
             box-shadow: 0 0 0 4px var(--success-light);
         }
         
-        .status-step.completed .status-icon svg { fill: var(--white); }
-        
-        .status-step.active .status-icon {
-            background: var(--primary);
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(255, 138, 0, 0.2);
-            animation: pulseIcon 2s ease-in-out infinite;
+        .tracking-step.completed .step-indicator svg {
+            fill: var(--white);
         }
         
-        @keyframes pulseIcon {
-            0%, 100% { box-shadow: 0 0 0 4px rgba(255, 138, 0, 0.2); }
-            50% { box-shadow: 0 0 0 8px rgba(255, 138, 0, 0.1); }
+        .tracking-step.active .step-indicator {
+            background: var(--zaikon-yellow);
+            border-color: var(--zaikon-yellow);
+            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.3);
+            animation: pulseGlow 2s ease-in-out infinite;
         }
         
-        .status-step.active .status-icon svg { fill: var(--white); }
+        .tracking-step.active .step-indicator svg {
+            fill: var(--text-on-yellow);
+        }
         
-        .status-content { padding-left: 16px; }
+        .step-content {
+            flex: 1;
+            padding-top: 4px;
+        }
         
-        .status-title { font-weight: 600; font-size: 15px; color: var(--gray-800); margin-bottom: 2px; }
-        .status-step.pending .status-title { color: var(--gray-400); }
+        .step-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
         
-        .status-description { font-size: 13px; color: var(--gray-500); }
-        .status-step.pending .status-description { color: var(--gray-400); }
+        .tracking-step.pending .step-title {
+            color: var(--gray-400);
+        }
         
-        .status-time {
+        .step-description {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+        
+        .tracking-step.pending .step-description {
+            color: var(--gray-400);
+        }
+        
+        .step-time {
             font-size: 12px;
             color: var(--gray-400);
-            margin-top: 4px;
+            margin-top: 6px;
             display: flex;
             align-items: center;
             gap: 4px;
         }
         
-        .status-time svg { width: 12px; height: 12px; fill: var(--gray-400); }
+        .step-time svg { width: 12px; height: 12px; fill: var(--gray-400); }
         
-        .eta-card {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: var(--white);
-            padding: 24px;
+        /* ===== COUNTDOWN TIMER ===== */
+        .countdown-timer {
+            margin-top: 12px;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--zaikon-yellow-subtle) 0%, #FFF8E1 100%);
+            border-radius: 12px;
+            border: 1px solid var(--zaikon-yellow);
+            text-align: center;
+        }
+        
+        .countdown-timer.overtime {
+            background: linear-gradient(135deg, var(--warning-light) 0%, #FEF3C7 100%);
+            border-color: var(--warning);
+        }
+        
+        .countdown-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        
+        .countdown-time {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--text-on-yellow);
+            letter-spacing: -0.02em;
+        }
+        
+        .countdown-timer.overtime .countdown-time {
+            color: var(--warning);
+        }
+        
+        .countdown-message {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-top: 4px;
+        }
+        
+        /* ===== ANIMATED RIDER (Step 3) ===== */
+        .rider-animation-container {
+            margin-top: 16px;
+            padding: 20px;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
             border-radius: 16px;
-            margin: 24px 0;
             text-align: center;
             position: relative;
             overflow: hidden;
         }
         
-        .eta-content { position: relative; z-index: 1; }
-        
-        .eta-icon {
-            width: 48px; height: 48px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center; justify-content: center;
-            margin-bottom: 12px;
+        .rider-animation-container::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--gray-300) 0px,
+                var(--gray-300) 10px,
+                transparent 10px,
+                transparent 20px
+            );
+            animation: roadMove 1s linear infinite;
         }
         
-        .eta-icon svg { width: 28px; height: 28px; fill: var(--white); }
-        
-        .eta-timer {
-            font-size: 48px;
-            font-weight: 800;
-            margin: 8px 0;
-            letter-spacing: -0.02em;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        @keyframes roadMove {
+            from { transform: translateX(0); }
+            to { transform: translateX(-20px); }
         }
         
-        .eta-label { font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9; font-weight: 600; }
-        .eta-message { margin-top: 16px; font-size: 14px; opacity: 0.95; font-weight: 500; }
+        .animated-rider {
+            display: inline-block;
+            animation: riderBounce 0.8s ease-in-out infinite;
+        }
         
+        @keyframes riderBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .rider-animation-container svg {
+            width: 120px;
+            height: 80px;
+        }
+        
+        /* ===== RIDER INFO CARD ===== */
         .rider-card {
             background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
             border: 1px solid #C7D2FE;
             border-radius: 16px;
             padding: 20px;
             margin: 24px 0;
+            display: none;
+        }
+        
+        .rider-card.visible {
+            display: block;
+            animation: slideInLeft 0.4s ease-out;
         }
         
         .rider-header {
@@ -484,7 +528,6 @@
         .rider-name { font-weight: 600; font-size: 16px; color: var(--gray-800); margin-bottom: 4px; }
         .rider-phone { font-size: 14px; color: var(--gray-500); display: flex; align-items: center; gap: 6px; }
         .rider-phone svg { width: 14px; height: 14px; fill: var(--gray-400); }
-        .rider-vehicle { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
         
         .call-rider-btn {
             background: #4F46E5;
@@ -503,7 +546,8 @@
         .call-rider-btn:hover { background: #4338CA; transform: translateY(-2px); }
         .call-rider-btn svg { width: 20px; height: 20px; fill: var(--white); }
         
-        .customer-card {
+        /* ===== ORDER SUMMARY (Bottom Details) ===== */
+        .order-summary {
             background: var(--gray-50);
             border: 1px solid var(--gray-200);
             border-radius: 16px;
@@ -511,7 +555,7 @@
             margin: 24px 0;
         }
         
-        .customer-header {
+        .summary-header {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -521,13 +565,13 @@
             color: var(--gray-700);
         }
         
-        .customer-header svg { width: 18px; height: 18px; fill: var(--gray-500); }
+        .summary-header svg { width: 18px; height: 18px; fill: var(--gray-500); }
         
-        .customer-grid { display: grid; gap: 16px; }
+        .summary-grid { display: grid; gap: 16px; }
         
-        .customer-field { display: flex; align-items: flex-start; gap: 12px; }
+        .summary-item { display: flex; align-items: flex-start; gap: 12px; }
         
-        .customer-field-icon {
+        .summary-icon {
             width: 36px; height: 36px;
             background: var(--white);
             border: 1px solid var(--gray-200);
@@ -537,67 +581,36 @@
             flex-shrink: 0;
         }
         
-        .customer-field-icon svg { width: 16px; height: 16px; fill: var(--gray-500); }
-        .customer-field-content { flex: 1; }
-        .customer-label { font-size: 11px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 2px; }
-        .customer-value { font-size: 14px; color: var(--gray-800); font-weight: 500; }
+        .summary-icon svg { width: 16px; height: 16px; fill: var(--gray-500); }
         
-        .order-card {
-            background: var(--white);
-            border: 1px solid var(--gray-200);
-            border-radius: 16px;
-            overflow: hidden;
-            margin: 24px 0;
+        .summary-content { flex: 1; }
+        .summary-label { 
+            font-size: 11px; 
+            color: var(--gray-500); 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            font-weight: 600; 
+            margin-bottom: 2px; 
         }
+        .summary-value { font-size: 14px; color: var(--gray-800); font-weight: 500; }
         
-        .order-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            padding: 16px 20px;
-            background: var(--gray-50);
-            border-bottom: 1px solid var(--gray-200);
-            color: var(--gray-700);
-        }
-        
-        .order-header svg { width: 18px; height: 18px; fill: var(--gray-500); }
-        
-        .order-items-list { padding: 12px 20px; }
-        
-        .order-item {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--gray-100);
+        .summary-total {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 2px solid var(--gray-200);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
-        .order-item:last-child { border-bottom: none; }
-        
-        .item-info { flex: 1; }
-        .item-name { font-weight: 500; color: var(--gray-800); font-size: 14px; margin-bottom: 2px; }
-        .item-quantity { font-size: 13px; color: var(--gray-500); }
-        .item-price { font-weight: 600; color: var(--gray-800); font-size: 14px; }
-        
-        .order-totals {
-            background: var(--gray-50);
-            padding: 16px 20px;
-            border-top: 1px solid var(--gray-200);
-        }
-        
-        .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: var(--gray-600); }
-        
-        .total-row.grand {
-            padding-top: 12px;
-            margin-top: 8px;
-            border-top: 2px solid var(--gray-200);
-            font-size: 16px;
-            font-weight: 700;
+        .summary-total .summary-label { font-size: 14px; color: var(--gray-700); }
+        .summary-total .summary-value { 
+            font-size: 20px; 
+            font-weight: 700; 
             color: var(--gray-900);
         }
         
+        /* ===== FOOTER ===== */
         .footer {
             text-align: center;
             padding: 24px;
@@ -607,13 +620,22 @@
         
         .footer-message { font-size: 15px; font-weight: 600; color: var(--gray-700); margin-bottom: 8px; }
         .footer-sub { font-size: 13px; color: var(--gray-500); }
-        .powered-by { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-200); font-size: 11px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.1em; }
+        .powered-by { 
+            margin-top: 16px; 
+            padding-top: 16px; 
+            border-top: 1px solid var(--gray-200); 
+            font-size: 11px; 
+            color: var(--gray-400); 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+        }
         
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
             body { padding: 0; background: var(--gray-100); }
             .container { border-radius: 0; min-height: 100vh; }
-            .eta-timer { font-size: 40px; }
             .header { padding: 24px 20px; }
+            .countdown-time { font-size: 32px; }
         }
     </style>
 </head>
@@ -632,11 +654,13 @@
         </div>
         
         <div class="content">
+            <!-- Loading State -->
             <div id="loading-state" class="loading">
                 <div class="loading-spinner"></div>
                 <p>Loading your order...</p>
             </div>
             
+            <!-- Error State -->
             <div id="error-state" style="display: none;">
                 <div class="error-message">
                     <div class="error-icon">
@@ -651,12 +675,11 @@
                     <div class="search-section-title">Find Your Order</div>
                     <div class="search-form">
                         <div class="search-input-group">
-                            <input type="text" id="search-input" class="search-input" placeholder="Enter order number or phone number" autocomplete="off" />
+                            <input type="text" id="search-input" class="search-input" placeholder="Enter order number" autocomplete="off" />
                             <button type="button" id="search-btn" class="search-btn">Search</button>
                         </div>
-                        <div class="search-hint">Example: ORD-2026001 or 03001234567</div>
+                        <div class="search-hint">Example: ORD-2026001</div>
                     </div>
-                    <div id="search-results" class="search-results" style="display: none;"></div>
                     <div id="search-error" class="error-message" style="display: none; margin-top: 16px;">
                         <div class="error-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -668,6 +691,7 @@
                 </div>
             </div>
             
+            <!-- Order Tracking (3 Steps) -->
             <div id="order-tracking" style="display: none;">
                 <div style="text-align: center;">
                     <div class="current-status-badge" id="current-status-badge">
@@ -676,53 +700,45 @@
                     </div>
                 </div>
                 
-                <div id="eta-card" class="eta-card" style="display: none;">
-                    <div class="eta-content">
-                        <div class="eta-icon" id="eta-icon"></div>
-                        <div class="eta-label" id="eta-label">Estimated Time</div>
-                        <div class="eta-timer" id="eta-timer">--:--</div>
-                        <div class="eta-message" id="eta-message"></div>
-                    </div>
+                <!-- 3-Step Tracking -->
+                <div class="tracking-steps" id="tracking-steps">
+                    <!-- Steps will be rendered by JavaScript -->
                 </div>
                 
-                <div class="status-timeline" id="status-timeline"></div>
-                
-                <div id="rider-card" class="rider-card" style="display: none;">
+                <!-- Rider Card (Only visible in Step 3) -->
+                <div id="rider-card" class="rider-card">
                     <div class="rider-header">
                         <svg viewBox="0 0 24 24"><path d="M19.15 8a2 2 0 0 0-1.72-1H15V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a2 2 0 0 0 2 2h1a3 3 0 0 0 6 0h2a3 3 0 0 0 6 0h2V11a4 4 0 0 0-.85-3zM9 18a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm8 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm-.18-6H15V9h2.43l1.8 3z"/></svg>
                         Your Delivery Rider
                     </div>
                     <div class="rider-details">
-                        <div class="rider-avatar" id="rider-avatar"></div>
+                        <div class="rider-avatar" id="rider-avatar">R</div>
                         <div class="rider-info">
-                            <div class="rider-name" id="rider-name"></div>
-                            <div class="rider-phone" id="rider-phone-display">
+                            <div class="rider-name" id="rider-name">Rider Name</div>
+                            <div class="rider-phone">
                                 <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                                <span id="rider-phone-text"></span>
+                                <span id="rider-phone-text">Phone Number</span>
                             </div>
-                            <div class="rider-vehicle" id="rider-vehicle"></div>
                         </div>
-                        <a href="#" id="call-rider-btn" class="call-rider-btn" style="display: none;">
+                        <a href="#" id="call-rider-btn" class="call-rider-btn">
                             <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                         </a>
                     </div>
                 </div>
                 
-                <div class="customer-card" id="customer-card">
-                    <div class="customer-header">
-                        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                        Delivery Details
-                    </div>
-                    <div class="customer-grid" id="customer-grid"></div>
-                </div>
-                
-                <div class="order-card">
-                    <div class="order-header">
+                <!-- Order Summary (Bottom Details) -->
+                <div class="order-summary" id="order-summary">
+                    <div class="summary-header">
                         <svg viewBox="0 0 24 24"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h12v12z"/></svg>
-                        Order Items
+                        Order Details
                     </div>
-                    <div class="order-items-list" id="order-items"></div>
-                    <div class="order-totals" id="order-totals"></div>
+                    <div class="summary-grid" id="summary-grid">
+                        <!-- Rendered by JavaScript -->
+                    </div>
+                    <div class="summary-total">
+                        <span class="summary-label">Order Total</span>
+                        <span class="summary-value" id="order-total">Rs 0</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -735,99 +751,168 @@
     </div>
 
     <script>
+        // Configuration
         const rawToken = '<?php echo esc_js(get_query_var("zaikon_tracking_token")); ?>';
-        // Token validation: allow hex tokens of 16-64 characters (current tokens are 32 chars)
         const trackingToken = /^[a-f0-9]{16,64}$/.test(rawToken) ? rawToken : null;
         const apiBaseUrl = '<?php echo esc_js(rest_url("zaikon/v1/")); ?>';
         
+        // State
         let currentOrderData = null;
         let pollInterval = null;
+        let countdownInterval = null;
         
-        const statusIcons = {
-            'pending': '<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>',
-            'confirmed': '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
-            'cooking': '<svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>',
-            'ready': '<svg viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/></svg>',
-            'dispatched': '<svg viewBox="0 0 24 24"><path d="M19.15 8a2 2 0 0 0-1.72-1H15V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a2 2 0 0 0 2 2h1a3 3 0 0 0 6 0h2a3 3 0 0 0 6 0h2V11a4 4 0 0 0-.85-3zM9 18a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm8 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm-.18-6H15V9h2.43l1.8 3z"/></svg>',
-            'delivered': '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>'
+        // Server timestamp for countdown (from cooking_started_at)
+        let cookingStartedAt = null;
+        const DEFAULT_COOKING_TIME_MINUTES = 20;
+        
+        // Step Icons
+        const stepIcons = {
+            confirmed: '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+            preparing: '<svg viewBox="0 0 24 24"><path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>',
+            ontheway: '<svg viewBox="0 0 24 24"><path d="M19.15 8a2 2 0 0 0-1.72-1H15V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a2 2 0 0 0 2 2h1a3 3 0 0 0 6 0h2a3 3 0 0 0 6 0h2V11a4 4 0 0 0-.85-3zM9 18a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm8 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm-.18-6H15V9h2.43l1.8 3z"/></svg>',
+            checkmark: '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+            clock: '<svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>'
         };
         
-        const statusConfig = {
-            'pending': { title: 'Order Received', description: 'We have received your order' },
-            'confirmed': { title: 'Order Confirmed', description: 'Your order has been confirmed by our kitchen' },
-            'cooking': { title: 'Preparing', description: 'Our chefs are preparing your delicious food' },
-            'ready': { title: 'Ready for Pickup', description: 'Your order is packed and ready' },
-            'dispatched': { title: 'On the Way', description: 'Your rider is on the way with your order' },
-            'delivered': { title: 'Delivered', description: 'Your order has been delivered. Enjoy!' }
-        };
+        // Animated Rider SVG
+        const animatedRiderSVG = `
+            <svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Motorbike Body -->
+                <ellipse cx="45" cy="70" rx="20" ry="20" fill="#374151"/>
+                <ellipse cx="105" cy="70" rx="20" ry="20" fill="#374151"/>
+                <ellipse cx="45" cy="70" rx="12" ry="12" fill="#6B7280"/>
+                <ellipse cx="105" cy="70" rx="12" ry="12" fill="#6B7280"/>
+                
+                <!-- Bike Frame -->
+                <path d="M45 70 L65 45 L95 45 L105 70" stroke="#FFD700" stroke-width="4" fill="none"/>
+                <path d="M65 45 L75 30 L85 30" stroke="#FFD700" stroke-width="3" fill="none"/>
+                
+                <!-- Rider Body -->
+                <ellipse cx="75" cy="25" rx="8" ry="8" fill="#4F46E5"/>
+                <path d="M67 33 L75 50 L83 33" fill="#4F46E5"/>
+                <circle cx="75" cy="18" r="7" fill="#FCD34D"/>
+                
+                <!-- Helmet -->
+                <path d="M68 18 Q75 8 82 18" stroke="#1F2937" stroke-width="3" fill="none"/>
+                
+                <!-- Package/Bag -->
+                <rect x="88" y="35" width="15" height="12" rx="2" fill="#EF4444"/>
+                <path d="M90 35 L95 30 L100 35" stroke="#EF4444" stroke-width="2" fill="none"/>
+                
+                <!-- Motion Lines -->
+                <line x1="10" y1="50" x2="25" y2="50" stroke="#9CA3AF" stroke-width="2" opacity="0.6">
+                    <animate attributeName="x1" values="10;5;10" dur="0.5s" repeatCount="indefinite"/>
+                    <animate attributeName="x2" values="25;20;25" dur="0.5s" repeatCount="indefinite"/>
+                </line>
+                <line x1="15" y1="60" x2="30" y2="60" stroke="#9CA3AF" stroke-width="2" opacity="0.4">
+                    <animate attributeName="x1" values="15;10;15" dur="0.6s" repeatCount="indefinite"/>
+                    <animate attributeName="x2" values="30;25;30" dur="0.6s" repeatCount="indefinite"/>
+                </line>
+                <line x1="12" y1="70" x2="22" y2="70" stroke="#9CA3AF" stroke-width="2" opacity="0.5">
+                    <animate attributeName="x1" values="12;7;12" dur="0.4s" repeatCount="indefinite"/>
+                    <animate attributeName="x2" values="22;17;22" dur="0.4s" repeatCount="indefinite"/>
+                </line>
+            </svg>
+        `;
         
-        const statusOrder = ['pending', 'confirmed', 'cooking', 'ready', 'dispatched', 'delivered'];
+        // Map backend statuses to 3-step system
+        function getTrackingStep(status) {
+            // Step 1: Confirmed (pending, confirmed)
+            // Step 2: Preparing (cooking)
+            // Step 3: On The Way (ready, dispatched, delivered)
+            switch(status) {
+                case 'pending':
+                case 'confirmed':
+                    return 1;
+                case 'cooking':
+                    return 2;
+                case 'ready':
+                case 'dispatched':
+                case 'delivered':
+                    return 3;
+                default:
+                    return 1;
+            }
+        }
         
+        // Get step status text
+        function getStepStatusText(step, currentStep, backendStatus) {
+            const isCompleted = step < currentStep;
+            const isActive = step === currentStep;
+            
+            switch(step) {
+                case 1:
+                    return 'Order Confirmed';
+                case 2:
+                    return isCompleted ? 'Preparation Complete' : 'Preparing Your Order';
+                case 3:
+                    if (backendStatus === 'delivered') return 'Delivered';
+                    return 'Rider On The Way';
+                default:
+                    return '';
+            }
+        }
+        
+        // Fetch order data
         async function fetchOrderData() {
-            console.log('ZAIKON TRACKING: Fetching order with token:', trackingToken ? trackingToken.substring(0, 8) + '...' : 'NULL');
-            console.log('ZAIKON TRACKING: API URL:', apiBaseUrl + 'track/' + trackingToken);
+            console.log('ZAIKON TRACKING: Fetching order...');
             
             try {
                 const response = await fetch(`${apiBaseUrl}track/${trackingToken}`);
-                console.log('ZAIKON TRACKING: Response status:', response.status);
-                
                 const data = await response.json();
-                console.log('ZAIKON TRACKING: Response data:', data);
                 
                 if (!response.ok || !data.success) {
-                    // Provide specific error messages based on response status
-                    console.error('ZAIKON TRACKING: Order lookup failed. Status:', response.status, 'Data:', data);
+                    console.error('ZAIKON TRACKING: Order lookup failed', data);
                     if (response.status === 404) {
-                        throw new Error('Order not found. The tracking link may have expired or the order number is incorrect.');
+                        throw new Error('Order not found. The tracking link may have expired.');
                     } else if (response.status === 400) {
-                        throw new Error('Invalid tracking link. Please check your URL and try again.');
-                    } else {
-                        throw new Error(data.message || 'Unable to load order details. Please try again later.');
+                        throw new Error('Invalid tracking link. Please check your URL.');
                     }
+                    throw new Error(data.message || 'Unable to load order details.');
                 }
                 
-                console.log('ZAIKON TRACKING: Order found successfully:', data.order?.order_number);
                 currentOrderData = data;
                 renderOrderTracking(data);
                 
             } catch (error) {
-                console.error('ZAIKON TRACKING: Error fetching order:', error);
-                // Check if it's a network error vs API error
-                if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showError('Unable to connect to the server. Please check your internet connection.');
-                } else {
-                    showError(error.message || 'Unable to load order. Please check your tracking link.');
-                }
+                console.error('ZAIKON TRACKING: Error:', error);
+                showError(error.message || 'Unable to load order.');
             }
         }
         
+        // Main render function
         function renderOrderTracking(data) {
             const order = data.order;
-            const eta = data.eta;
             
             document.getElementById('loading-state').style.display = 'none';
             document.getElementById('order-tracking').style.display = 'block';
-            
             document.getElementById('order-number-header').textContent = `Order #${order.order_number}`;
             
-            const currentStatus = order.order_status;
-            const statusText = statusConfig[currentStatus]?.title || 'Processing';
+            const currentStep = getTrackingStep(order.order_status);
+            const statusText = getStepStatusText(currentStep, currentStep, order.order_status);
             document.getElementById('current-status-text').textContent = statusText;
             
-            renderStatusTimeline(order);
-            renderETA(order, eta);
-            
-            if ((order.order_status === 'dispatched' || order.order_status === 'ready') && order.rider_name) {
-                renderRiderInfo(order);
+            // Store cooking started timestamp for countdown (handle various formats)
+            if (order.cooking_started_at) {
+                const tsValue = order.cooking_started_at;
+                // If timestamp doesn't contain timezone info, treat as UTC
+                const hasTimezone = /[Zz]|[+-]\d{2}:\d{2}$/.test(tsValue);
+                cookingStartedAt = new Date(hasTimezone ? tsValue : tsValue + 'Z').getTime();
             } else {
-                document.getElementById('rider-card').style.display = 'none';
+                cookingStartedAt = null;
             }
             
-            renderCustomerInfo(order);
-            renderOrderItems(order);
+            // Render the 3 steps
+            renderTrackingSteps(order, currentStep);
             
-            const finalStates = ['delivered', 'cancelled'];
-            if (finalStates.includes(order.order_status) && pollInterval) {
+            // Render rider card (only visible in step 3)
+            renderRiderCard(order, currentStep);
+            
+            // Render order summary (bottom details)
+            renderOrderSummary(order);
+            
+            // Stop polling for final states
+            if (['delivered', 'cancelled'].includes(order.order_status) && pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
                 const badge = document.getElementById('current-status-badge');
@@ -836,342 +921,230 @@
             }
         }
         
-        function renderStatusTimeline(order) {
-            const timeline = document.getElementById('status-timeline');
-            const currentStatus = order.order_status;
-            const currentStatusIndex = statusOrder.indexOf(currentStatus);
+        // Render 3-step tracking UI
+        function renderTrackingSteps(order, currentStep) {
+            const stepsContainer = document.getElementById('tracking-steps');
             
-            timeline.innerHTML = statusOrder.map((status, index) => {
-                const config = statusConfig[status];
-                const icon = statusIcons[status];
-                const isCompleted = index < currentStatusIndex;
-                const isActive = index === currentStatusIndex;
+            const steps = [
+                {
+                    num: 1,
+                    title: 'Order Confirmed',
+                    description: 'Your order has been received and confirmed',
+                    icon: stepIcons.confirmed,
+                    timestamp: order.confirmed_at || order.created_at
+                },
+                {
+                    num: 2,
+                    title: 'Preparing Order',
+                    description: 'Our kitchen is preparing your delicious food',
+                    icon: stepIcons.preparing,
+                    timestamp: order.cooking_started_at,
+                    showCountdown: true
+                },
+                {
+                    num: 3,
+                    title: 'Rider On The Way',
+                    description: 'Your rider is delivering your order',
+                    icon: stepIcons.ontheway,
+                    timestamp: order.dispatched_at || order.ready_at,
+                    showRiderAnimation: true
+                }
+            ];
+            
+            stepsContainer.innerHTML = steps.map(step => {
+                const isCompleted = step.num < currentStep;
+                const isActive = step.num === currentStep;
+                const isPending = step.num > currentStep;
                 
                 let statusClass = '';
                 if (isCompleted) statusClass = 'completed';
                 else if (isActive) statusClass = 'active';
                 else statusClass = 'pending';
                 
-                let timestamp = '';
-                if (status === 'pending' && order.created_at) {
-                    timestamp = formatTime(order.created_at);
-                } else if (status === 'confirmed' && order.confirmed_at) {
-                    timestamp = formatTime(order.confirmed_at);
-                } else if (status === 'cooking' && order.cooking_started_at) {
-                    timestamp = formatTime(order.cooking_started_at);
-                } else if (status === 'ready' && order.ready_at) {
-                    timestamp = formatTime(order.ready_at);
-                } else if (status === 'dispatched' && order.dispatched_at) {
-                    timestamp = formatTime(order.dispatched_at);
-                } else if (status === 'delivered' && order.delivered_at) {
-                    timestamp = formatTime(order.delivered_at);
+                // Use checkmark for completed steps
+                const displayIcon = isCompleted ? stepIcons.checkmark : step.icon;
+                
+                let extraContent = '';
+                
+                // Step 2: Show countdown timer when active
+                if (step.showCountdown && isActive && order.order_status === 'cooking') {
+                    extraContent = `
+                        <div class="countdown-timer" id="countdown-timer">
+                            <div class="countdown-label">Time Remaining</div>
+                            <div class="countdown-time" id="countdown-time">20:00</div>
+                            <div class="countdown-message">Your food is being prepared with care!</div>
+                        </div>
+                    `;
+                }
+                
+                // Step 3: Show animated rider when active
+                if (step.showRiderAnimation && isActive && ['ready', 'dispatched'].includes(order.order_status)) {
+                    extraContent = `
+                        <div class="rider-animation-container">
+                            <div class="animated-rider">
+                                ${animatedRiderSVG}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                let timestampHtml = '';
+                if (step.timestamp && (isCompleted || isActive)) {
+                    timestampHtml = `
+                        <div class="step-time">
+                            ${stepIcons.clock}
+                            ${formatTime(step.timestamp)}
+                        </div>
+                    `;
                 }
                 
                 return `
-                    <div class="status-step ${statusClass}">
-                        <div class="status-icon">${icon}</div>
-                        <div class="status-content">
-                            <div class="status-title">${config.title}</div>
-                            <div class="status-description">${config.description}</div>
-                            ${timestamp ? `
-                                <div class="status-time">
-                                    <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-                                    ${timestamp}
-                                </div>
-                            ` : ''}
+                    <div class="tracking-step ${statusClass}">
+                        <div class="step-indicator">
+                            ${displayIcon}
+                        </div>
+                        <div class="step-content">
+                            <div class="step-title">${step.title}</div>
+                            <div class="step-description">${step.description}</div>
+                            ${timestampHtml}
+                            ${extraContent}
                         </div>
                     </div>
                 `;
             }).join('');
-        }
-        
-        function renderETA(order, eta) {
-            const etaCard = document.getElementById('eta-card');
-            const status = order.order_status;
             
-            if (status === 'cooking' && eta && eta.cooking_eta_remaining !== null) {
-                etaCard.style.display = 'block';
-                document.getElementById('eta-icon').innerHTML = statusIcons.cooking;
-                document.getElementById('eta-label').textContent = 'Cooking Time Remaining';
-                updateETATimer(eta.cooking_eta_remaining);
-                document.getElementById('eta-message').textContent = 'Your delicious food is being prepared with care!';
-            } else if (status === 'dispatched' && eta && eta.delivery_eta_remaining !== null) {
-                etaCard.style.display = 'block';
-                document.getElementById('eta-icon').innerHTML = statusIcons.dispatched;
-                document.getElementById('eta-label').textContent = 'Delivery Time Remaining';
-                updateETATimer(eta.delivery_eta_remaining);
-                
-                if (eta.delivery_eta_remaining <= 5) {
-                    document.getElementById('eta-message').textContent = 'Almost there! Your order will arrive very soon!';
-                } else {
-                    document.getElementById('eta-message').textContent = 'Your rider is on the way with your order!';
-                }
-            } else {
-                etaCard.style.display = 'none';
+            // Start countdown if in cooking state
+            if (currentStep === 2 && order.order_status === 'cooking') {
+                startCountdown();
+            } else if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
             }
         }
         
-        function updateETATimer(minutes) {
-            if (minutes === null || minutes === undefined) {
-                document.getElementById('eta-timer').textContent = '--:--';
+        // Countdown timer logic
+        function startCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+        
+        function updateCountdown() {
+            const timerElement = document.getElementById('countdown-time');
+            const containerElement = document.getElementById('countdown-timer');
+            
+            if (!timerElement || !containerElement) return;
+            
+            // Guard against null/undefined cookingStartedAt
+            if (!cookingStartedAt || isNaN(cookingStartedAt)) {
+                timerElement.textContent = '20:00';
                 return;
             }
-            const mins = Math.floor(minutes);
-            const secs = Math.floor((minutes - mins) * 60);
-            document.getElementById('eta-timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            
+            const now = Date.now();
+            const defaultEndTime = cookingStartedAt + (DEFAULT_COOKING_TIME_MINUTES * 60 * 1000);
+            const remainingMs = defaultEndTime - now;
+            
+            if (remainingMs > 0) {
+                // Normal countdown
+                const mins = Math.floor(remainingMs / 60000);
+                const secs = Math.floor((remainingMs % 60000) / 1000);
+                timerElement.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                containerElement.classList.remove('overtime');
+            } else {
+                // Overtime - show positive time exceeded
+                const overtimeMs = Math.abs(remainingMs);
+                const mins = Math.floor(overtimeMs / 60000);
+                const secs = Math.floor((overtimeMs % 60000) / 1000);
+                timerElement.textContent = `+${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                containerElement.classList.add('overtime');
+            }
         }
         
-        function renderRiderInfo(order) {
+        // Render rider card (only in Step 3)
+        function renderRiderCard(order, currentStep) {
             const riderCard = document.getElementById('rider-card');
-            riderCard.style.display = 'block';
             
-            // Safely extract initials with null check
-            const riderName = order.rider_name || 'Unknown';
+            // Only show rider info in Step 3
+            if (currentStep !== 3 || !order.rider_name) {
+                riderCard.classList.remove('visible');
+                return;
+            }
+            
+            riderCard.classList.add('visible');
+            
+            const riderName = order.rider_name || 'Your Rider';
             const initials = riderName.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || 'R';
+            
             document.getElementById('rider-avatar').textContent = initials;
             document.getElementById('rider-name').textContent = riderName;
-            document.getElementById('rider-phone-text').textContent = order.rider_phone || 'Not available';
+            document.getElementById('rider-phone-text').textContent = order.rider_phone || 'Contact not available';
             
-            if (order.rider_vehicle) {
-                document.getElementById('rider-vehicle').textContent = 'Vehicle: ' + order.rider_vehicle;
-                document.getElementById('rider-vehicle').style.display = 'block';
-            } else {
-                document.getElementById('rider-vehicle').style.display = 'none';
-            }
-            
+            const callBtn = document.getElementById('call-rider-btn');
             if (order.rider_phone) {
-                const callBtn = document.getElementById('call-rider-btn');
-                callBtn.style.display = 'flex';
                 callBtn.href = 'tel:' + order.rider_phone;
+                callBtn.style.display = 'flex';
+            } else {
+                callBtn.style.display = 'none';
             }
         }
         
-        function renderCustomerInfo(order) {
-            const customerGrid = document.getElementById('customer-grid');
+        // Render order summary (bottom details) - NO customer phone
+        function renderOrderSummary(order) {
+            const summaryGrid = document.getElementById('summary-grid');
             
             let html = '';
             
+            // 1. Customer Name
             if (order.customer_name) {
                 html += `
-                    <div class="customer-field">
-                        <div class="customer-field-icon">
+                    <div class="summary-item">
+                        <div class="summary-icon">
                             <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                         </div>
-                        <div class="customer-field-content">
-                            <div class="customer-label">Customer</div>
-                            <div class="customer-value">${escapeHtml(order.customer_name)}</div>
+                        <div class="summary-content">
+                            <div class="summary-label">Customer Name</div>
+                            <div class="summary-value">${escapeHtml(order.customer_name)}</div>
                         </div>
                     </div>
                 `;
             }
             
-            if (order.customer_phone) {
-                html += `
-                    <div class="customer-field">
-                        <div class="customer-field-icon">
-                            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                        </div>
-                        <div class="customer-field-content">
-                            <div class="customer-label">Phone</div>
-                            <div class="customer-value">${escapeHtml(order.customer_phone)}</div>
-                        </div>
-                    </div>
-                `;
-            }
-            
+            // 2. Delivery Location
             if (order.location_name) {
                 html += `
-                    <div class="customer-field">
-                        <div class="customer-field-icon">
+                    <div class="summary-item">
+                        <div class="summary-icon">
                             <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                         </div>
-                        <div class="customer-field-content">
-                            <div class="customer-label">Delivery Location</div>
-                            <div class="customer-value">${escapeHtml(order.location_name)}</div>
+                        <div class="summary-content">
+                            <div class="summary-label">Delivery Location</div>
+                            <div class="summary-value">${escapeHtml(order.location_name)}</div>
                         </div>
                     </div>
                 `;
             }
             
-            if (order.special_instruction) {
-                html += `
-                    <div class="customer-field">
-                        <div class="customer-field-icon">
-                            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/></svg>
-                        </div>
-                        <div class="customer-field-content">
-                            <div class="customer-label">Special Instructions</div>
-                            <div class="customer-value">${escapeHtml(order.special_instruction)}</div>
-                        </div>
-                    </div>
-                `;
-            }
+            // Note: Customer phone is intentionally NOT shown per requirements
             
-            if (!html) {
-                document.getElementById('customer-card').style.display = 'none';
-            } else {
-                document.getElementById('customer-card').style.display = 'block';
-                customerGrid.innerHTML = html;
-            }
+            summaryGrid.innerHTML = html;
+            
+            // 3. Order Total
+            const total = Math.round(parseFloat(order.grand_total_rs) || 0);
+            document.getElementById('order-total').textContent = `Rs ${total.toLocaleString()}`;
         }
         
-        function renderOrderItems(order) {
-            const itemsContainer = document.getElementById('order-items');
-            const totalsContainer = document.getElementById('order-totals');
-            
-            let itemsHTML = '';
-            if (order.items && order.items.length > 0) {
-                itemsHTML = order.items.map(item => `
-                    <div class="order-item">
-                        <div class="item-info">
-                            <div class="item-name">${escapeHtml(item.product_name)}</div>
-                            <div class="item-quantity">Qty: ${item.qty}</div>
-                        </div>
-                        <div class="item-price">Rs ${Math.round(parseFloat(item.line_total_rs) || 0)}</div>
-                    </div>
-                `).join('');
-            } else {
-                itemsHTML = '<div class="order-item"><div class="item-info"><div class="item-name" style="color: var(--gray-400);">No items found</div></div></div>';
-            }
-            
-            itemsContainer.innerHTML = itemsHTML;
-            
-            let totalsHTML = `
-                <div class="total-row">
-                    <span>Subtotal</span>
-                    <span>Rs ${Math.round(parseFloat(order.items_subtotal_rs) || 0)}</span>
-                </div>
-            `;
-            
-            const deliveryCharge = parseFloat(order.delivery_charges_rs || order.order_delivery_charges_rs || 0);
-            if (deliveryCharge > 0) {
-                totalsHTML += `
-                    <div class="total-row">
-                        <span>Delivery Fee</span>
-                        <span>Rs ${Math.round(deliveryCharge)}</span>
-                    </div>
-                `;
-            }
-            
-            const discount = parseFloat(order.discounts_rs || 0);
-            if (discount > 0) {
-                totalsHTML += `
-                    <div class="total-row" style="color: var(--success);">
-                        <span>Discount</span>
-                        <span>-Rs ${Math.round(discount)}</span>
-                    </div>
-                `;
-            }
-            
-            totalsHTML += `
-                <div class="total-row grand">
-                    <span>Total</span>
-                    <span>Rs ${Math.round(parseFloat(order.grand_total_rs) || 0)}</span>
-                </div>
-            `;
-            
-            totalsContainer.innerHTML = totalsHTML;
-        }
-        
+        // Show error
         function showError(message) {
             document.getElementById('loading-state').style.display = 'none';
             document.getElementById('error-state').style.display = 'block';
             document.getElementById('error-text').textContent = message;
         }
         
-        // Search functionality
-        async function searchOrder(query) {
-            const searchBtn = document.getElementById('search-btn');
-            const searchResults = document.getElementById('search-results');
-            const searchError = document.getElementById('search-error');
-            const originalText = searchBtn.textContent;
-            
-            // Reset states
-            searchResults.style.display = 'none';
-            searchError.style.display = 'none';
-            searchBtn.textContent = 'Searching...';
-            searchBtn.disabled = true;
-            
-            try {
-                // Determine if input is phone number or order number
-                // Phone number regex requires at least one digit
-                const isPhone = /^[\+]?[\d\s\-]*\d[\d\s\-]*$/.test(query.trim()) && query.replace(/[\s\-\+]/g, '').length >= 7;
-                const apiUrl = isPhone 
-                    ? `${apiBaseUrl}track/phone/${encodeURIComponent(query.trim())}`
-                    : `${apiBaseUrl}track/order/${encodeURIComponent(query.trim())}`;
-                
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                
-                if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'No orders found');
-                }
-                
-                if (isPhone && data.orders) {
-                    // Multiple orders from phone search
-                    renderSearchResults(data.orders);
-                } else if (data.order) {
-                    // Single order from order number search - redirect to tracking
-                    if (data.tracking_url) {
-                        window.location.href = data.tracking_url;
-                    } else {
-                        // Render the order directly
-                        currentOrderData = data;
-                        document.getElementById('error-state').style.display = 'none';
-                        renderOrderTracking(data);
-                        startPolling();
-                    }
-                }
-            } catch (error) {
-                console.error('Search error:', error);
-                searchError.style.display = 'block';
-                document.getElementById('search-error-text').textContent = error.message || 'No orders found. Please check your search and try again.';
-            } finally {
-                searchBtn.textContent = originalText;
-                searchBtn.disabled = false;
-            }
-        }
-        
-        function renderSearchResults(orders) {
-            const container = document.getElementById('search-results');
-            
-            if (!orders || orders.length === 0) {
-                container.style.display = 'none';
-                return;
-            }
-            
-            const statusLabels = {
-                'pending': 'Pending',
-                'confirmed': 'Confirmed',
-                'cooking': 'Preparing',
-                'ready': 'Ready',
-                'dispatched': 'On the Way',
-                'delivered': 'Delivered'
-            };
-            
-            container.innerHTML = orders.map(order => `
-                <div class="search-result-item" onclick="window.location.href='${escapeHtml(order.tracking_url)}'">
-                    <div class="search-result-header">
-                        <span class="search-result-order">${escapeHtml(order.order_number)}</span>
-                        <span class="search-result-status ${order.order_status}">${statusLabels[order.order_status] || order.order_status}</span>
-                    </div>
-                    <div class="search-result-details">
-                        <span>${order.items_count || 0} items • Rs ${Math.round(parseFloat(order.grand_total_rs) || 0)}</span>
-                        <span>${formatDate(order.created_at)}</span>
-                    </div>
-                </div>
-            `).join('');
-            
-            container.style.display = 'block';
-        }
-        
-        function formatDate(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return '';
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        }
-        
+        // Format time
         function formatTime(timestamp) {
             if (!timestamp) return '';
             const date = new Date(timestamp);
@@ -1179,6 +1152,7 @@
             return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         }
         
+        // Escape HTML
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -1186,24 +1160,57 @@
             return div.innerHTML;
         }
         
-        function startPolling() {
-            pollInterval = setInterval(async () => {
-                try {
-                    await fetchOrderData();
-                } catch (error) {
-                    console.error('Polling error:', error);
+        // Search functionality
+        async function searchOrder(query) {
+            const searchBtn = document.getElementById('search-btn');
+            const searchError = document.getElementById('search-error');
+            const originalText = searchBtn.textContent;
+            
+            searchError.style.display = 'none';
+            searchBtn.textContent = 'Searching...';
+            searchBtn.disabled = true;
+            
+            try {
+                const apiUrl = `${apiBaseUrl}track/order/${encodeURIComponent(query.trim())}`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'No orders found');
                 }
-            }, 15000);
+                
+                if (data.tracking_url) {
+                    window.location.href = data.tracking_url;
+                } else if (data.order) {
+                    currentOrderData = data;
+                    document.getElementById('error-state').style.display = 'none';
+                    renderOrderTracking(data);
+                    startPolling();
+                }
+            } catch (error) {
+                searchError.style.display = 'block';
+                document.getElementById('search-error-text').textContent = error.message || 'No orders found.';
+            } finally {
+                searchBtn.textContent = originalText;
+                searchBtn.disabled = false;
+            }
         }
         
+        // Polling
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(fetchOrderData, 15000);
+        }
+        
+        // Initialize
         if (trackingToken) {
             fetchOrderData();
             startPolling();
         } else {
-            showError('Enter your order number or phone number below to track your order.');
+            showError('Enter your order number below to track your order.');
         }
         
-        // Search event listeners
+        // Event listeners
         document.getElementById('search-btn').addEventListener('click', function() {
             const query = document.getElementById('search-input').value.trim();
             if (query.length >= 3) {
@@ -1220,22 +1227,31 @@
             }
         });
         
+        // Cleanup
         window.addEventListener('beforeunload', () => {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-            }
+            if (pollInterval) clearInterval(pollInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
         });
         
+        // Visibility handling for polling
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (pollInterval) {
                     clearInterval(pollInterval);
                     pollInterval = null;
                 }
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
             } else {
-                if (!pollInterval && trackingToken) {
+                if (trackingToken && !pollInterval) {
                     fetchOrderData();
                     startPolling();
+                }
+                // Restart countdown if in cooking state
+                if (currentOrderData && getTrackingStep(currentOrderData.order.order_status) === 2) {
+                    startCountdown();
                 }
             }
         });
