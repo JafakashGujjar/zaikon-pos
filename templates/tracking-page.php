@@ -753,6 +753,8 @@
     <script>
         // Configuration - Enterprise Grade Tracking
         // Token-based tracking (primary identifier - 32-character hex string)
+        // NOTE: This regex pattern MUST match Zaikon_Order_Tracking::TOKEN_PATTERN in PHP
+        // Pattern: 16-64 character lowercase hexadecimal string (tokens are typically 32 chars)
         const rawToken = '<?php echo esc_js(get_query_var("zaikon_tracking_token")); ?>';
         const trackingToken = /^[a-f0-9]{16,64}$/.test(rawToken) ? rawToken : null;
         

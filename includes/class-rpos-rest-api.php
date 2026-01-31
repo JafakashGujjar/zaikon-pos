@@ -1992,8 +1992,8 @@ class RPOS_REST_API {
         
         $token = $request->get_param('token');
         
-        // Log the incoming request for debugging
-        $token_preview = strlen($token) >= 12 ? substr($token, 0, 8) . '...' . substr($token, -4) : '***';
+        // Log the incoming request for debugging using centralized token preview
+        $token_preview = Zaikon_Order_Tracking::create_token_preview($token);
         error_log('ZAIKON TRACKING API: /track/{token} endpoint called with token: ' . $token_preview);
         
         // Validate token format (current tokens are 32 chars, allow 16-64 for flexibility)
@@ -2060,11 +2060,7 @@ class RPOS_REST_API {
                 if ($recent_orders) {
                     error_log('ZAIKON TRACKING API: Recent orders in DB (last 24h):');
                     foreach ($recent_orders as $recent) {
-                        $t_preview = $recent->tracking_token 
-                            ? (strlen($recent->tracking_token) >= 12 
-                                ? substr($recent->tracking_token, 0, 8) . '...' . substr($recent->tracking_token, -4) 
-                                : '***')
-                            : 'NULL';
+                        $t_preview = Zaikon_Order_Tracking::create_token_preview($recent->tracking_token);
                         error_log('  - Order#: ' . $recent->order_number . ', Token: ' . $t_preview . ', Status: ' . $recent->order_status);
                     }
                 } else {
