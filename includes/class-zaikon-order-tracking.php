@@ -360,6 +360,14 @@ class Zaikon_Order_Tracking {
                 break;
             case 'ready':
                 $update_data['ready_at'] = RPOS_Timezone::current_utc_mysql();
+                // Set default delivery ETA if not set (for when rider is assigned)
+                $current_eta = $wpdb->get_var($wpdb->prepare(
+                    "SELECT delivery_eta_minutes FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+                    $order_id
+                ));
+                if ($current_eta === null) {
+                    $update_data['delivery_eta_minutes'] = 10; // 10 min default for delivery countdown
+                }
                 break;
             case 'dispatched':
                 $update_data['dispatched_at'] = RPOS_Timezone::current_utc_mysql();
@@ -369,7 +377,7 @@ class Zaikon_Order_Tracking {
                     $order_id
                 ));
                 if ($current_eta === null) {
-                    $update_data['delivery_eta_minutes'] = 15;
+                    $update_data['delivery_eta_minutes'] = 10; // 10 min default for delivery countdown
                 }
                 // Update delivery status too
                 $wpdb->update(
@@ -521,7 +529,7 @@ class Zaikon_Order_Tracking {
         
         $order = $wpdb->get_row($wpdb->prepare(
             "SELECT order_status, cooking_started_at, cooking_eta_minutes, 
-                    dispatched_at, delivery_eta_minutes
+                    ready_at, dispatched_at, delivery_eta_minutes
              FROM {$wpdb->prefix}zaikon_orders 
              WHERE id = %d",
             $order_id
@@ -534,7 +542,10 @@ class Zaikon_Order_Tracking {
         $result = array(
             'status' => $order->order_status,
             'cooking_eta_remaining' => null,
-            'delivery_eta_remaining' => null
+            'delivery_eta_remaining' => null,
+            'cooking_started_at' => $order->cooking_started_at,
+            'ready_at' => $order->ready_at,
+            'dispatched_at' => $order->dispatched_at
         );
         
         // Calculate cooking ETA if in cooking status
@@ -547,14 +558,18 @@ class Zaikon_Order_Tracking {
             $result['cooking_eta_remaining'] = round($remaining);
         }
         
-        // Calculate delivery ETA if dispatched
-        if ($order->order_status === 'dispatched' && $order->dispatched_at) {
-            $dispatch_time = strtotime($order->dispatched_at);
-            $current_time = time();
-            $elapsed_minutes = ($current_time - $dispatch_time) / 60;
-            $eta_minutes = $order->delivery_eta_minutes ?: 15;
-            $remaining = max(0, $eta_minutes - $elapsed_minutes);
-            $result['delivery_eta_remaining'] = round($remaining);
+        // Calculate delivery ETA if ready or dispatched
+        // Uses dispatched_at if available, otherwise ready_at
+        if (in_array($order->order_status, array('ready', 'dispatched'))) {
+            $delivery_start_time = $order->dispatched_at ?: $order->ready_at;
+            if ($delivery_start_time) {
+                $start_time = strtotime($delivery_start_time);
+                $current_time = time();
+                $elapsed_minutes = ($current_time - $start_time) / 60;
+                $eta_minutes = $order->delivery_eta_minutes ?: 10; // 10 min default for delivery
+                $remaining = max(0, $eta_minutes - $elapsed_minutes);
+                $result['delivery_eta_remaining'] = round($remaining);
+            }
         }
         
         return $result;

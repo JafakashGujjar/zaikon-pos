@@ -760,10 +760,20 @@
         let currentOrderData = null;
         let pollInterval = null;
         let countdownInterval = null;
+        let deliveryCountdownInterval = null;
         
-        // Server timestamp for countdown (from cooking_started_at)
+        // Server timestamps for countdown (from DB timestamps)
         let cookingStartedAt = null;
+        let readyAt = null;
+        let dispatchedAt = null;
+        
+        // Timer constants (in minutes)
         const DEFAULT_COOKING_TIME_MINUTES = 20;
+        const DEFAULT_DELIVERY_TIME_MINUTES = 10;
+        const OVERTIME_EXTENSION_MINUTES = 5;
+        
+        // Polling interval (5 seconds for real-time sync with KDS)
+        const POLL_INTERVAL_MS = 5000;
         
         // Step Icons
         const stepIcons = {
@@ -892,15 +902,10 @@
             const statusText = getStepStatusText(currentStep, currentStep, order.order_status);
             document.getElementById('current-status-text').textContent = statusText;
             
-            // Store cooking started timestamp for countdown (handle various formats)
-            if (order.cooking_started_at) {
-                const tsValue = order.cooking_started_at;
-                // If timestamp doesn't contain timezone info, treat as UTC
-                const hasTimezone = /[Zz]|[+-]\d{2}:\d{2}$/.test(tsValue);
-                cookingStartedAt = new Date(hasTimezone ? tsValue : tsValue + 'Z').getTime();
-            } else {
-                cookingStartedAt = null;
-            }
+            // Parse and store server timestamps for countdown timers
+            cookingStartedAt = parseServerTimestamp(order.cooking_started_at);
+            readyAt = parseServerTimestamp(order.ready_at);
+            dispatchedAt = parseServerTimestamp(order.dispatched_at);
             
             // Render the 3 steps
             renderTrackingSteps(order, currentStep);
@@ -939,7 +944,7 @@
                     description: 'Our kitchen is preparing your delicious food',
                     icon: stepIcons.preparing,
                     timestamp: order.cooking_started_at,
-                    showCountdown: true
+                    showCookingCountdown: true
                 },
                 {
                     num: 3,
@@ -947,6 +952,7 @@
                     description: 'Your rider is delivering your order',
                     icon: stepIcons.ontheway,
                     timestamp: order.dispatched_at || order.ready_at,
+                    showDeliveryCountdown: true,
                     showRiderAnimation: true
                 }
             ];
@@ -966,8 +972,8 @@
                 
                 let extraContent = '';
                 
-                // Step 2: Show countdown timer when active
-                if (step.showCountdown && isActive && order.order_status === 'cooking') {
+                // Step 2: Show cooking countdown timer when active
+                if (step.showCookingCountdown && isActive && order.order_status === 'cooking') {
                     extraContent = `
                         <div class="countdown-timer" id="countdown-timer">
                             <div class="countdown-label">Time Remaining</div>
@@ -977,15 +983,26 @@
                     `;
                 }
                 
-                // Step 3: Show animated rider when active
-                if (step.showRiderAnimation && isActive && ['ready', 'dispatched'].includes(order.order_status)) {
+                // Step 3: Show delivery countdown timer when active (for ready/dispatched)
+                if (step.showDeliveryCountdown && isActive && ['ready', 'dispatched'].includes(order.order_status)) {
                     extraContent = `
-                        <div class="rider-animation-container">
-                            <div class="animated-rider">
-                                ${animatedRiderSVG}
-                            </div>
+                        <div class="countdown-timer" id="delivery-countdown-timer">
+                            <div class="countdown-label">Estimated Delivery Time</div>
+                            <div class="countdown-time" id="delivery-countdown-time">10:00</div>
+                            <div class="countdown-message">Your rider is on the way!</div>
                         </div>
                     `;
+                    
+                    // Add rider animation below the countdown
+                    if (step.showRiderAnimation) {
+                        extraContent += `
+                            <div class="rider-animation-container">
+                                <div class="animated-rider">
+                                    ${animatedRiderSVG}
+                                </div>
+                            </div>
+                        `;
+                    }
                 }
                 
                 let timestampHtml = '';
@@ -1013,28 +1030,46 @@
                 `;
             }).join('');
             
-            // Start countdown if in cooking state
+            // Start cooking countdown if in cooking state
             if (currentStep === 2 && order.order_status === 'cooking') {
-                startCountdown();
+                startCookingCountdown();
             } else if (countdownInterval) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
             }
+            
+            // Start delivery countdown if in ready/dispatched state
+            if (currentStep === 3 && ['ready', 'dispatched'].includes(order.order_status)) {
+                startDeliveryCountdown();
+            } else if (deliveryCountdownInterval) {
+                clearInterval(deliveryCountdownInterval);
+                deliveryCountdownInterval = null;
+            }
         }
         
-        // Countdown timer logic
-        function startCountdown() {
+        // Helper function to parse server timestamps
+        function parseServerTimestamp(timestamp) {
+            if (!timestamp) return null;
+            // If timestamp doesn't contain timezone info, treat as UTC
+            const hasTimezone = /[Zz]|[+-]\d{2}:\d{2}$/.test(timestamp);
+            const parsed = new Date(hasTimezone ? timestamp : timestamp + 'Z').getTime();
+            return isNaN(parsed) ? null : parsed;
+        }
+        
+        // Cooking countdown timer logic (Step 2)
+        function startCookingCountdown() {
             if (countdownInterval) {
                 clearInterval(countdownInterval);
             }
             
-            updateCountdown();
-            countdownInterval = setInterval(updateCountdown, 1000);
+            updateCookingCountdown();
+            countdownInterval = setInterval(updateCookingCountdown, 1000);
         }
         
-        function updateCountdown() {
+        function updateCookingCountdown() {
             const timerElement = document.getElementById('countdown-time');
             const containerElement = document.getElementById('countdown-timer');
+            const messageElement = containerElement?.querySelector('.countdown-message');
             
             if (!timerElement || !containerElement) return;
             
@@ -1045,22 +1080,97 @@
             }
             
             const now = Date.now();
-            const defaultEndTime = cookingStartedAt + (DEFAULT_COOKING_TIME_MINUTES * 60 * 1000);
-            const remainingMs = defaultEndTime - now;
+            const elapsedMs = now - cookingStartedAt;
+            const elapsedMinutes = elapsedMs / 60000;
             
-            if (remainingMs > 0) {
-                // Normal countdown
+            // Calculate current ETA with automatic overtime extension
+            // Default: 20 min, then +5 min extensions
+            let currentEtaMinutes = DEFAULT_COOKING_TIME_MINUTES;
+            if (elapsedMinutes > DEFAULT_COOKING_TIME_MINUTES) {
+                // Calculate how many extensions needed
+                const overtimeMinutes = elapsedMinutes - DEFAULT_COOKING_TIME_MINUTES;
+                const extensionsNeeded = Math.ceil(overtimeMinutes / OVERTIME_EXTENSION_MINUTES);
+                currentEtaMinutes = DEFAULT_COOKING_TIME_MINUTES + (extensionsNeeded * OVERTIME_EXTENSION_MINUTES);
+            }
+            
+            const endTime = cookingStartedAt + (currentEtaMinutes * 60 * 1000);
+            const remainingMs = endTime - now;
+            
+            if (remainingMs > 0 && elapsedMinutes <= DEFAULT_COOKING_TIME_MINUTES) {
+                // Normal countdown (within default time)
                 const mins = Math.floor(remainingMs / 60000);
                 const secs = Math.floor((remainingMs % 60000) / 1000);
                 timerElement.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 containerElement.classList.remove('overtime');
+                if (messageElement) messageElement.textContent = 'Your food is being prepared with care!';
             } else {
-                // Overtime - show positive time exceeded
-                const overtimeMs = Math.abs(remainingMs);
+                // Overtime - show time exceeded with auto-extension indicator
+                const overtimeMs = Math.max(0, now - (cookingStartedAt + (DEFAULT_COOKING_TIME_MINUTES * 60 * 1000)));
                 const mins = Math.floor(overtimeMs / 60000);
                 const secs = Math.floor((overtimeMs % 60000) / 1000);
                 timerElement.textContent = `+${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 containerElement.classList.add('overtime');
+                if (messageElement) messageElement.textContent = 'Taking a bit longer. Almost ready!';
+            }
+        }
+        
+        // Delivery countdown timer logic (Step 3)
+        function startDeliveryCountdown() {
+            if (deliveryCountdownInterval) {
+                clearInterval(deliveryCountdownInterval);
+            }
+            
+            updateDeliveryCountdown();
+            deliveryCountdownInterval = setInterval(updateDeliveryCountdown, 1000);
+        }
+        
+        function updateDeliveryCountdown() {
+            const timerElement = document.getElementById('delivery-countdown-time');
+            const containerElement = document.getElementById('delivery-countdown-timer');
+            const messageElement = containerElement?.querySelector('.countdown-message');
+            
+            if (!timerElement || !containerElement) return;
+            
+            // Use dispatched_at if available, otherwise use ready_at
+            const deliveryStartTime = dispatchedAt || readyAt;
+            
+            if (!deliveryStartTime || isNaN(deliveryStartTime)) {
+                timerElement.textContent = '10:00';
+                return;
+            }
+            
+            const now = Date.now();
+            const elapsedMs = now - deliveryStartTime;
+            const elapsedMinutes = elapsedMs / 60000;
+            
+            // Calculate current ETA with automatic overtime extension
+            // Default: 10 min, then +5 min extensions
+            let currentEtaMinutes = DEFAULT_DELIVERY_TIME_MINUTES;
+            if (elapsedMinutes > DEFAULT_DELIVERY_TIME_MINUTES) {
+                // Calculate how many extensions needed
+                const overtimeMinutes = elapsedMinutes - DEFAULT_DELIVERY_TIME_MINUTES;
+                const extensionsNeeded = Math.ceil(overtimeMinutes / OVERTIME_EXTENSION_MINUTES);
+                currentEtaMinutes = DEFAULT_DELIVERY_TIME_MINUTES + (extensionsNeeded * OVERTIME_EXTENSION_MINUTES);
+            }
+            
+            const endTime = deliveryStartTime + (currentEtaMinutes * 60 * 1000);
+            const remainingMs = endTime - now;
+            
+            if (remainingMs > 0 && elapsedMinutes <= DEFAULT_DELIVERY_TIME_MINUTES) {
+                // Normal countdown (within default time)
+                const mins = Math.floor(remainingMs / 60000);
+                const secs = Math.floor((remainingMs % 60000) / 1000);
+                timerElement.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                containerElement.classList.remove('overtime');
+                if (messageElement) messageElement.textContent = 'Your rider is on the way!';
+            } else {
+                // Overtime - show time exceeded with auto-extension indicator
+                const overtimeMs = Math.max(0, now - (deliveryStartTime + (DEFAULT_DELIVERY_TIME_MINUTES * 60 * 1000)));
+                const mins = Math.floor(overtimeMs / 60000);
+                const secs = Math.floor((overtimeMs % 60000) / 1000);
+                timerElement.textContent = `+${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                containerElement.classList.add('overtime');
+                if (messageElement) messageElement.textContent = 'Rider delayed. Thank you for your patience!';
             }
         }
         
@@ -1196,10 +1306,10 @@
             }
         }
         
-        // Polling
+        // Polling - 5 seconds for real-time KDS sync
         function startPolling() {
             if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(fetchOrderData, 15000);
+            pollInterval = setInterval(fetchOrderData, POLL_INTERVAL_MS);
         }
         
         // Initialize
@@ -1231,9 +1341,10 @@
         window.addEventListener('beforeunload', () => {
             if (pollInterval) clearInterval(pollInterval);
             if (countdownInterval) clearInterval(countdownInterval);
+            if (deliveryCountdownInterval) clearInterval(deliveryCountdownInterval);
         });
         
-        // Visibility handling for polling
+        // Visibility handling for polling and timers
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (pollInterval) {
@@ -1244,14 +1355,24 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                 }
+                if (deliveryCountdownInterval) {
+                    clearInterval(deliveryCountdownInterval);
+                    deliveryCountdownInterval = null;
+                }
             } else {
                 if (trackingToken && !pollInterval) {
                     fetchOrderData();
                     startPolling();
                 }
-                // Restart countdown if in cooking state
-                if (currentOrderData && getTrackingStep(currentOrderData.order.order_status) === 2) {
-                    startCountdown();
+                // Restart timers based on current state
+                if (currentOrderData) {
+                    const currentStep = getTrackingStep(currentOrderData.order.order_status);
+                    if (currentStep === 2 && currentOrderData.order.order_status === 'cooking') {
+                        startCookingCountdown();
+                    }
+                    if (currentStep === 3 && ['ready', 'dispatched'].includes(currentOrderData.order.order_status)) {
+                        startDeliveryCountdown();
+                    }
                 }
             }
         });
