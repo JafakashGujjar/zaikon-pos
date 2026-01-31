@@ -382,6 +382,11 @@ class RPOS_Install {
             update_option('rpos_delivery_tracking_migration_done', true);
         }
         
+        // ========== ENTERPRISE SCHEMA VERSIONING ==========
+        // Run zaikon DB schema migrations based on version numbers
+        // This ensures schema consistency between code and database
+        self::run_zaikon_db_migrations();
+        
         // Add image_url and bg_color columns to categories table
         $categories_image_migration_done = get_option('rpos_categories_image_migration_done', false);
         if (!$categories_image_migration_done) {
@@ -598,6 +603,7 @@ class RPOS_Install {
         // Orders table
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rpos_orders (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            zaikon_order_id bigint(20) unsigned DEFAULT NULL,
             order_number varchar(50) NOT NULL,
             subtotal decimal(10,2) NOT NULL DEFAULT 0.00,
             discount decimal(10,2) DEFAULT 0.00,
@@ -616,6 +622,7 @@ class RPOS_Install {
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
+            KEY idx_zaikon_order_id (zaikon_order_id),
             UNIQUE KEY order_number (order_number),
             KEY status (status),
             KEY created_at (created_at)
@@ -1793,5 +1800,205 @@ class RPOS_Install {
         
         error_log('RPOS: Delivery tracking migration completed successfully');
         error_log('RPOS: Event-based order tracking migration completed successfully');
+    }
+    
+    /**
+     * Current Zaikon DB schema version
+     * Increment this when adding new schema migrations
+     */
+    const ZAIKON_DB_VERSION = 2;
+    
+    /**
+     * Run versioned Zaikon DB schema migrations
+     * 
+     * This implements WordPress best practices for DB schema versioning:
+     * - Store explicit DB version in wp_options
+     * - Compare versions and run migrations on plugin load
+     * - Only run each migration once by checking version
+     * 
+     * @see https://developer.wordpress.org/plugins/plugin-basics/activation-deactivation-hooks/
+     */
+    public static function run_zaikon_db_migrations() {
+        global $wpdb;
+        
+        $current_db_version = (int) get_option('zaikon_db_version', 0);
+        
+        error_log('ZAIKON SCHEMA: Current DB version: ' . $current_db_version . ', Target version: ' . self::ZAIKON_DB_VERSION);
+        
+        if ($current_db_version >= self::ZAIKON_DB_VERSION) {
+            // Already at latest version
+            return;
+        }
+        
+        // ========== MIGRATION v1: Add zaikon_order_id to rpos_orders ==========
+        // This provides reliable cross-table identity mapping between
+        // wp_rpos_orders and wp_zaikon_orders, fixing order-number drift issues
+        if ($current_db_version < 1) {
+            self::migrate_v1_add_zaikon_order_id_mapping();
+            update_option('zaikon_db_version', 1);
+            $current_db_version = 1;
+        }
+        
+        // ========== MIGRATION v2: Ensure tracking_token index exists ==========
+        // Some deployments may have the column but not the unique index
+        if ($current_db_version < 2) {
+            self::migrate_v2_ensure_tracking_token_index();
+            update_option('zaikon_db_version', 2);
+            $current_db_version = 2;
+        }
+        
+        error_log('ZAIKON SCHEMA: Migration complete, now at version: ' . $current_db_version);
+    }
+    
+    /**
+     * Migration v1: Add zaikon_order_id column to rpos_orders for reliable cross-table mapping
+     * 
+     * This eliminates the fragile order_number-based joins between tables and provides
+     * a direct foreign-key-style reference from rpos_orders to zaikon_orders.
+     */
+    private static function migrate_v1_add_zaikon_order_id_mapping() {
+        global $wpdb;
+        
+        // Use the WordPress table prefix with known table name for security
+        // This avoids SQL injection risks from dynamic table names
+        $table_name = $wpdb->prefix . 'rpos_orders';
+        
+        // Verify table exists
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            error_log('ZAIKON SCHEMA v1: rpos_orders table does not exist, skipping');
+            return;
+        }
+        
+        // Add zaikon_order_id column if it doesn't exist
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'zaikon_order_id'
+        ));
+        
+        if (empty($column_exists)) {
+            // Table name is constructed from $wpdb->prefix (trusted) + hardcoded string (trusted)
+            // so we don't need additional escaping for SQL injection prevention
+            $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `zaikon_order_id` bigint(20) unsigned DEFAULT NULL AFTER `id`");
+            
+            if ($result !== false) {
+                // Add index for efficient lookups
+                $index_result = $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `idx_zaikon_order_id` (`zaikon_order_id`)");
+                if ($index_result !== false) {
+                    error_log('ZAIKON SCHEMA v1: Added zaikon_order_id column and index to rpos_orders');
+                } else {
+                    error_log('ZAIKON SCHEMA v1: Added zaikon_order_id column but failed to add index: ' . $wpdb->last_error);
+                }
+            } else {
+                error_log('ZAIKON SCHEMA v1: Failed to add zaikon_order_id column: ' . $wpdb->last_error);
+            }
+        }
+        
+        // Backfill existing records in batches: match by order_number
+        // Process all records by looping until no more are found
+        $total_backfilled = 0;
+        $batch_size = 500;
+        
+        do {
+            $orders_without_mapping = $wpdb->get_results(
+                "SELECT r.id as rpos_id, r.order_number, z.id as zaikon_id
+                 FROM {$wpdb->prefix}rpos_orders r
+                 LEFT JOIN {$wpdb->prefix}zaikon_orders z ON r.order_number = z.order_number
+                 WHERE r.zaikon_order_id IS NULL AND z.id IS NOT NULL
+                 LIMIT {$batch_size}"
+            );
+            
+            $batch_count = count($orders_without_mapping);
+            
+            foreach ($orders_without_mapping as $order) {
+                $result = $wpdb->update(
+                    $wpdb->prefix . 'rpos_orders',
+                    array('zaikon_order_id' => $order->zaikon_id),
+                    array('id' => $order->rpos_id),
+                    array('%d'),
+                    array('%d')
+                );
+                
+                if ($result !== false) {
+                    $total_backfilled++;
+                }
+            }
+        } while ($batch_count === $batch_size); // Continue while we got a full batch
+        
+        if ($total_backfilled > 0) {
+            error_log('ZAIKON SCHEMA v1: Backfilled zaikon_order_id for ' . $total_backfilled . ' existing orders');
+        }
+        
+        error_log('ZAIKON SCHEMA v1: Migration completed');
+    }
+    
+    /**
+     * Migration v2: Ensure tracking_token has a unique index
+     * 
+     * Some deployments may have the column but not the unique index,
+     * causing token verification to fail due to inconsistent data.
+     */
+    private static function migrate_v2_ensure_tracking_token_index() {
+        global $wpdb;
+        
+        // Use the WordPress table prefix with known table name for security
+        // This avoids SQL injection risks from dynamic table names
+        $table_name = $wpdb->prefix . 'zaikon_orders';
+        
+        // Verify table exists
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            error_log('ZAIKON SCHEMA v2: zaikon_orders table does not exist, skipping');
+            return;
+        }
+        
+        // Check if tracking_token column exists
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            'tracking_token'
+        ));
+        
+        if (empty($column_exists)) {
+            // Add the column with unique constraint
+            // Table name is constructed from $wpdb->prefix (trusted) + hardcoded string (trusted)
+            $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `tracking_token` varchar(100) UNIQUE DEFAULT NULL AFTER `order_number`");
+            if ($result !== false) {
+                error_log('ZAIKON SCHEMA v2: Added tracking_token column with unique constraint');
+            } else {
+                error_log('ZAIKON SCHEMA v2: Failed to add tracking_token column: ' . $wpdb->last_error);
+            }
+        } else {
+            // Column exists, check if unique index exists
+            $index_exists = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `{$table_name}` WHERE Key_name = %s",
+                'tracking_token'
+            ));
+            
+            $unique_index_exists = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `{$table_name}` WHERE Key_name = %s",
+                'tracking_token_idx'
+            ));
+            
+            if (empty($index_exists) && empty($unique_index_exists)) {
+                // Add unique index if neither exists
+                // Table name is constructed from $wpdb->prefix (trusted) + hardcoded string (trusted)
+                $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD UNIQUE INDEX `tracking_token_idx` (`tracking_token`)");
+                if ($result !== false) {
+                    error_log('ZAIKON SCHEMA v2: Added unique index for tracking_token');
+                } else {
+                    error_log('ZAIKON SCHEMA v2: Failed to add unique index: ' . $wpdb->last_error);
+                }
+            }
+        }
+        
+        error_log('ZAIKON SCHEMA v2: Migration completed');
     }
 }
