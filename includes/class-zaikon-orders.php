@@ -155,15 +155,35 @@ class Zaikon_Orders {
     
     /**
      * Get all orders with filters
+     * 
+     * Supports filtering by status (for KDS), order_type, date range, and payment status.
+     * This is the unified order query service used by both KDS and order management.
+     * 
+     * @param array $args {
+     *     Optional. Array of query arguments.
+     *     @type string $status         Order status filter (e.g., 'pending', 'confirmed', 'cooking', 'ready')
+     *     @type string $order_type     Order type filter (e.g., 'delivery', 'dine-in', 'takeaway')
+     *     @type string $date_from      Start date for filtering (MySQL datetime format)
+     *     @type string $date_to        End date for filtering (MySQL datetime format)
+     *     @type string $payment_status Payment status filter (e.g., 'paid', 'unpaid')
+     *     @type string $orderby        Column to order by (default: 'created_at')
+     *     @type string $order          Sort direction: 'ASC' or 'DESC' (default: 'DESC')
+     *     @type int    $limit          Number of results to return (default: 50)
+     *     @type int    $offset         Number of results to skip (default: 0)
+     * }
+     * @return array Array of order objects with cashier names and items
      */
     public static function get_all($args = array()) {
         global $wpdb;
         
         $defaults = array(
+            'status' => '',              // Added for KDS compatibility
             'order_type' => '',
             'date_from' => '',
             'date_to' => '',
             'payment_status' => '',
+            'orderby' => 'created_at',
+            'order' => 'DESC',
             'limit' => 50,
             'offset' => 0
         );
@@ -173,39 +193,79 @@ class Zaikon_Orders {
         $where = array('1=1');
         $where_values = array();
         
+        // Status filter (for KDS: 'new', 'cooking', 'ready', 'completed')
+        // Maps to zaikon_orders.order_status field
+        if (!empty($args['status'])) {
+            $where[] = 'o.order_status = %s';
+            $where_values[] = $args['status'];
+        }
+        
         if (!empty($args['order_type'])) {
-            $where[] = 'order_type = %s';
+            $where[] = 'o.order_type = %s';
             $where_values[] = $args['order_type'];
         }
         
         if (!empty($args['date_from'])) {
-            $where[] = 'created_at >= %s';
+            $where[] = 'o.created_at >= %s';
             $where_values[] = $args['date_from'];
         }
         
         if (!empty($args['date_to'])) {
-            $where[] = 'created_at <= %s';
+            $where[] = 'o.created_at <= %s';
             $where_values[] = $args['date_to'];
         }
         
         if (!empty($args['payment_status'])) {
-            $where[] = 'payment_status = %s';
+            $where[] = 'o.payment_status = %s';
             $where_values[] = $args['payment_status'];
         }
         
-        $query = "SELECT * FROM {$wpdb->prefix}zaikon_orders 
-                  WHERE " . implode(' AND ', $where) . "
-                  ORDER BY created_at DESC
+        $where_clause = implode(' AND ', $where);
+        
+        // Validate and sanitize orderby and order
+        $allowed_orderby = array('created_at', 'updated_at', 'order_number', 'grand_total_rs', 'order_status');
+        $orderby = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'created_at';
+        $order = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+        
+        // Join with users table to get cashier name (KDS compatibility)
+        $query = "SELECT o.*, u.display_name as cashier_name 
+                  FROM {$wpdb->prefix}zaikon_orders o
+                  LEFT JOIN {$wpdb->users} u ON o.cashier_id = u.ID
+                  WHERE {$where_clause}
+                  ORDER BY o.{$orderby} {$order}
                   LIMIT %d OFFSET %d";
         
         $where_values[] = $args['limit'];
         $where_values[] = $args['offset'];
         
+        $orders = array();
         if (!empty($where_values)) {
-            return $wpdb->get_results($wpdb->prepare($query, $where_values));
+            $orders = $wpdb->get_results($wpdb->prepare($query, $where_values));
+        } else {
+            $orders = $wpdb->get_results($query);
         }
         
-        return $wpdb->get_results($query);
+        // Load items for each order (KDS needs this)
+        foreach ($orders as &$order) {
+            $order->items = Zaikon_Order_Items::get_by_order($order->id);
+            
+            // Map zaikon field names to rpos field names for backward compatibility
+            // KDS expects certain field names from the old rpos_orders table
+            if (!isset($order->status)) {
+                $order->status = $order->order_status; // Map order_status to status
+            }
+            if (!isset($order->subtotal)) {
+                $order->subtotal = $order->items_subtotal_rs; // Map items_subtotal_rs to subtotal
+            }
+            if (!isset($order->total)) {
+                $order->total = $order->grand_total_rs; // Map grand_total_rs to total
+            }
+            if (!isset($order->discount)) {
+                $order->discount = $order->discounts_rs; // Map discounts_rs to discount
+            }
+        }
+        
+        return $orders;
     }
     
     /**

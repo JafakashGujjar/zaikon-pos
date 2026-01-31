@@ -565,6 +565,19 @@ class RPOS_REST_API {
     /**
      * Get orders
      */
+    /**
+     * Get orders - Unified endpoint for KDS and order management
+     * 
+     * CRITICAL CHANGE: Now reads from zaikon_orders (single source of truth)
+     * instead of rpos_orders. This ensures KDS and Tracking systems are synchronized.
+     * 
+     * All orders are created in zaikon_orders first, with rpos_orders as a secondary
+     * table for backward compatibility. This fixes the disconnected data flow between
+     * KDS (was reading rpos_orders) and Tracking (reads zaikon_orders).
+     * 
+     * @param WP_REST_Request $request Request object with filters
+     * @return WP_REST_Response Orders array with items and cashier info
+     */
     public function get_orders($request) {
         $params = $request->get_params();
         
@@ -575,19 +588,41 @@ class RPOS_REST_API {
             'limit' => $params['limit'] ?? 50
         );
         
-        $orders = RPOS_Orders::get_all($args);
+        // USE ZAIKON_ORDERS AS SINGLE SOURCE OF TRUTH
+        // This ensures KDS and Tracking read from the same table
+        $orders = Zaikon_Orders::get_all($args);
+        
         return rest_ensure_response($orders);
     }
     
     /**
-     * Get single order
+     * Get single order - Unified endpoint
+     * 
+     * CRITICAL CHANGE: Now reads from zaikon_orders (single source of truth)
+     * instead of rpos_orders. Ensures consistency across all systems.
      */
     public function get_order($request) {
         $id = $request['id'];
-        $order = RPOS_Orders::get($id);
+        
+        // READ FROM ZAIKON_ORDERS (SINGLE SOURCE OF TRUTH)
+        $order = Zaikon_Orders::get($id);
         
         if (!$order) {
             return new WP_Error('not_found', 'Order not found', array('status' => 404));
+        }
+        
+        // Map zaikon fields to rpos fields for backward compatibility
+        if (!isset($order->status)) {
+            $order->status = $order->order_status;
+        }
+        if (!isset($order->subtotal)) {
+            $order->subtotal = $order->items_subtotal_rs;
+        }
+        if (!isset($order->total)) {
+            $order->total = $order->grand_total_rs;
+        }
+        if (!isset($order->discount)) {
+            $order->discount = $order->discounts_rs;
         }
         
         return rest_ensure_response($order);
@@ -596,32 +631,131 @@ class RPOS_REST_API {
     /**
      * Create order
      * 
-     * Creates orders in both rpos_orders (for KDS) and zaikon_orders (for POS popup)
-     * to ensure synchronization across all system components.
+     * CRITICAL CHANGE: Now creates in zaikon_orders FIRST (single source of truth),
+     * then syncs to rpos_orders for backward compatibility.
+     * 
+     * This ensures all orders are trackable and appear in both KDS and Tracking systems.
      */
     public function create_order($request) {
         $data = $request->get_json_params();
         
-        // For delivery orders, use the new Zaikon system
+        // For delivery orders, use the Zaikon_Order_Service (already creates in zaikon_orders first)
         if (isset($data['order_type']) && $data['order_type'] === 'delivery' && isset($data['is_delivery']) && $data['is_delivery']) {
             return $this->create_delivery_order_v2($data);
         }
         
-        // For non-delivery orders (dine-in, takeaway), create in both systems
-        // 1. Create in legacy rpos_orders for KDS compatibility
-        $order_id = RPOS_Orders::create($data);
+        // For non-delivery orders (dine-in, takeaway), CREATE IN ZAIKON_ORDERS FIRST
+        // Generate order number
+        $order_number = RPOS_Orders::generate_order_number();
         
-        if (!$order_id) {
-            return new WP_Error('creation_failed', 'Failed to create order', array('status' => 500));
+        // Calculate totals
+        $subtotal = floatval($data['subtotal'] ?? 0);
+        $discount = floatval($data['discount'] ?? 0);
+        $total = $subtotal - $discount;
+        
+        // Prepare Zaikon order data (SINGLE SOURCE OF TRUTH)
+        $zaikon_order_data = array(
+            'order_number' => $order_number,
+            'order_type' => sanitize_text_field($data['order_type'] ?? 'takeaway'),
+            'items_subtotal_rs' => $subtotal,
+            'delivery_charges_rs' => 0,
+            'discounts_rs' => $discount,
+            'taxes_rs' => floatval($data['tax'] ?? $data['taxes'] ?? 0),
+            'grand_total_rs' => $total,
+            'payment_type' => sanitize_text_field($data['payment_type'] ?? 'cash'),
+            'payment_status' => sanitize_text_field($data['payment_status'] ?? 'paid'),
+            'order_status' => 'confirmed', // Non-delivery orders start as 'confirmed'
+            'special_instructions' => sanitize_textarea_field($data['special_instructions'] ?? ''),
+            'cashier_id' => absint($data['cashier_id'] ?? get_current_user_id())
+        );
+        
+        // Prepare items
+        $items = array();
+        if (!empty($data['items'])) {
+            foreach ($data['items'] as $item) {
+                $product = RPOS_Products::get($item['product_id']);
+                $items[] = array(
+                    'product_id' => $item['product_id'],
+                    'product_name' => $product ? $product->name : '',
+                    'qty' => intval($item['quantity']),
+                    'unit_price_rs' => floatval($item['unit_price']),
+                    'line_total_rs' => floatval($item['line_total'])
+                );
+            }
         }
         
-        $order = RPOS_Orders::get($order_id);
+        // CREATE ORDER USING ZAIKON_ORDER_SERVICE (ENTERPRISE-GRADE ATOMIC OPERATION)
+        $result = Zaikon_Order_Service::create_order($zaikon_order_data, $items, null);
         
-        // 2. Also create in zaikon_orders for POS popup synchronization
-        // This ensures orders appear in "My Orders" modal on POS screen
-        $this->sync_order_to_zaikon($order, $data);
+        if (!$result['success']) {
+            $error_msg = !empty($result['errors']) ? implode(', ', $result['errors']) : 'Failed to create order';
+            error_log('ZAIKON: Order creation failed: ' . $error_msg);
+            return new WP_Error('creation_failed', $error_msg, array('status' => 500));
+        }
+        
+        $zaikon_order_id = $result['order_id'];
+        
+        // Get the created order to return to client
+        $order = Zaikon_Orders::get($zaikon_order_id);
+        
+        if (!$order) {
+            return new WP_Error('creation_failed', 'Failed to retrieve created order', array('status' => 500));
+        }
+        
+        // SYNC TO RPOS_ORDERS FOR BACKWARD COMPATIBILITY
+        // This ensures legacy integrations still work
+        $this->sync_order_to_rpos($order, $data);
+        
+        // Map zaikon fields to rpos fields for backward compatibility in response
+        $order->status = $order->order_status;
+        $order->subtotal = $order->items_subtotal_rs;
+        $order->total = $order->grand_total_rs;
+        $order->discount = $order->discounts_rs;
         
         return rest_ensure_response($order);
+    }
+    
+    /**
+     * Sync order from zaikon_orders to rpos_orders table (for backward compatibility)
+     * 
+     * @param object $order The order object from zaikon_orders
+     * @param array $data Original order data with items
+     * @return int|false The rpos order ID on success, false on failure
+     */
+    private function sync_order_to_rpos($order, $data) {
+        if (!$order || !isset($order->order_number)) {
+            error_log('RPOS: sync_order_to_rpos - Invalid order object');
+            return false;
+        }
+        
+        // Map order data to rpos_orders format
+        $rpos_order_data = array(
+            'order_number' => $order->order_number,
+            'subtotal' => floatval($order->items_subtotal_rs ?? 0),
+            'discount' => floatval($order->discounts_rs ?? 0),
+            'total' => floatval($order->grand_total_rs ?? 0),
+            'cash_received' => floatval($data['cash_received'] ?? 0),
+            'change_due' => floatval($data['change_due'] ?? 0),
+            'status' => $order->order_status, // Map order_status to status
+            'payment_type' => sanitize_text_field($order->payment_type ?? 'cash'),
+            'payment_status' => sanitize_text_field($order->payment_status ?? 'paid'),
+            'order_type' => sanitize_text_field($order->order_type ?? 'takeaway'),
+            'special_instructions' => sanitize_textarea_field($order->special_instructions ?? ''),
+            'cashier_id' => absint($order->cashier_id ?? get_current_user_id()),
+            'items' => $data['items'] ?? array()
+        );
+        
+        // Create in rpos_orders
+        $rpos_order_id = RPOS_Orders::create($rpos_order_data);
+        
+        if (!$rpos_order_id) {
+            error_log('RPOS: sync_order_to_rpos - Failed to create rpos order for order #' . $order->order_number);
+            return false;
+        }
+        
+        error_log('RPOS: sync_order_to_rpos - Successfully synced order #' . $order->order_number . ' to rpos_orders (ID: ' . $rpos_order_id . ')');
+        
+        return $rpos_order_id;
     }
     
     /**
@@ -934,6 +1068,17 @@ class RPOS_REST_API {
     /**
      * Update order status
      */
+    /**
+     * Update order status - Unified endpoint for KDS status changes
+     * 
+     * CRITICAL CHANGE: Now updates zaikon_orders (single source of truth) instead of rpos_orders.
+     * This ensures KDS status changes are immediately visible in the Tracking system.
+     * 
+     * The status update is propagated to rpos_orders for backward compatibility.
+     * 
+     * @param WP_REST_Request $request Request with order ID and new status
+     * @return WP_REST_Response|WP_Error Success response or error
+     */
     public function update_order_status($request) {
         global $wpdb;
         
@@ -946,82 +1091,74 @@ class RPOS_REST_API {
         
         $new_status = sanitize_text_field($data['status']);
         
-        // Get current order status
-        $old_status = $wpdb->get_var($wpdb->prepare(
-            "SELECT status FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
+        // GET CURRENT ORDER STATUS FROM ZAIKON_ORDERS (SINGLE SOURCE OF TRUTH)
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, order_number, order_status as status FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
             $id
         ));
         
-        if ($old_status === null) {
+        if (!$order) {
             return new WP_Error('not_found', 'Order not found', array('status' => 404));
         }
         
-        error_log('RPOS REST API: update_order_status called for order #' . $id . ' from "' . $old_status . '" to "' . $new_status . '"');
+        $old_status = $order->status;
         
-        // Update the order status (this now handles idempotent calls properly)
-        $result = RPOS_Orders::update_status($id, $new_status);
+        error_log('RPOS REST API: update_order_status called for zaikon_order #' . $id . ' (order #' . $order->order_number . ') from "' . $old_status . '" to "' . $new_status . '"');
         
-        if ($result === false) {
-            error_log('RPOS REST API: Failed to update order #' . $id . ' status');
-            return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
-        }
-        
-        // Sync status to zaikon_orders table using EVENT-BASED tracking
-        // Map KDS status to lifecycle events for proper timestamp management
+        // UPDATE STATUS IN ZAIKON_ORDERS USING EVENT-BASED SYSTEM
+        // This ensures proper timestamp management and audit trail
         if (isset(self::KDS_STATUS_TO_EVENT[$new_status])) {
             $lifecycle_event = self::KDS_STATUS_TO_EVENT[$new_status];
             
-            // Get the order number from rpos_orders to find matching zaikon_orders
-            $order_number = $wpdb->get_var($wpdb->prepare(
-                "SELECT order_number FROM {$wpdb->prefix}rpos_orders WHERE id = %d",
+            error_log('RPOS KDS: Dispatching event ' . $lifecycle_event . ' for zaikon_order #' . $id);
+            
+            $event_result = Zaikon_Order_Events::dispatch($id, $lifecycle_event, array(
+                'source' => Zaikon_Order_Events::SOURCE_KDS,
+                'user_id' => get_current_user_id()
+            ));
+            
+            if (!$event_result['success']) {
+                error_log('RPOS KDS [ERROR]: Event dispatch failed for zaikon_order #' . $id . '. Error: ' . $event_result['message']);
+                return new WP_Error('update_failed', 'Failed to update order status: ' . $event_result['message'], array('status' => 500));
+            }
+            
+            // Verify the event was processed successfully
+            $verify = $wpdb->get_row($wpdb->prepare(
+                "SELECT order_status, cooking_started_at, ready_at, dispatched_at, delivered_at 
+                 FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
                 $id
             ));
             
-            if ($order_number) {
-                // Find corresponding zaikon_orders record
-                $zaikon_order_id = $wpdb->get_var($wpdb->prepare(
-                    "SELECT id FROM {$wpdb->prefix}zaikon_orders WHERE order_number = %s",
-                    $order_number
-                ));
-                
-                if ($zaikon_order_id) {
-                    // Dispatch lifecycle event instead of direct status update
-                    error_log('RPOS KDS SYNC: Dispatching event ' . $lifecycle_event . ' for order #' . $order_number . ' (rpos #' . $id . ' -> zaikon #' . $zaikon_order_id . ')');
-                    
-                    $event_result = Zaikon_Order_Events::dispatch($zaikon_order_id, $lifecycle_event, array(
-                        'source' => Zaikon_Order_Events::SOURCE_KDS,
-                        'user_id' => get_current_user_id()
-                    ));
-                    
-                    if (!$event_result['success']) {
-                        error_log('RPOS KDS SYNC [ERROR]: Event dispatch failed for zaikon_orders #' . $zaikon_order_id . '. Error: ' . $event_result['message']);
-                    } else {
-                        // Verify the event was processed successfully
-                        $verify = $wpdb->get_row($wpdb->prepare(
-                            "SELECT order_status, cooking_started_at, ready_at, dispatched_at, delivered_at 
-                             FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
-                            $zaikon_order_id
-                        ));
-                        
-                        if ($verify) {
-                            error_log('RPOS KDS SYNC [SUCCESS]: Event ' . $lifecycle_event . ' dispatched for order #' . $order_number . 
-                                '. Status: ' . $verify->order_status . 
-                                ', cooking_started_at: ' . ($verify->cooking_started_at ?: 'NULL') . 
-                                ', ready_at: ' . ($verify->ready_at ?: 'NULL') . 
-                                ', dispatched_at: ' . ($verify->dispatched_at ?: 'NULL') . 
-                                ', delivered_at: ' . ($verify->delivered_at ?: 'NULL'));
-                        } else {
-                            error_log('RPOS KDS SYNC [WARNING]: Could not verify event processing for zaikon_orders #' . $zaikon_order_id);
-                        }
-                    }
-                } else {
-                    error_log('RPOS KDS SYNC [WARNING]: No matching zaikon_orders record found for order_number: ' . $order_number . ' (KDS order #' . $id . ')');
-                }
-            } else {
-                error_log('RPOS KDS SYNC [WARNING]: Could not get order_number for rpos_orders #' . $id);
+            if ($verify) {
+                error_log('RPOS KDS [SUCCESS]: Event ' . $lifecycle_event . ' dispatched for order #' . $order->order_number . 
+                    '. Status: ' . $verify->order_status . 
+                    ', cooking_started_at: ' . ($verify->cooking_started_at ?: 'NULL') . 
+                    ', ready_at: ' . ($verify->ready_at ?: 'NULL') . 
+                    ', dispatched_at: ' . ($verify->dispatched_at ?: 'NULL') . 
+                    ', delivered_at: ' . ($verify->delivered_at ?: 'NULL'));
             }
         } else {
-            error_log('RPOS KDS SYNC [INFO]: No lifecycle event mapping for KDS status "' . $new_status . '" - skipping event dispatch');
+            error_log('RPOS KDS [INFO]: No lifecycle event mapping for status "' . $new_status . '" - skipping event dispatch');
+        }
+        
+        // SYNC STATUS TO RPOS_ORDERS FOR BACKWARD COMPATIBILITY
+        // Find corresponding rpos_orders record by order_number
+        $rpos_order_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}rpos_orders WHERE order_number = %s",
+            $order->order_number
+        ));
+        
+        if ($rpos_order_id) {
+            // Update status in rpos_orders
+            $rpos_result = RPOS_Orders::update_status($rpos_order_id, $new_status);
+            
+            if ($rpos_result === false) {
+                error_log('RPOS KDS [WARNING]: Failed to sync status to rpos_orders #' . $rpos_order_id . ' for order #' . $order->order_number);
+            } else {
+                error_log('RPOS KDS [SUCCESS]: Synced status to rpos_orders #' . $rpos_order_id);
+            }
+        } else {
+            error_log('RPOS KDS [INFO]: No matching rpos_orders record for order #' . $order->order_number . ' - skipping rpos sync');
         }
         
         // Log kitchen activity only if status actually changed
@@ -1029,7 +1166,7 @@ class RPOS_REST_API {
             $current_user_id = get_current_user_id();
             
             $activity_data = array(
-                'order_id' => $id,
+                'order_id' => $rpos_order_id ?: $id, // Use rpos_order_id if available, else zaikon order id
                 'user_id' => $current_user_id,
                 'old_status' => $old_status,
                 'new_status' => $new_status
@@ -1048,12 +1185,14 @@ class RPOS_REST_API {
                 $activity_format
             );
             
-            error_log('RPOS REST API: Kitchen activity logged for order #' . $id);
+            error_log('RPOS REST API: Kitchen activity logged for order #' . $order->order_number);
             
             // Trigger notification for cashier and admins when order is ready
             if ($new_status === 'ready') {
-                RPOS_Notifications::notify_order_status_change($id, $old_status, $new_status);
-                error_log('RPOS REST API: Notification triggered for order #' . $id . ' ready status');
+                if ($rpos_order_id) {
+                    RPOS_Notifications::notify_order_status_change($rpos_order_id, $old_status, $new_status);
+                }
+                error_log('RPOS REST API: Notification triggered for order #' . $order->order_number . ' ready status');
             }
         }
         
