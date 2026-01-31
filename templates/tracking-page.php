@@ -1003,17 +1003,19 @@
                     response = await fetch(`${apiBaseUrl}track/order/${encodeURIComponent(trackingOrderNumber)}`);
                     data = await response.json();
                 } else {
-                    throw new Error('No tracking identifier provided. Please check your tracking link.');
+                    throw new Error('No tracking identifier provided. Please use the search box below to enter your order number from your receipt.');
                 }
                 
                 if (!response.ok || !data.success) {
                     console.error('ZAIKON TRACKING: Order lookup failed', data);
                     if (response.status === 404) {
-                        throw new Error('Order not found. The tracking link may have expired.');
+                        // Use the more helpful suggestion from API if available
+                        const suggestion = data.data?.suggestion || 'Use the search box below to enter your order number from your receipt.';
+                        throw new Error('Order not found. ' + suggestion);
                     } else if (response.status === 400) {
-                        throw new Error('Invalid tracking link. Please check your URL.');
+                        throw new Error('Invalid tracking link. Please use the search box below to enter your order number.');
                     }
-                    throw new Error(data.message || 'Unable to load order details.');
+                    throw new Error(data.message || 'Unable to load order details. Please try searching by order number.');
                 }
                 
                 // Update server time synchronization on each poll to maintain accuracy

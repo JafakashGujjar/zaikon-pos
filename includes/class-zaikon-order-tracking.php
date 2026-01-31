@@ -33,6 +33,12 @@ class Zaikon_Order_Tracking {
     const PRE_READY_STATUSES = array('pending', 'confirmed', 'cooking');
     
     /**
+     * Statuses that represent tracking Step 3 (post-dispatch/final stages)
+     * Used by safety rules to verify order has progressed to delivery stage
+     */
+    const POST_DISPATCH_STATUSES = array('dispatched', 'delivered', 'completed');
+    
+    /**
      * Create a partial token preview for secure logging
      * Shows first 8 and last 4 characters for tokens >= 12 chars
      * For shorter tokens, shows asterisks
@@ -444,7 +450,7 @@ class Zaikon_Order_Tracking {
             return $order;
         }
         
-        // Safety Rule: If ready_at exists but status suggests pre-ready state, correct it
+        // Safety Rule 1: If ready_at exists but status suggests pre-ready state, correct it
         // Uses class constant PRE_READY_STATUSES for maintainability
         if (!empty($order->ready_at) && in_array($order->order_status, self::PRE_READY_STATUSES)) {
             error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
@@ -454,13 +460,17 @@ class Zaikon_Order_Tracking {
             // Runtime-only metadata flags (not persisted to database):
             // These properties are dynamically added to the order object at runtime
             // to track when status corrections are applied for API response metadata
-            $order->tracking_original_status = $order->order_status;
+            // Preserve original status only if not already set by a previous rule application
+            if (empty($order->tracking_original_status)) {
+                $order->tracking_original_status = $order->order_status;
+            }
             $order->order_status = 'ready';
             $order->tracking_safety_rule_applied = true;
         }
         
-        // Additional safety: If dispatched_at exists, ensure proper status
-        if (!empty($order->dispatched_at) && !in_array($order->order_status, array('dispatched', 'delivered', 'completed'))) {
+        // Safety Rule 2: If dispatched_at exists, ensure proper status
+        // Uses class constant POST_DISPATCH_STATUSES for maintainability
+        if (!empty($order->dispatched_at) && !in_array($order->order_status, self::POST_DISPATCH_STATUSES)) {
             error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
                 ' has dispatched_at (' . $order->dispatched_at . ') but status is "' . $order->order_status . 
                 '". Forcing status to "dispatched" for accurate tracking display.');
@@ -473,7 +483,7 @@ class Zaikon_Order_Tracking {
             $order->tracking_safety_rule_applied = true;
         }
         
-        // Additional safety: If delivered_at exists, ensure delivered status
+        // Safety Rule 3: If delivered_at exists, ensure delivered status
         if (!empty($order->delivered_at) && $order->order_status !== 'delivered') {
             error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
                 ' has delivered_at (' . $order->delivered_at . ') but status is "' . $order->order_status . 
