@@ -662,6 +662,15 @@ class RPOS_REST_API {
             error_log('ZAIKON: sync_order_to_zaikon - ' . $items_failed . ' item(s) failed to sync for order #' . $order->order_number);
         }
         
+        // Generate tracking token at order creation (enterprise requirement)
+        // This ensures all orders are trackable immediately after creation
+        $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($zaikon_order_id);
+        if ($tracking_token) {
+            error_log('ZAIKON: sync_order_to_zaikon - Generated tracking token for order #' . $order->order_number);
+        } else {
+            error_log('ZAIKON: sync_order_to_zaikon - WARNING: Failed to generate tracking token for order #' . $order->order_number);
+        }
+        
         error_log('ZAIKON: sync_order_to_zaikon - Successfully synced order #' . $order->order_number . ' to zaikon_orders (ID: ' . $zaikon_order_id . ')');
         
         return $zaikon_order_id;
