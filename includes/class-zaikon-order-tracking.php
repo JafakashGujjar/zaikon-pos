@@ -346,8 +346,11 @@ class Zaikon_Order_Tracking {
         
         // Idempotent: if status is same, return success without update
         if ($old_status === $new_status) {
+            error_log('ZAIKON TRACKING: Order #' . $order_id . ' already has status "' . $new_status . '", no change needed (source: ' . $source . ')');
             return true;
         }
+        
+        error_log('ZAIKON TRACKING: Updating order #' . $order_id . ' status from "' . $old_status . '" to "' . $new_status . '" (source: ' . $source . ')');
         
         // Prepare update data
         $update_data = array(
@@ -453,7 +456,13 @@ class Zaikon_Order_Tracking {
             'timestamps_set' => $timestamps_set
         ));
         
-        error_log('ZAIKON TRACKING: Order #' . $order_id . ' status changed: "' . $old_status . '" → "' . $new_status . '" (source: ' . $source . ')');
+        // Enhanced logging with timestamp details
+        $timestamp_log = '';
+        if (!empty($timestamps_set)) {
+            $timestamp_log = ' | Timestamps set: ' . implode(', ', $timestamps_set);
+        }
+        
+        error_log('ZAIKON TRACKING [SUCCESS]: Order #' . $order_id . ' status changed: "' . $old_status . '" → "' . $new_status . '" (source: ' . $source . ')' . $timestamp_log);
         
         return true;
     }
@@ -621,5 +630,176 @@ class Zaikon_Order_Tracking {
         }
         
         return $result;
+    }
+    
+    /**
+     * Auto-complete old orders after 2 hours
+     * 
+     * This method is designed to be called by a cron job.
+     * It safely marks orders as completed if they are older than 2 hours.
+     * 
+     * Enterprise requirements:
+     * - Idempotent: safe to run multiple times
+     * - Does not corrupt reports/inventory (only changes status)
+     * - Full logging for audit trail
+     * 
+     * @param int $hours Number of hours after which orders should be auto-completed (default: 2)
+     * @return array Result with counts and details
+     */
+    public static function auto_complete_old_orders($hours = 2) {
+        global $wpdb;
+        
+        $results = array(
+            'total_processed' => 0,
+            'completed' => 0,
+            'skipped' => 0,
+            'errors' => 0,
+            'details' => array()
+        );
+        
+        // Calculate the cutoff time (2 hours ago)
+        $cutoff_time = date('Y-m-d H:i:s', strtotime("-{$hours} hours"));
+        
+        error_log('ZAIKON AUTO-COMPLETE: Starting auto-complete job. Cutoff time: ' . $cutoff_time . ' (orders older than ' . $hours . ' hours)');
+        
+        // Find orders that are:
+        // 1. Created more than 2 hours ago
+        // 2. Not in terminal statuses (completed, cancelled, delivered)
+        // 3. In any active/processing status that should be auto-completed
+        $open_orders = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, order_number, order_status, created_at, order_type 
+             FROM {$wpdb->prefix}zaikon_orders 
+             WHERE created_at <= %s 
+             AND order_status NOT IN ('completed', 'cancelled', 'delivered', 'replacement')
+             ORDER BY created_at ASC
+             LIMIT 100",
+            $cutoff_time
+        ));
+        
+        if (empty($open_orders)) {
+            error_log('ZAIKON AUTO-COMPLETE: No orders found older than ' . $hours . ' hours that need completion.');
+            return $results;
+        }
+        
+        error_log('ZAIKON AUTO-COMPLETE: Found ' . count($open_orders) . ' orders to process.');
+        
+        foreach ($open_orders as $order) {
+            $results['total_processed']++;
+            
+            // For delivery orders, mark as delivered; for others, mark as completed
+            $new_status = ($order->order_type === 'delivery') ? 'delivered' : 'completed';
+            
+            // Use the centralized update_status method for consistency
+            $update_result = self::update_status($order->id, $new_status, 0, 'system');
+            
+            if (is_wp_error($update_result)) {
+                $results['errors']++;
+                $results['details'][] = array(
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'action' => 'error',
+                    'error' => $update_result->get_error_message()
+                );
+                error_log('ZAIKON AUTO-COMPLETE [ERROR]: Failed to auto-complete order #' . $order->order_number . '. Error: ' . $update_result->get_error_message());
+            } else {
+                $results['completed']++;
+                $results['details'][] = array(
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'old_status' => $order->order_status,
+                    'new_status' => $new_status,
+                    'action' => 'completed'
+                );
+                error_log('ZAIKON AUTO-COMPLETE [SUCCESS]: Order #' . $order->order_number . ' auto-completed: ' . $order->order_status . ' → ' . $new_status);
+                
+                // Log to system events for audit trail
+                Zaikon_System_Events::log('order', $order->id, 'auto_completed', array(
+                    'old_status' => $order->order_status,
+                    'new_status' => $new_status,
+                    'reason' => 'Order older than ' . $hours . ' hours',
+                    'created_at' => $order->created_at
+                ));
+            }
+        }
+        
+        error_log('ZAIKON AUTO-COMPLETE: Job completed. Total: ' . $results['total_processed'] . ', Completed: ' . $results['completed'] . ', Errors: ' . $results['errors']);
+        
+        return $results;
+    }
+    
+    /**
+     * Extend delivery ETA by minutes (similar to cooking ETA extension)
+     * 
+     * @param int $order_id Order ID
+     * @param int $additional_minutes Minutes to add (default: 5)
+     * @return int New ETA value
+     */
+    public static function extend_delivery_eta($order_id, $additional_minutes = 5) {
+        global $wpdb;
+        
+        $current_eta = $wpdb->get_var($wpdb->prepare(
+            "SELECT delivery_eta_minutes FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        $new_eta = ($current_eta ?: 10) + $additional_minutes;
+        
+        $wpdb->update(
+            $wpdb->prefix . 'zaikon_orders',
+            array('delivery_eta_minutes' => $new_eta),
+            array('id' => $order_id),
+            array('%d'),
+            array('%d')
+        );
+        
+        // Log event
+        Zaikon_System_Events::log('order', $order_id, 'delivery_eta_extended', array(
+            'old_eta' => $current_eta,
+            'new_eta' => $new_eta,
+            'additional_minutes' => $additional_minutes
+        ));
+        
+        error_log('ZAIKON TRACKING: Delivery ETA extended for order #' . $order_id . ': ' . $current_eta . ' → ' . $new_eta . ' minutes');
+        
+        return $new_eta;
+    }
+    
+    /**
+     * Check if delivery has exceeded ETA and auto-extend if needed
+     * 
+     * @param int $order_id Order ID
+     * @return int|false New ETA or false if no extension needed
+     */
+    public static function check_and_extend_delivery_eta($order_id) {
+        global $wpdb;
+        
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT dispatched_at, ready_at, delivery_eta_minutes, order_status 
+             FROM {$wpdb->prefix}zaikon_orders 
+             WHERE id = %d",
+            $order_id
+        ));
+        
+        if (!$order || !in_array($order->order_status, array('ready', 'dispatched'))) {
+            return false;
+        }
+        
+        // Use dispatched_at if available, otherwise ready_at
+        $delivery_start = $order->dispatched_at ?: $order->ready_at;
+        if (!$delivery_start) {
+            return false;
+        }
+        
+        $start_time = strtotime($delivery_start);
+        $current_time = time();
+        $elapsed_minutes = ($current_time - $start_time) / 60;
+        $eta_minutes = $order->delivery_eta_minutes ?: 10;
+        
+        // If elapsed time exceeds ETA, extend by 5 minutes
+        if ($elapsed_minutes >= $eta_minutes) {
+            return self::extend_delivery_eta($order_id, 5);
+        }
+        
+        return false;
     }
 }

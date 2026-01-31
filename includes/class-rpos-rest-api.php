@@ -378,6 +378,13 @@ class RPOS_REST_API {
             'permission_callback' => '__return_true' // Public for tracking page
         ));
         
+        // Auto-complete old orders (admin/system endpoint)
+        register_rest_route($zaikon_namespace, '/orders/auto-complete', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'trigger_auto_complete_orders'),
+            'permission_callback' => array($this, 'check_admin_permission')
+        ));
+        
         // Cylinder endpoints
         register_rest_route($zaikon_namespace, '/cylinders/consumption', array(
             'methods' => 'GET',
@@ -967,17 +974,34 @@ class RPOS_REST_API {
                 
                 if ($zaikon_order_id) {
                     // Update zaikon_orders with tracking status and timestamps
-                    $sync_result = Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status);
+                    error_log('RPOS KDS SYNC: Starting sync for order #' . $order_number . ' (rpos_orders #' . $id . ' -> zaikon_orders #' . $zaikon_order_id . ') with status: ' . $tracking_status);
+                    
+                    $sync_result = Zaikon_Order_Tracking::update_status($zaikon_order_id, $tracking_status, null, 'kds');
+                    
                     if (is_wp_error($sync_result)) {
-                        error_log('RPOS REST API: FAILED to sync status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status . '. Error: ' . $sync_result->get_error_message());
+                        error_log('RPOS KDS SYNC [ERROR]: FAILED to sync status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status . '. Error: ' . $sync_result->get_error_message());
                     } else {
-                        error_log('RPOS REST API: Synced status to zaikon_orders #' . $zaikon_order_id . ' -> ' . $tracking_status);
+                        // Verify the sync was successful by reading back the data
+                        $verify = $wpdb->get_row($wpdb->prepare(
+                            "SELECT order_status, cooking_started_at, ready_at, dispatched_at 
+                             FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+                            $zaikon_order_id
+                        ));
+                        
+                        if ($verify) {
+                            error_log('RPOS KDS SYNC [SUCCESS]: Order #' . $order_number . ' synced. Status: ' . $verify->order_status . 
+                                ', cooking_started_at: ' . ($verify->cooking_started_at ?: 'NULL') . 
+                                ', ready_at: ' . ($verify->ready_at ?: 'NULL') . 
+                                ', dispatched_at: ' . ($verify->dispatched_at ?: 'NULL'));
+                        } else {
+                            error_log('RPOS KDS SYNC [WARNING]: Could not verify sync for zaikon_orders #' . $zaikon_order_id);
+                        }
                     }
                 } else {
-                    error_log('RPOS REST API: WARNING - No matching zaikon_orders record found for order_number: ' . $order_number . ' (KDS order #' . $id . ')');
+                    error_log('RPOS KDS SYNC [WARNING]: No matching zaikon_orders record found for order_number: ' . $order_number . ' (KDS order #' . $id . ')');
                 }
             } else {
-                error_log('RPOS REST API: WARNING - Could not get order_number for rpos_orders #' . $id);
+                error_log('RPOS KDS SYNC [WARNING]: Could not get order_number for rpos_orders #' . $id);
             }
         }
         
@@ -1065,6 +1089,13 @@ class RPOS_REST_API {
      */
     public function check_kds_permission($request) {
         return current_user_can('rpos_view_kds') || current_user_can('manage_options');
+    }
+    
+    /**
+     * Check admin permission (manage_options only)
+     */
+    public function check_admin_permission($request) {
+        return current_user_can('manage_options');
     }
     
     /**
@@ -2447,6 +2478,34 @@ class RPOS_REST_API {
         return rest_ensure_response(array(
             'success' => true,
             'eta' => $eta
+        ));
+    }
+    
+    /**
+     * Manually trigger auto-complete old orders (admin endpoint)
+     * 
+     * This allows admins to manually run the auto-complete job for testing
+     * or when immediate cleanup is needed.
+     */
+    public function trigger_auto_complete_orders($request) {
+        $hours = $request->get_param('hours') ?: 2;
+        
+        // Validate hours parameter (1-24 hours)
+        $hours = max(1, min(24, absint($hours)));
+        
+        error_log('ZAIKON REST API: Manual auto-complete triggered by admin for orders older than ' . $hours . ' hours');
+        
+        $result = Zaikon_Order_Tracking::auto_complete_old_orders($hours);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Auto-complete job executed successfully',
+            'hours_threshold' => $hours,
+            'total_processed' => $result['total_processed'],
+            'completed' => $result['completed'],
+            'skipped' => $result['skipped'],
+            'errors' => $result['errors'],
+            'details' => $result['details']
         ));
     }
     

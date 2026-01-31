@@ -881,6 +881,15 @@
                     throw new Error(data.message || 'Unable to load order details.');
                 }
                 
+                // Log received data for debugging KDS sync issues
+                console.log('ZAIKON TRACKING: Order data received', {
+                    order_number: data.order.order_number,
+                    status: data.order.order_status,
+                    cooking_started_at: data.order.cooking_started_at,
+                    ready_at: data.order.ready_at,
+                    dispatched_at: data.order.dispatched_at
+                });
+                
                 currentOrderData = data;
                 renderOrderTracking(data);
                 

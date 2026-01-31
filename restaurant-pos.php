@@ -130,6 +130,44 @@ class Restaurant_POS {
         // AJAX handlers
         add_action('wp_ajax_rpos_get_inventory_item_details', array($this, 'ajax_get_inventory_item_details'));
         add_action('wp_ajax_rpos_add_ingredient', array($this, 'ajax_add_ingredient'));
+        
+        // Cron job for auto-completing old orders (runs every 15 minutes)
+        add_action('zaikon_auto_complete_orders_cron', array($this, 'run_auto_complete_orders'));
+        
+        // Schedule cron job if not already scheduled
+        if (!wp_next_scheduled('zaikon_auto_complete_orders_cron')) {
+            wp_schedule_event(time(), 'fifteen_minutes', 'zaikon_auto_complete_orders_cron');
+        }
+        
+        // Add custom cron schedule for 15 minutes
+        add_filter('cron_schedules', array($this, 'add_cron_intervals'));
+    }
+    
+    /**
+     * Add custom cron intervals
+     */
+    public function add_cron_intervals($schedules) {
+        $schedules['fifteen_minutes'] = array(
+            'interval' => 900, // 15 minutes in seconds
+            'display' => esc_html__('Every Fifteen Minutes', 'restaurant-pos')
+        );
+        return $schedules;
+    }
+    
+    /**
+     * Run auto-complete orders cron job
+     * Auto-completes orders that are older than 2 hours
+     */
+    public function run_auto_complete_orders() {
+        error_log('ZAIKON CRON: Running auto-complete orders job at ' . date('Y-m-d H:i:s'));
+        
+        $result = Zaikon_Order_Tracking::auto_complete_old_orders(2);
+        
+        error_log('ZAIKON CRON: Auto-complete job finished. Results: ' . json_encode(array(
+            'total_processed' => $result['total_processed'],
+            'completed' => $result['completed'],
+            'errors' => $result['errors']
+        )));
     }
     
     /**
