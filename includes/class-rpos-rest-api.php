@@ -775,6 +775,8 @@ class RPOS_REST_API {
      * @return int|false The rpos order ID on success, false on failure
      */
     private function sync_order_to_rpos($order, $data) {
+        global $wpdb;
+        
         if (!$order || !isset($order->order_number)) {
             error_log('RPOS: sync_order_to_rpos - Invalid order object');
             return false;
@@ -805,7 +807,19 @@ class RPOS_REST_API {
             return false;
         }
         
-        error_log('RPOS: sync_order_to_rpos - Successfully synced order #' . $order->order_number . ' to rpos_orders (ID: ' . $rpos_order_id . ')');
+        // Set the zaikon_order_id mapping for reliable cross-table identity
+        // This eliminates fragile order_number-based joins
+        if (isset($order->id)) {
+            $wpdb->update(
+                $wpdb->prefix . 'rpos_orders',
+                array('zaikon_order_id' => $order->id),
+                array('id' => $rpos_order_id),
+                array('%d'),
+                array('%d')
+            );
+        }
+        
+        error_log('RPOS: sync_order_to_rpos - Successfully synced order #' . $order->order_number . ' to rpos_orders (ID: ' . $rpos_order_id . ', zaikon_order_id: ' . ($order->id ?? 'NULL') . ')');
         
         return $rpos_order_id;
     }
@@ -1100,6 +1114,17 @@ class RPOS_REST_API {
             }
         } else {
             error_log('ZAIKON: Legacy order created in rpos_orders for KDS. Legacy Order ID: ' . $legacy_order_id);
+            
+            // Set the zaikon_order_id mapping for reliable cross-table identity
+            // This eliminates fragile order_number-based joins
+            $wpdb->update(
+                $wpdb->prefix . 'rpos_orders',
+                array('zaikon_order_id' => $result['order_id']),
+                array('id' => $legacy_order_id),
+                array('%d'),
+                array('%d')
+            );
+            
             // Deduct stock for completed orders using legacy order ID
             // The legacy_order_id is used because has_ingredients_deducted and mark_ingredients_deducted
             // check/update the rpos_orders table
@@ -2557,36 +2582,48 @@ class RPOS_REST_API {
         
         error_log('ZAIKON TRACKING API: Order found. ID: ' . $order->id . ', existing token: ' . ($order->tracking_token ? substr($order->tracking_token, 0, 8) . '...' : 'NULL'));
         
+        // Enterprise fallback: Always provide order-number based URL as a deterministic fallback
+        // This ensures tracking works even if token generation/verification fails (schema drift, migration issues, etc.)
+        $tracking_url_fallback = Zaikon_Order_Tracking::get_tracking_url_by_order_number($order->order_number);
+        
+        // Track if token verification succeeded
+        $token_verified = false;
+        $tracking_token = null;
+        $tracking_url = null;
+        
         // Generate token if it doesn't exist or is invalid
         if (empty($order->tracking_token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $order->tracking_token)) {
             // Token is missing or has invalid format, generate a new one
             error_log('ZAIKON TRACKING API: Generating new token for order ' . $order->id);
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
             if (empty($tracking_token)) {
-                error_log('ZAIKON TRACKING API: Failed to generate token for order ' . $order->id);
-                return new WP_Error('token_error', 'Failed to generate tracking token. Please try again.', array('status' => 500));
+                error_log('ZAIKON TRACKING API: Failed to generate token for order ' . $order->id . ' - using fallback URL');
+                // Don't fail - use fallback URL
+            } else {
+                error_log('ZAIKON TRACKING API: New token generated: ' . substr($tracking_token, 0, 8) . '...');
+                
+                // Verify the token was saved correctly by reading it back
+                $verify_token = $wpdb->get_var($wpdb->prepare(
+                    "SELECT tracking_token FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+                    $order->id
+                ));
+                error_log('ZAIKON TRACKING API: Token verification - DB now has: ' . ($verify_token ? substr($verify_token, 0, 8) . '...' : 'NULL'));
+                
+                if ($verify_token !== $tracking_token) {
+                    error_log('ZAIKON TRACKING API: WARNING - Token mismatch! Generated: ' . substr($tracking_token, 0, 8) . ', DB has: ' . ($verify_token ? substr($verify_token, 0, 8) : 'NULL') . ' - using fallback URL');
+                    $tracking_token = null; // Reset to use fallback
+                } else {
+                    // Final verification: Can we look up the order using this token?
+                    $verify_order = Zaikon_Order_Tracking::get_order_by_token($tracking_token);
+                    if (!$verify_order) {
+                        error_log('ZAIKON TRACKING API: CRITICAL - Token lookup verification FAILED for newly generated token - using fallback URL');
+                        $tracking_token = null; // Reset to use fallback
+                    } else {
+                        error_log('ZAIKON TRACKING API: Token lookup verification SUCCESS - Order ' . $verify_order->order_number . ' found');
+                        $token_verified = true;
+                    }
+                }
             }
-            error_log('ZAIKON TRACKING API: New token generated: ' . substr($tracking_token, 0, 8) . '...');
-            
-            // Verify the token was saved correctly by reading it back
-            $verify_token = $wpdb->get_var($wpdb->prepare(
-                "SELECT tracking_token FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
-                $order->id
-            ));
-            error_log('ZAIKON TRACKING API: Token verification - DB now has: ' . ($verify_token ? substr($verify_token, 0, 8) . '...' : 'NULL'));
-            
-            if ($verify_token !== $tracking_token) {
-                error_log('ZAIKON TRACKING API: WARNING - Token mismatch! Generated: ' . substr($tracking_token, 0, 8) . ', DB has: ' . ($verify_token ? substr($verify_token, 0, 8) : 'NULL'));
-                return new WP_Error('token_error', 'Failed to save tracking token. Please try again.', array('status' => 500));
-            }
-            
-            // Final verification: Can we look up the order using this token?
-            $verify_order = Zaikon_Order_Tracking::get_order_by_token($tracking_token);
-            if (!$verify_order) {
-                error_log('ZAIKON TRACKING API: CRITICAL - Token lookup verification FAILED for newly generated token!');
-                return new WP_Error('token_error', 'Failed to verify tracking token. Please contact support.', array('status' => 500));
-            }
-            error_log('ZAIKON TRACKING API: Token lookup verification SUCCESS - Order ' . $verify_order->order_number . ' found');
         } else {
             $tracking_token = $order->tracking_token;
             error_log('ZAIKON TRACKING API: Using existing token: ' . substr($tracking_token, 0, 8) . '...');
@@ -2600,33 +2637,52 @@ class RPOS_REST_API {
                 error_log('ZAIKON TRACKING API: Regenerating token since existing token lookup failed');
                 $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($order->id);
                 if (empty($tracking_token)) {
-                    error_log('ZAIKON TRACKING API: Token regeneration also failed');
-                    return new WP_Error('token_error', 'Failed to regenerate tracking token. Please try again.', array('status' => 500));
+                    error_log('ZAIKON TRACKING API: Token regeneration also failed - using fallback URL');
+                } else {
+                    error_log('ZAIKON TRACKING API: New token generated after failed lookup: ' . substr($tracking_token, 0, 8) . '...');
+                    
+                    // Verify the newly regenerated token works
+                    $verify_new = Zaikon_Order_Tracking::get_order_by_token($tracking_token);
+                    if (!$verify_new) {
+                        error_log('ZAIKON TRACKING API: CRITICAL - Even newly regenerated token lookup FAILED - using fallback URL');
+                        $tracking_token = null; // Reset to use fallback
+                    } else {
+                        error_log('ZAIKON TRACKING API: Regenerated token verification SUCCESS');
+                        $token_verified = true;
+                    }
                 }
-                error_log('ZAIKON TRACKING API: New token generated after failed lookup: ' . substr($tracking_token, 0, 8) . '...');
-                
-                // Verify the newly regenerated token works
-                $verify_new = Zaikon_Order_Tracking::get_order_by_token($tracking_token);
-                if (!$verify_new) {
-                    error_log('ZAIKON TRACKING API: CRITICAL - Even newly regenerated token lookup FAILED!');
-                    return new WP_Error('token_error', 'Failed to verify tracking token. Please contact support.', array('status' => 500));
-                }
-                error_log('ZAIKON TRACKING API: Regenerated token verification SUCCESS');
             } else {
                 error_log('ZAIKON TRACKING API: Existing token lookup SUCCESS - Order ' . $verify_order->order_number . ' found');
+                $token_verified = true;
             }
         }
         
-        $tracking_url = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
+        // Build tracking URL based on token verification status
+        if ($token_verified && !empty($tracking_token)) {
+            $tracking_url = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
+        } else {
+            // Use fallback URL when token verification failed
+            $tracking_url = $tracking_url_fallback;
+            error_log('ZAIKON TRACKING API: Using order-number based fallback URL for order ' . $order->order_number);
+        }
         
-        return rest_ensure_response(array(
+        // Build response - always include both URLs for enterprise resilience
+        $response = array(
             'success' => true,
             'tracking_url' => $tracking_url,
-            'tracking_token' => $tracking_token,
+            'tracking_url_fallback' => $tracking_url_fallback,
+            'token_verified' => $token_verified,
             'order_number' => $order->order_number,
             'order_type' => $order->order_type,
             'order_status' => $order->order_status
-        ));
+        );
+        
+        // Include tracking_token only if verified
+        if ($token_verified && !empty($tracking_token)) {
+            $response['tracking_token'] = $tracking_token;
+        }
+        
+        return rest_ensure_response($response);
     }
     
     /**
@@ -2765,6 +2821,9 @@ class RPOS_REST_API {
      * Maps zaikon status to rpos status and updates the corresponding
      * record in rpos_orders for KDS visibility and synchronization.
      * 
+     * Uses zaikon_order_id mapping first (reliable), falling back to 
+     * order_number matching (fragile) for backward compatibility.
+     * 
      * @param int $zaikon_order_id The zaikon order ID
      * @param string $status The status to sync
      * @return bool True on success, false on failure
@@ -2788,14 +2847,34 @@ class RPOS_REST_API {
             ? self::STATUS_MAP_ZAIKON_TO_RPOS[$status] 
             : $status;
         
-        // Find matching rpos_order by order_number
+        // PRIMARY: Find matching rpos_order by zaikon_order_id (reliable mapping)
         $rpos_order_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}rpos_orders WHERE order_number = %s",
-            $order_number
+            "SELECT id FROM {$wpdb->prefix}rpos_orders WHERE zaikon_order_id = %d",
+            $zaikon_order_id
         ));
         
+        // FALLBACK: If no direct mapping, try by order_number (legacy behavior)
         if (!$rpos_order_id) {
-            error_log('ZAIKON: sync_status_to_legacy_order - No matching rpos_order found for order #' . $order_number);
+            $rpos_order_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}rpos_orders WHERE order_number = %s",
+                $order_number
+            ));
+            
+            // If found by order_number, update the zaikon_order_id mapping for future lookups
+            if ($rpos_order_id) {
+                $wpdb->update(
+                    $wpdb->prefix . 'rpos_orders',
+                    array('zaikon_order_id' => $zaikon_order_id),
+                    array('id' => $rpos_order_id),
+                    array('%d'),
+                    array('%d')
+                );
+                error_log('ZAIKON: sync_status_to_legacy_order - Backfilled zaikon_order_id mapping for rpos_order #' . $rpos_order_id);
+            }
+        }
+        
+        if (!$rpos_order_id) {
+            error_log('ZAIKON: sync_status_to_legacy_order - No matching rpos_order found for order #' . $order_number . ' (zaikon_id: ' . $zaikon_order_id . ')');
             return false;
         }
         
