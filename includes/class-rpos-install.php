@@ -1784,40 +1784,12 @@ class RPOS_Install {
             $wpdb->query("ALTER TABLE `{$audit_table}` ADD COLUMN `notes` text DEFAULT NULL AFTER `event_type`");
         }
         
-        // Standardize column names: status_from -> old_status, status_to -> new_status
-        $column_exists = $wpdb->get_results($wpdb->prepare(
-            "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
-            'old_status'
-        ));
-        
-        if (empty($column_exists)) {
-            // Check if status_from exists first
-            $old_column = $wpdb->get_results($wpdb->prepare(
-                "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
-                'status_from'
-            ));
-            
-            if (!empty($old_column)) {
-                $wpdb->query("ALTER TABLE `{$audit_table}` CHANGE COLUMN `status_from` `old_status` varchar(50) DEFAULT NULL");
-            }
-        }
-        
-        $column_exists = $wpdb->get_results($wpdb->prepare(
-            "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
-            'new_status'
-        ));
-        
-        if (empty($column_exists)) {
-            // Check if status_to exists first
-            $old_column = $wpdb->get_results($wpdb->prepare(
-                "SHOW COLUMNS FROM `{$audit_table}` LIKE %s",
-                'status_to'
-            ));
-            
-            if (!empty($old_column)) {
-                $wpdb->query("ALTER TABLE `{$audit_table}` CHANGE COLUMN `status_to` `new_status` varchar(50) NOT NULL");
-            }
-        }
+        // NOTE: We intentionally do NOT rename status_from/status_to to old_status/new_status
+        // The original column names (status_from, status_to) are used consistently throughout:
+        // - Table creation (line ~1163)
+        // - log_status_audit in class-zaikon-order-status-service.php
+        // - log_event_audit in class-zaikon-order-events.php
+        // Renaming would break compatibility and require updating all insert/select statements.
         
         error_log('RPOS: Delivery tracking migration completed successfully');
         error_log('RPOS: Event-based order tracking migration completed successfully');
