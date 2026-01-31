@@ -1993,8 +1993,11 @@
                 success: function(response) {
                     console.log('ZAIKON KDS: Orders loaded successfully', response.length + ' orders');
                     
+                    // Filter orders for KDS display
+                    // zaikon_orders uses: pending, confirmed, cooking, ready, dispatched, delivered, active, completed, cancelled
+                    // KDS should show: pending, confirmed, cooking, ready (orders that need kitchen attention)
                     var newOrders = response.filter(function(order) {
-                        return ['new', 'cooking', 'ready'].includes(order.status);
+                        return ['pending', 'confirmed', 'active', 'cooking', 'ready'].includes(order.status);
                     });
                     
                     // Detect new orders
@@ -2030,9 +2033,23 @@
             var self = this;
             newlyAddedIds = newlyAddedIds || [];
             var $grid = $('#rpos-kds-grid, .zaikon-kds-grid');
-            var filtered = this.currentFilter === 'all' 
-                ? this.orders 
-                : this.orders.filter(function(o) { return o.status === self.currentFilter; });
+            
+            // Handle comma-separated status filters (e.g., "pending,confirmed,active")
+            var filtered;
+            if (this.currentFilter === 'all') {
+                filtered = this.orders;
+            } else if (this.currentFilter.indexOf(',') > -1) {
+                // Multiple statuses (comma-separated)
+                var statuses = this.currentFilter.split(',');
+                filtered = this.orders.filter(function(o) { 
+                    return statuses.indexOf(o.status) > -1; 
+                });
+            } else {
+                // Single status
+                filtered = this.orders.filter(function(o) { 
+                    return o.status === self.currentFilter; 
+                });
+            }
             
             $grid.empty();
             $('#rpos-kds-empty, .zaikon-kds-empty').hide();
@@ -2113,7 +2130,8 @@
                 // Action buttons
                 var $footer = $('<div class="zaikon-order-card-footer">');
                 
-                if (order.status === 'new') {
+                // Map statuses: pending/confirmed/active → start cooking, cooking → mark ready, ready → complete
+                if (['pending', 'confirmed', 'active'].indexOf(order.status) > -1) {
                     $footer.append('<button class="zaikon-status-btn zaikon-status-btn-start rpos-kds-action" data-id="' + order.id + '" data-status="cooking">' + rposKdsData.translations.startCooking + '</button>');
                 } else if (order.status === 'cooking') {
                     $footer.append('<button class="zaikon-status-btn zaikon-status-btn-ready rpos-kds-action" data-id="' + order.id + '" data-status="ready">' + rposKdsData.translations.markReady + '</button>');
@@ -2138,12 +2156,12 @@
                 }
                 $btn.prop('disabled', true);
                 
-                // Check if order is delayed (> 5 minutes) and moving from 'new' to 'cooking'
+                // Check if order is delayed (> 5 minutes) and moving from pending/confirmed/active to cooking
                 var createdAt = $card.data('created-at');
                 var oldStatus = $card.data('status');
                 var elapsedMinutes = self.getElapsedMinutes(createdAt);
                 
-                if (oldStatus === 'new' && newStatus === 'cooking' && elapsedMinutes > 5) {
+                if (['pending', 'confirmed', 'active'].indexOf(oldStatus) > -1 && newStatus === 'cooking' && elapsedMinutes > 5) {
                     // Show delay reason modal
                     self.showDelayReasonModal(orderId, newStatus, $btn, $card);
                 } else {

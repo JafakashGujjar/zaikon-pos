@@ -1015,13 +1015,14 @@ class RPOS_REST_API {
         // Log successful creation
         error_log('ZAIKON: Delivery order created successfully - Order ID: ' . $result['order_id'] . ', Delivery ID: ' . ($result['delivery_id'] ?? 'N/A'));
         
-        // Also create in legacy rpos_orders for KDS compatibility
+        // SYNC TO LEGACY RPOS_ORDERS FOR BACKWARD COMPATIBILITY
+        // Zaikon_orders is the primary table; rpos_orders is synced for legacy integrations
         $legacy_order_data = array(
             'order_number' => $order_number,
             'subtotal' => $subtotal,
             'discount' => $discount,
             'total' => $subtotal + $delivery_charge - $discount,
-            'status' => 'new',
+            'status' => 'confirmed', // Map 'active' status to 'confirmed' for rpos_orders
             'order_type' => 'delivery',
             'special_instructions' => $kitchen_instructions, // Kitchen instructions only
             'items' => $data['items'],
@@ -1030,7 +1031,9 @@ class RPOS_REST_API {
             'delivery_charge' => $delivery_charge,
             'area_id' => $location_id,
             'customer_name' => sanitize_text_field($data['customer_name'] ?? ''),
-            'customer_phone' => sanitize_text_field($data['customer_phone'] ?? '')
+            'customer_phone' => sanitize_text_field($data['customer_phone'] ?? ''),
+            'payment_type' => $payment_type,
+            'payment_status' => $payment_status
         );
         $legacy_order_id = RPOS_Orders::create($legacy_order_data);
         
