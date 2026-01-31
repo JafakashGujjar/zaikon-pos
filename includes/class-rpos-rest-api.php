@@ -54,12 +54,28 @@ class RPOS_REST_API {
      * KDS status to lifecycle event mapping
      * Maps KDS status changes to appropriate lifecycle events
      * This enables event-based tracking with proper timestamp management
+     * 
+     * Supports both legacy status names (for backward compatibility) and
+     * zaikon_orders enum values (pending, confirmed, active, cooking, ready, etc.)
      */
     const KDS_STATUS_TO_EVENT = array(
+        // Legacy status names (backward compatibility)
         'new' => Zaikon_Order_Events::EVENT_ORDER_CONFIRMED,
+        
+        // zaikon_orders enum values (current standard)
+        'pending' => Zaikon_Order_Events::EVENT_ORDER_CONFIRMED,
+        'confirmed' => Zaikon_Order_Events::EVENT_ORDER_CONFIRMED,
+        'active' => Zaikon_Order_Events::EVENT_ORDER_CONFIRMED,
+        
+        // Cooking phase (both legacy and current use same name)
         'cooking' => Zaikon_Order_Events::EVENT_COOKING_STARTED,
+        
+        // Ready phase
         'ready' => Zaikon_Order_Events::EVENT_KITCHEN_COMPLETED,
-        'completed' => Zaikon_Order_Events::EVENT_ORDER_DISPATCHED
+        
+        // Completion/dispatch phase
+        'completed' => Zaikon_Order_Events::EVENT_ORDER_DISPATCHED,
+        'dispatched' => Zaikon_Order_Events::EVENT_ORDER_DISPATCHED
     );
     
     public static function instance() {
