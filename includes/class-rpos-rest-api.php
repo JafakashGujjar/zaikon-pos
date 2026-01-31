@@ -2488,7 +2488,7 @@ class RPOS_REST_API {
      * or when immediate cleanup is needed.
      */
     public function trigger_auto_complete_orders($request) {
-        $hours = $request->get_param('hours') ?: 2;
+        $hours = $request->get_param('hours') ?? 2;
         
         // Validate hours parameter (1-24 hours)
         $hours = max(1, min(24, absint($hours)));

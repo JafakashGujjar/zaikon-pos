@@ -742,7 +742,8 @@ class Zaikon_Order_Tracking {
             $order_id
         ));
         
-        $new_eta = ($current_eta ?: 10) + $additional_minutes;
+        // Use null coalescing since 0 is not a valid ETA value (minimum is 10 minutes)
+        $new_eta = ($current_eta ?? 10) + $additional_minutes;
         
         $wpdb->update(
             $wpdb->prefix . 'zaikon_orders',
@@ -793,7 +794,8 @@ class Zaikon_Order_Tracking {
         $start_time = strtotime($delivery_start);
         $current_time = time();
         $elapsed_minutes = ($current_time - $start_time) / 60;
-        $eta_minutes = $order->delivery_eta_minutes ?: 10;
+        // Use null coalescing since 0 is not a valid ETA value (minimum is 10 minutes)
+        $eta_minutes = $order->delivery_eta_minutes ?? 10;
         
         // If elapsed time exceeds ETA, extend by 5 minutes
         if ($elapsed_minutes >= $eta_minutes) {
