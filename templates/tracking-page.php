@@ -866,7 +866,9 @@
         function getTrackingStep(status) {
             // Step 1: Confirmed (pending, confirmed)
             // Step 2: Preparing (cooking)
-            // Step 3: On The Way (ready, dispatched, delivered)
+            // Step 3: On The Way (ready, dispatched, delivered, completed)
+            // Note: KDS "completed" is typically mapped to "dispatched" by the API,
+            // but we handle it here as well for robustness
             switch(status) {
                 case 'pending':
                 case 'confirmed':
@@ -876,6 +878,7 @@
                 case 'ready':
                 case 'dispatched':
                 case 'delivered':
+                case 'completed':
                     return 3;
                 default:
                     return 1;
@@ -888,6 +891,7 @@
                 'cooking': '🔥 Your order is now being prepared!',
                 'ready': '✅ Your order is ready!',
                 'dispatched': '🚚 Your order is on the way!',
+                'completed': '🚚 Your order is on the way!',
                 'delivered': '🎉 Your order has been delivered!'
             };
             
@@ -1129,8 +1133,8 @@
                     `;
                 }
                 
-                // Step 3: Show delivery countdown timer when active (for ready/dispatched)
-                if (step.showDeliveryCountdown && isActive && ['ready', 'dispatched'].includes(order.order_status)) {
+                // Step 3: Show delivery countdown timer when active (for ready/dispatched/completed)
+                if (step.showDeliveryCountdown && isActive && ['ready', 'dispatched', 'completed'].includes(order.order_status)) {
                     extraContent = `
                         <div class="countdown-timer" id="delivery-countdown-timer">
                             <div class="countdown-label">Estimated Delivery Time</div>
@@ -1194,7 +1198,7 @@
             }
             
             // Start delivery countdown if in ready/dispatched state
-            if (currentStep === 3 && ['ready', 'dispatched'].includes(order.order_status)) {
+            if (currentStep === 3 && ['ready', 'dispatched', 'completed'].includes(order.order_status)) {
                 // Clear any existing countdown before starting
                 if (deliveryCountdownInterval) {
                     clearInterval(deliveryCountdownInterval);
