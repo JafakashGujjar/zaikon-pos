@@ -758,16 +758,29 @@
         
         // Server time synchronization for accurate countdown calculations
         // This provides the server's current UTC time in milliseconds at page load
-        const serverUtcTimeMs = <?php echo (int)(current_time('timestamp', true) * 1000); ?>;
-        // This is the client's time when the page loaded, used to calculate server-client time offset
-        const clientLoadTimeMs = Date.now();
+        let serverUtcTimeMs = <?php echo (int)(current_time('timestamp', true) * 1000); ?>;
+        // This is the client's time when the sync was last calculated
+        let clientSyncTimeMs = Date.now();
         // The offset between server UTC and client time (positive if client is ahead of server)
-        const serverClientTimeOffset = clientLoadTimeMs - serverUtcTimeMs;
+        let serverClientTimeOffset = clientSyncTimeMs - serverUtcTimeMs;
+        
+        /**
+         * Update server time synchronization from API response.
+         * Called on each poll to maintain accurate time sync even if page is open for hours.
+         * @param {number} serverTime Server UTC time in milliseconds from API response
+         */
+        function updateServerTimeSync(serverTime) {
+            if (serverTime && !isNaN(serverTime)) {
+                serverUtcTimeMs = serverTime;
+                clientSyncTimeMs = Date.now();
+                serverClientTimeOffset = clientSyncTimeMs - serverUtcTimeMs;
+            }
+        }
         
         /**
          * Get the current server UTC time in milliseconds.
          * This compensates for any client-server time difference by using the
-         * offset calculated at page load.
+         * offset calculated from the most recent API poll.
          * @returns {number} Current server UTC time in milliseconds
          */
         function getServerUtcNow() {
@@ -899,6 +912,12 @@
                     throw new Error(data.message || 'Unable to load order details.');
                 }
                 
+                // Update server time synchronization on each poll to maintain accuracy
+                // This compensates for any drift if the page remains open for extended periods
+                if (data.server_utc_ms) {
+                    updateServerTimeSync(data.server_utc_ms);
+                }
+                
                 // Log received data for debugging KDS sync issues
                 console.log('ZAIKON TRACKING: Order data received', {
                     order_number: data.order.order_number,
@@ -936,7 +955,7 @@
             
             // Debug logging for timezone validation (can be enabled by adding ?debug=time to URL)
             if (window.location.search.includes('debug=time')) {
-                logTimingDebugInfo(order, currentStep);
+                logOrderTimingDebugInfo(order, currentStep);
             }
             
             // Render the 3 steps
@@ -1088,16 +1107,16 @@
             return isNaN(parsed) ? null : parsed;
         }
         
-        // Debug logging function for timezone validation
+        // Debug logging function for order timing validation
         // Enable by adding ?debug=time to the tracking URL
-        function logTimingDebugInfo(order, currentStep) {
+        function logOrderTimingDebugInfo(order, currentStep) {
             const serverNow = getServerUtcNow();
             const browserNow = Date.now();
             
             console.group('🕐 ZAIKON Tracking Timer Debug Info');
             console.log('=== Time Synchronization ===');
-            console.log('Server UTC at page load:', new Date(serverUtcTimeMs).toISOString());
-            console.log('Client time at page load:', new Date(clientLoadTimeMs).toISOString());
+            console.log('Server UTC (last sync):', new Date(serverUtcTimeMs).toISOString());
+            console.log('Client time (last sync):', new Date(clientSyncTimeMs).toISOString());
             console.log('Server-Client offset (ms):', serverClientTimeOffset);
             console.log('Current server UTC (calculated):', new Date(serverNow).toISOString());
             console.log('Current browser time:', new Date(browserNow).toISOString());
