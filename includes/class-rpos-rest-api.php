@@ -12,6 +12,12 @@ class RPOS_REST_API {
     protected static $_instance = null;
     
     /**
+     * Retry configuration for tracking token generation
+     */
+    const TRACKING_TOKEN_MAX_RETRIES = 3;
+    const TRACKING_TOKEN_RETRY_DELAY_US = 100000; // 100ms in microseconds
+    
+    /**
      * Status mapping from zaikon/POS statuses to rpos/KDS statuses
      * Used for bidirectional sync between order tables
      */
@@ -666,12 +672,11 @@ class RPOS_REST_API {
         // This ensures all orders are trackable immediately after creation
         // Use retry mechanism for fault tolerance
         $tracking_token = null;
-        $max_retries = 3;
-        for ($attempt = 1; $attempt <= $max_retries && !$tracking_token; $attempt++) {
+        for ($attempt = 1; $attempt <= self::TRACKING_TOKEN_MAX_RETRIES && !$tracking_token; $attempt++) {
             $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($zaikon_order_id);
-            if (!$tracking_token && $attempt < $max_retries) {
+            if (!$tracking_token && $attempt < self::TRACKING_TOKEN_MAX_RETRIES) {
                 error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' failed, retrying...');
-                usleep(100000); // 100ms delay before retry
+                usleep(self::TRACKING_TOKEN_RETRY_DELAY_US);
             }
         }
         
@@ -680,7 +685,7 @@ class RPOS_REST_API {
         } else {
             // Log as critical warning but allow order creation to succeed
             // Tracking token can be generated lazily when tracking URL is requested
-            error_log('ZAIKON: sync_order_to_zaikon - CRITICAL: Failed to generate tracking token for order #' . $order->order_number . ' after ' . $max_retries . ' attempts');
+            error_log('ZAIKON: sync_order_to_zaikon - CRITICAL: Failed to generate tracking token for order #' . $order->order_number . ' after ' . self::TRACKING_TOKEN_MAX_RETRIES . ' attempts');
         }
         
         error_log('ZAIKON: sync_order_to_zaikon - Successfully synced order #' . $order->order_number . ' to zaikon_orders (ID: ' . $zaikon_order_id . ')');
