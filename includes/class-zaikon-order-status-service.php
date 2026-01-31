@@ -253,6 +253,10 @@ class Zaikon_Order_Status_Service {
         }
         
         // Find orders with status mismatch between tables
+        // Status progression rules (must match map_rpos_to_zaikon_status):
+        // - completed in rpos should map to completed/delivered in zaikon
+        // - cooking in rpos can map to cooking/ready/dispatched/delivered/completed in zaikon (forward progress OK)
+        // - ready in rpos can map to ready/dispatched/delivered/completed in zaikon (forward progress OK)
         $status_mismatch = $wpdb->get_results(
             "SELECT r.id AS rpos_id, z.id AS zaikon_id, r.order_number, 
                     r.status AS rpos_status, z.order_status AS zaikon_status,
@@ -624,17 +628,25 @@ class Zaikon_Order_Status_Service {
         }
         
         // Map order data to zaikon_orders format
+        // Note: taxes_rs is set to 0 because rpos_orders does not store tax data separately.
+        // Tax calculation in zaikon system is done at the UI level if needed.
+        $mapped_status = self::map_rpos_to_zaikon_status($rpos_order->status);
+        if (!$mapped_status) {
+            error_log('ZAIKON AUTO-REPAIR: Unmapped rpos status "' . ($rpos_order->status ?? 'null') . '" for order #' . $rpos_order->order_number . ', defaulting to pending');
+            $mapped_status = 'pending';
+        }
+        
         $zaikon_order_data = array(
             'order_number' => $rpos_order->order_number,
             'order_type' => sanitize_text_field($rpos_order->order_type ?? 'takeaway'),
             'items_subtotal_rs' => floatval($rpos_order->subtotal ?? 0),
             'delivery_charges_rs' => floatval($rpos_order->delivery_charge ?? 0),
             'discounts_rs' => floatval($rpos_order->discount ?? 0),
-            'taxes_rs' => 0,
+            'taxes_rs' => 0, // rpos_orders does not store tax - calculated at UI level
             'grand_total_rs' => floatval($rpos_order->total ?? 0),
             'payment_type' => sanitize_text_field($rpos_order->payment_type ?? 'cash'),
             'payment_status' => sanitize_text_field($rpos_order->payment_status ?? 'paid'),
-            'order_status' => self::map_rpos_to_zaikon_status($rpos_order->status) ?? 'pending',
+            'order_status' => $mapped_status,
             'special_instructions' => sanitize_textarea_field($rpos_order->special_instructions ?? ''),
             'cashier_id' => absint($rpos_order->cashier_id ?? 0)
         );

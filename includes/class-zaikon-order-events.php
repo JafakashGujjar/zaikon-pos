@@ -251,10 +251,7 @@ class Zaikon_Order_Events {
         global $wpdb;
         
         // Use column names matching the table schema (status_from, status_to)
-        // The table may have either schema depending on migration status:
-        // - Original: status_from, status_to
-        // - Migrated: old_status, new_status
-        // We try the original column names first for compatibility
+        // These are the standard column names defined in class-rpos-install.php
         $result = $wpdb->insert(
             $wpdb->prefix . 'zaikon_status_audit',
             array(
