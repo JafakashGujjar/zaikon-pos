@@ -2073,10 +2073,11 @@ class RPOS_REST_API {
                 error_log('ZAIKON TRACKING API: CRITICAL - Token verification FAILED. Token: ' . $token_preview);
                 return new WP_Error(
                     'token_verification_failed', 
-                    'Failed to verify tracking token. Please try searching by order number instead.',
+                    'Failed to verify tracking token. Your order number (e.g., ORD-20260201-XXXX) can be found on your receipt. Use the search box on this page to enter your order number and track your order.',
                     array(
                         'status' => 404,
-                        'suggestion' => 'Use the order number from your receipt to track your order'
+                        'code' => 'token_verification_failed',
+                        'suggestion' => 'Enter your order number in the search box below. The order number is printed on your receipt and starts with ORD-.'
                     )
                 );
             }
@@ -2103,7 +2104,7 @@ class RPOS_REST_API {
         );
         
         // Add safety rule indicator if status was corrected
-        if (!empty($order->_safety_rule_applied)) {
+        if (!empty($order->tracking_safety_rule_applied)) {
             $response['safety_rule_applied'] = true;
             error_log('ZAIKON TRACKING API: Safety rule was applied for order #' . $order->order_number);
         }
@@ -2155,7 +2156,7 @@ class RPOS_REST_API {
         );
         
         // Add safety rule indicator if status was corrected
-        if (!empty($order->_safety_rule_applied)) {
+        if (!empty($order->tracking_safety_rule_applied)) {
             $response['safety_rule_applied'] = true;
             error_log('ZAIKON TRACKING API: Safety rule was applied for order #' . $order->order_number . ' (order_number lookup)');
         }

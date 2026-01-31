@@ -20,14 +20,17 @@ class Zaikon_Order_Tracking {
     const TOKEN_PATTERN = '/^[a-f0-9]{16,64}$/';
     
     /**
-     * Statuses that represent tracking Step 1 or Step 2
+     * Statuses that represent tracking Step 1 or Step 2 (before kitchen completes)
      * Used by safety rules to detect when tracking is lagging behind KDS
      * 
      * Step 1: Order confirmed (pending, confirmed)
      * Step 2: Kitchen preparing (cooking)
      * Step 3: On the way/ready (ready, dispatched, delivered, completed)
+     * 
+     * Also known as "pre-ready" statuses - any order with timestamps indicating
+     * later stage but status in this list needs correction.
      */
-    const STEP_1_2_STATUSES = array('pending', 'confirmed', 'cooking');
+    const PRE_READY_STATUSES = array('pending', 'confirmed', 'cooking');
     
     /**
      * Create a partial token preview for secure logging
@@ -441,20 +444,19 @@ class Zaikon_Order_Tracking {
             return $order;
         }
         
-        // Safety Rule: If ready_at exists but status suggests Step 1 or 2, correct it
-        // Uses class constant STEP_1_2_STATUSES for maintainability
-        if (!empty($order->ready_at) && in_array($order->order_status, self::STEP_1_2_STATUSES)) {
+        // Safety Rule: If ready_at exists but status suggests pre-ready state, correct it
+        // Uses class constant PRE_READY_STATUSES for maintainability
+        if (!empty($order->ready_at) && in_array($order->order_status, self::PRE_READY_STATUSES)) {
             error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
                 ' has ready_at (' . $order->ready_at . ') but status is "' . $order->order_status . 
                 '". Forcing status to "ready" for accurate tracking display.');
             
-            // Runtime-only flags (not persisted to database):
-            // - _original_status: The status from the database before correction
-            // - _safety_rule_applied: Boolean flag indicating a correction was made
-            // These are used for API response metadata and debugging only
-            $order->_original_status = $order->order_status;
+            // Runtime-only metadata flags (not persisted to database):
+            // These properties are dynamically added to the order object at runtime
+            // to track when status corrections are applied for API response metadata
+            $order->tracking_original_status = $order->order_status;
             $order->order_status = 'ready';
-            $order->_safety_rule_applied = true;
+            $order->tracking_safety_rule_applied = true;
         }
         
         // Additional safety: If dispatched_at exists, ensure proper status
@@ -464,11 +466,11 @@ class Zaikon_Order_Tracking {
                 '". Forcing status to "dispatched" for accurate tracking display.');
             
             // Preserve original status if not already set by a previous rule
-            if (empty($order->_original_status)) {
-                $order->_original_status = $order->order_status;
+            if (empty($order->tracking_original_status)) {
+                $order->tracking_original_status = $order->order_status;
             }
             $order->order_status = 'dispatched';
-            $order->_safety_rule_applied = true;
+            $order->tracking_safety_rule_applied = true;
         }
         
         // Additional safety: If delivered_at exists, ensure delivered status
@@ -478,11 +480,11 @@ class Zaikon_Order_Tracking {
                 '". Forcing status to "delivered" for accurate tracking display.');
             
             // Preserve original status if not already set by a previous rule
-            if (empty($order->_original_status)) {
-                $order->_original_status = $order->order_status;
+            if (empty($order->tracking_original_status)) {
+                $order->tracking_original_status = $order->order_status;
             }
             $order->order_status = 'delivered';
-            $order->_safety_rule_applied = true;
+            $order->tracking_safety_rule_applied = true;
         }
         
         return $order;
