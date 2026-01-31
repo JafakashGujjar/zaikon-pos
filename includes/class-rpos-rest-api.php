@@ -37,12 +37,17 @@ class RPOS_REST_API {
     /**
      * Status mapping from rpos/KDS statuses to zaikon/tracking statuses
      * Used for syncing KDS updates to tracking system
+     * 
+     * Tracking step definitions (see templates/tracking-page.php line ~929):
+     * - Step 1: Confirmed (pending/confirmed status)
+     * - Step 2: Cooking (cooking status with 20-min countdown)
+     * - Step 3: Dispatched (dispatched/ready status with 10-min delivery countdown)
      */
     const STATUS_MAP_RPOS_TO_ZAIKON = array(
-        'new' => 'pending',
-        'cooking' => 'cooking',
-        'ready' => 'ready',
-        'completed' => 'dispatched'  // KDS complete triggers Step 3 (dispatched) in tracking
+        'new' => 'pending',            // Step 1: Order confirmed
+        'cooking' => 'cooking',        // Step 2: Kitchen preparing
+        'ready' => 'ready',            // Step 3: Food ready (pre-dispatch)
+        'completed' => 'dispatched'    // Step 3: KDS complete triggers dispatched for delivery countdown
     );
     
     public static function instance() {

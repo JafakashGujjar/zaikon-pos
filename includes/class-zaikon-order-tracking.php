@@ -441,20 +441,37 @@ class Zaikon_Order_Tracking {
             return new WP_Error('update_failed', 'Failed to update order status. Please try again.');
         }
         
+        // Extract timestamp fields that were set for audit logging
+        $timestamps_set = self::extract_timestamp_fields($update_data);
+        
         // Enterprise audit logging with full traceability
         Zaikon_System_Events::log('order', $order_id, 'status_changed', array(
             'old_status' => $old_status,
             'new_status' => $new_status,
             'source' => $source,
             'user_id' => $user_id,
-            'timestamps_set' => array_keys(array_filter($update_data, function($key) {
-                return strpos($key, '_at') !== false || strpos($key, 'updated') !== false;
-            }, ARRAY_FILTER_USE_KEY))
+            'timestamps_set' => $timestamps_set
         ));
         
         error_log('ZAIKON TRACKING: Order #' . $order_id . ' status changed: "' . $old_status . '" → "' . $new_status . '" (source: ' . $source . ')');
         
         return true;
+    }
+    
+    /**
+     * Extract timestamp field names from update data for audit logging
+     * 
+     * @param array $update_data The data being updated
+     * @return array List of timestamp field names that were set
+     */
+    private static function extract_timestamp_fields($update_data) {
+        $timestamp_fields = array();
+        foreach (array_keys($update_data) as $key) {
+            if (strpos($key, '_at') !== false || strpos($key, 'updated') !== false) {
+                $timestamp_fields[] = $key;
+            }
+        }
+        return $timestamp_fields;
     }
     
     /**

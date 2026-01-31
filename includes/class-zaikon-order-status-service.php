@@ -57,6 +57,8 @@ class Zaikon_Order_Status_Service {
     
     /**
      * Default ETA values in minutes
+     * Used by Zaikon_Order_Tracking::update_status() and tracking page
+     * Reference: templates/tracking-page.php uses these values for countdown timers
      */
     const DEFAULT_COOKING_ETA = 20;
     const DEFAULT_DELIVERY_ETA = 10;
@@ -177,7 +179,7 @@ class Zaikon_Order_Status_Service {
             $wpdb->prefix . 'zaikon_status_audit',
             array(
                 'order_id' => absint($order_id),
-                'status_from' => sanitize_text_field($old_status ?: 'NULL'),
+                'status_from' => $old_status ? sanitize_text_field($old_status) : null,
                 'status_to' => sanitize_text_field($new_status),
                 'actor_user_id' => absint($user_id),
                 'source' => sanitize_text_field($source),
