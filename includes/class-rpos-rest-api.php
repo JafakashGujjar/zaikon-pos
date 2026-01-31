@@ -670,22 +670,33 @@ class RPOS_REST_API {
         
         // Generate tracking token at order creation (enterprise requirement)
         // This ensures all orders are trackable immediately after creation
-        // Use retry mechanism for fault tolerance
+        // Use retry mechanism for fault tolerance with exception handling
         $tracking_token = null;
-        for ($attempt = 1; $attempt <= self::TRACKING_TOKEN_MAX_RETRIES && !$tracking_token; $attempt++) {
-            $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($zaikon_order_id);
-            if (!$tracking_token && $attempt < self::TRACKING_TOKEN_MAX_RETRIES) {
-                error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' failed, retrying...');
-                usleep(self::TRACKING_TOKEN_RETRY_DELAY_US);
+        for ($attempt = 1; $attempt <= self::TRACKING_TOKEN_MAX_RETRIES; $attempt++) {
+            try {
+                $tracking_token = Zaikon_Order_Tracking::generate_tracking_token($zaikon_order_id);
+                if ($tracking_token !== null && $tracking_token !== '' && $tracking_token !== false) {
+                    break; // Successfully generated token
+                }
+                
+                if ($attempt < self::TRACKING_TOKEN_MAX_RETRIES) {
+                    error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' failed, retrying...');
+                    usleep(self::TRACKING_TOKEN_RETRY_DELAY_US);
+                }
+            } catch (Exception $e) {
+                error_log('ZAIKON: sync_order_to_zaikon - Tracking token generation attempt ' . $attempt . ' threw exception: ' . $e->getMessage());
+                if ($attempt < self::TRACKING_TOKEN_MAX_RETRIES) {
+                    usleep(self::TRACKING_TOKEN_RETRY_DELAY_US);
+                }
             }
         }
         
-        if ($tracking_token) {
-            error_log('ZAIKON: sync_order_to_zaikon - Generated tracking token for order #' . $order->order_number);
+        if ($tracking_token !== null && $tracking_token !== '' && $tracking_token !== false) {
+            error_log('ZAIKON: sync_order_to_zaikon - Generated tracking token for order #' . $order->order_number . ' (ID: ' . $zaikon_order_id . ')');
         } else {
             // Log as critical warning but allow order creation to succeed
             // Tracking token can be generated lazily when tracking URL is requested
-            error_log('ZAIKON: sync_order_to_zaikon - CRITICAL: Failed to generate tracking token for order #' . $order->order_number . ' after ' . self::TRACKING_TOKEN_MAX_RETRIES . ' attempts');
+            error_log('ZAIKON: sync_order_to_zaikon - CRITICAL: Failed to generate tracking token for order #' . $order->order_number . ' (ID: ' . $zaikon_order_id . ') after ' . self::TRACKING_TOKEN_MAX_RETRIES . ' attempts');
         }
         
         error_log('ZAIKON: sync_order_to_zaikon - Successfully synced order #' . $order->order_number . ' to zaikon_orders (ID: ' . $zaikon_order_id . ')');
