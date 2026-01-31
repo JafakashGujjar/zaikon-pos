@@ -452,7 +452,7 @@ class Zaikon_Order_Tracking {
         
         // Safety Rule 1: If ready_at exists but status suggests pre-ready state, correct it
         // Uses class constant PRE_READY_STATUSES for maintainability
-        if (!empty($order->ready_at) && in_array($order->order_status, self::PRE_READY_STATUSES)) {
+        if (!empty($order->ready_at) && in_array($order->order_status, self::PRE_READY_STATUSES, true)) {
             error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
                 ' has ready_at (' . $order->ready_at . ') but status is "' . $order->order_status . 
                 '". Forcing status to "ready" for accurate tracking display.');
@@ -470,7 +470,7 @@ class Zaikon_Order_Tracking {
         
         // Safety Rule 2: If dispatched_at exists, ensure proper status
         // Uses class constant POST_DISPATCH_STATUSES for maintainability
-        if (!empty($order->dispatched_at) && !in_array($order->order_status, self::POST_DISPATCH_STATUSES)) {
+        if (!empty($order->dispatched_at) && !in_array($order->order_status, self::POST_DISPATCH_STATUSES, true)) {
             error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
                 ' has dispatched_at (' . $order->dispatched_at . ') but status is "' . $order->order_status . 
                 '". Forcing status to "dispatched" for accurate tracking display.');

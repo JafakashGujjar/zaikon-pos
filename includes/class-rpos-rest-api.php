@@ -2049,13 +2049,16 @@ class RPOS_REST_API {
                 error_log('ZAIKON TRACKING API: Token NOT FOUND in database: ' . $token_preview);
                 
                 // Log recent orders for debugging (helps identify sync issues)
-                $recent_orders = $wpdb->get_results(
+                // Use WordPress current_time for consistency with application timezone
+                $cutoff_time = gmdate('Y-m-d H:i:s', current_time('timestamp', true) - (24 * 3600));
+                $recent_orders = $wpdb->get_results($wpdb->prepare(
                     "SELECT id, order_number, tracking_token, order_status, created_at 
                      FROM {$wpdb->prefix}zaikon_orders 
-                     WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                     WHERE created_at >= %s
                      ORDER BY created_at DESC 
-                     LIMIT 5"
-                );
+                     LIMIT 5",
+                    $cutoff_time
+                ));
                 
                 if ($recent_orders) {
                     error_log('ZAIKON TRACKING API: Recent orders in DB (last 24h):');
