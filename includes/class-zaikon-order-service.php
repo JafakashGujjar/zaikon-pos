@@ -75,6 +75,11 @@ class Zaikon_Order_Service {
                 $result['tracking_url'] = Zaikon_Order_Tracking::get_tracking_url($tracking_token);
             }
             
+            // Always provide fallback tracking URL based on order_number
+            // This is the deterministic fallback when token verification fails
+            // Per enterprise requirements: order_number is the single source of truth
+            $result['tracking_url_fallback'] = Zaikon_Order_Tracking::get_tracking_url_by_order_number($order_data['order_number']);
+            
             // Set initial order status to 'pending' if delivery, or 'confirmed' if dine-in/takeaway
             $initial_status = ($order_data['order_type'] === 'delivery') ? 'pending' : 'confirmed';
             Zaikon_Order_Tracking::update_status($order_id, $initial_status);

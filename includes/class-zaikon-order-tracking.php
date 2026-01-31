@@ -13,18 +13,43 @@ class Zaikon_Order_Tracking {
     /**
      * Regex pattern for valid tracking tokens
      * Tokens must be 16-64 character lowercase hexadecimal strings
+     * 
+     * NOTE: This pattern is also used in the frontend (templates/tracking-page.php)
+     * as a JavaScript regex for client-side validation. Keep them in sync.
      */
     const TOKEN_PATTERN = '/^[a-f0-9]{16,64}$/';
+    
+    /**
+     * Statuses that represent tracking Step 1 or Step 2 (before kitchen completes)
+     * Used by safety rules to detect when tracking is lagging behind KDS
+     * 
+     * Step 1: Order confirmed (pending, confirmed)
+     * Step 2: Kitchen preparing (cooking)
+     * Step 3: On the way/ready (ready, dispatched, delivered, completed)
+     * 
+     * Also known as "pre-ready" statuses - any order with timestamps indicating
+     * later stage but status in this list needs correction.
+     */
+    const PRE_READY_STATUSES = array('pending', 'confirmed', 'cooking');
+    
+    /**
+     * Statuses that represent tracking Step 3 (post-dispatch/final stages)
+     * Used by safety rules to verify order has progressed to delivery stage
+     */
+    const POST_DISPATCH_STATUSES = array('dispatched', 'delivered', 'completed');
     
     /**
      * Create a partial token preview for secure logging
      * Shows first 8 and last 4 characters for tokens >= 12 chars
      * For shorter tokens, shows asterisks
      * 
+     * This method is public to allow reuse by the REST API and other components
+     * for consistent token logging across the system.
+     * 
      * @param string|null $token The token to preview
      * @return string Token preview (e.g., "da276119...4ff3") or "NULL"
      */
-    private static function create_token_preview($token) {
+    public static function create_token_preview($token) {
         if (empty($token)) {
             return 'NULL';
         }
@@ -106,10 +131,28 @@ class Zaikon_Order_Tracking {
     }
     
     /**
-     * Get tracking URL for an order
+     * Get tracking URL for an order (token-based, primary)
      */
     public static function get_tracking_url($token) {
         return home_url('/track-order/' . $token);
+    }
+    
+    /**
+     * Get tracking URL for an order (order_number-based, fallback)
+     * 
+     * This provides a deterministic tracking URL that doesn't depend on
+     * the token system. Useful when:
+     * - Token generation fails
+     * - Token verification fails
+     * - Token lookup is unreliable
+     * 
+     * Per enterprise requirements: order_number is the single source of truth
+     * 
+     * @param string $order_number The order number (e.g., "ORD-20260201-7A8D7F")
+     * @return string The tracking URL
+     */
+    public static function get_tracking_url_by_order_number($order_number) {
+        return home_url('/track-order/order/' . urlencode($order_number));
     }
     
     /**
@@ -269,6 +312,9 @@ class Zaikon_Order_Tracking {
             $order->id
         ));
         
+        // Apply safety rules to ensure tracking never lags behind KDS
+        $order = self::apply_tracking_safety_rules($order);
+        
         return $order;
     }
     
@@ -317,6 +363,139 @@ class Zaikon_Order_Tracking {
              ORDER BY id ASC",
             $order->id
         ));
+        
+        // Apply safety rules to ensure tracking never lags behind KDS
+        $order = self::apply_tracking_safety_rules($order);
+        
+        return $order;
+    }
+    
+    /**
+     * Get order by order_number with delivery and rider details
+     * This is the deterministic fallback when token lookup fails
+     * 
+     * Per enterprise requirements:
+     * - order_number is the single source of truth (canonical identifier)
+     * - tracking_token is only an access key, not data identifier
+     * - This method provides reliable lookup when token → order mapping fails
+     * 
+     * @param string $order_number The order number to lookup (e.g., "ORD-20260201-7A8D7F")
+     * @return object|null The order object with delivery details, or null if not found
+     */
+    public static function get_order_by_order_number($order_number) {
+        global $wpdb;
+        
+        if (empty($order_number)) {
+            error_log('ZAIKON TRACKING: get_order_by_order_number called with empty order_number');
+            return null;
+        }
+        
+        error_log('ZAIKON TRACKING: get_order_by_order_number called for: ' . $order_number);
+        
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
+                    o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
+                    o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
+                    o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
+                    o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
+                    o.rider_assigned_at, o.delivered_at,
+                    o.created_at, o.updated_at, o.tracking_token,
+                    d.customer_name, d.customer_phone, d.location_name, 
+                    d.delivery_status, d.special_instruction,
+                    d.delivery_charges_rs AS delivery_charges_rs,
+                    r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
+             FROM {$wpdb->prefix}zaikon_orders o
+             LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
+             LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
+             WHERE o.order_number = %s",
+            $order_number
+        ));
+        
+        if (!$order) {
+            error_log('ZAIKON TRACKING: Order not found for order_number: ' . $order_number);
+            return null;
+        }
+        
+        error_log('ZAIKON TRACKING: Order found by order_number. ID: ' . $order->id . ', Status: ' . $order->order_status);
+        
+        // Get order items
+        $order->items = $wpdb->get_results($wpdb->prepare(
+            "SELECT product_name, qty, unit_price_rs, line_total_rs
+             FROM {$wpdb->prefix}zaikon_order_items
+             WHERE order_id = %d
+             ORDER BY id ASC",
+            $order->id
+        ));
+        
+        // Apply safety rule: If kitchen_completed (ready_at exists), ensure proper status
+        // This handles the case where KDS has marked the order ready but tracking shows a stale status
+        $order = self::apply_tracking_safety_rules($order);
+        
+        return $order;
+    }
+    
+    /**
+     * Apply enterprise safety rules for tracking state
+     * 
+     * Hard Safety Rule (per requirements):
+     * - If kitchen_completed_at (ready_at) exists AND tracking step < Step 3
+     *   → FORCE Step 3 (status = 'ready' or better)
+     * - Tracking must NEVER lag behind KDS
+     * 
+     * @param object $order The order object
+     * @return object The order with corrected status if needed
+     */
+    public static function apply_tracking_safety_rules($order) {
+        if (!$order || !is_object($order)) {
+            return $order;
+        }
+        
+        // Safety Rule 1: If ready_at exists but status suggests pre-ready state, correct it
+        // Uses class constant PRE_READY_STATUSES for maintainability
+        if (!empty($order->ready_at) && in_array($order->order_status, self::PRE_READY_STATUSES, true)) {
+            error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
+                ' has ready_at (' . $order->ready_at . ') but status is "' . $order->order_status . 
+                '". Forcing status to "ready" for accurate tracking display.');
+            
+            // Runtime-only metadata flags (not persisted to database):
+            // These properties are dynamically added to the order object at runtime
+            // to track when status corrections are applied for API response metadata
+            // Preserve original status only if not already set by a previous rule application
+            if (empty($order->tracking_original_status)) {
+                $order->tracking_original_status = $order->order_status;
+            }
+            $order->order_status = 'ready';
+            $order->tracking_safety_rule_applied = true;
+        }
+        
+        // Safety Rule 2: If dispatched_at exists, ensure proper status
+        // Uses class constant POST_DISPATCH_STATUSES for maintainability
+        if (!empty($order->dispatched_at) && !in_array($order->order_status, self::POST_DISPATCH_STATUSES, true)) {
+            error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
+                ' has dispatched_at (' . $order->dispatched_at . ') but status is "' . $order->order_status . 
+                '". Forcing status to "dispatched" for accurate tracking display.');
+            
+            // Preserve original status if not already set by a previous rule
+            if (empty($order->tracking_original_status)) {
+                $order->tracking_original_status = $order->order_status;
+            }
+            $order->order_status = 'dispatched';
+            $order->tracking_safety_rule_applied = true;
+        }
+        
+        // Safety Rule 3: If delivered_at exists, ensure delivered status
+        if (!empty($order->delivered_at) && $order->order_status !== 'delivered') {
+            error_log('ZAIKON TRACKING [SAFETY RULE]: Order #' . $order->order_number . 
+                ' has delivered_at (' . $order->delivered_at . ') but status is "' . $order->order_status . 
+                '". Forcing status to "delivered" for accurate tracking display.');
+            
+            // Preserve original status if not already set by a previous rule
+            if (empty($order->tracking_original_status)) {
+                $order->tracking_original_status = $order->order_status;
+            }
+            $order->order_status = 'delivered';
+            $order->tracking_safety_rule_applied = true;
+        }
         
         return $order;
     }
