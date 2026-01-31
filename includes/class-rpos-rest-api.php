@@ -819,7 +819,8 @@ class RPOS_REST_API {
             );
         }
         
-        error_log('RPOS: sync_order_to_rpos - Successfully synced order #' . $order->order_number . ' to rpos_orders (ID: ' . $rpos_order_id . ', zaikon_order_id: ' . ($order->id ?? 'NULL') . ')');
+        $zaikon_id_str = isset($order->id) ? (string) $order->id : 'NULL';
+        error_log('RPOS: sync_order_to_rpos - Successfully synced order #' . $order->order_number . ' to rpos_orders (ID: ' . $rpos_order_id . ', zaikon_order_id: ' . $zaikon_id_str . ')');
         
         return $rpos_order_id;
     }

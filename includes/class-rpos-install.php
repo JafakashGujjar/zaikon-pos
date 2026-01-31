@@ -1859,6 +1859,8 @@ class RPOS_Install {
     private static function migrate_v1_add_zaikon_order_id_mapping() {
         global $wpdb;
         
+        // Use the WordPress table prefix with known table name for security
+        // This avoids SQL injection risks from dynamic table names
         $table_name = $wpdb->prefix . 'rpos_orders';
         
         // Verify table exists
@@ -1879,44 +1881,56 @@ class RPOS_Install {
         ));
         
         if (empty($column_exists)) {
-            $safe_table = esc_sql($table_name);
-            $result = $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `zaikon_order_id` bigint(20) unsigned DEFAULT NULL AFTER `id`");
+            // Table name is constructed from $wpdb->prefix (trusted) + hardcoded string (trusted)
+            // so we don't need additional escaping for SQL injection prevention
+            $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `zaikon_order_id` bigint(20) unsigned DEFAULT NULL AFTER `id`");
             
             if ($result !== false) {
                 // Add index for efficient lookups
-                $wpdb->query("ALTER TABLE `{$safe_table}` ADD KEY `idx_zaikon_order_id` (`zaikon_order_id`)");
-                error_log('ZAIKON SCHEMA v1: Added zaikon_order_id column and index to rpos_orders');
+                $index_result = $wpdb->query("ALTER TABLE `{$table_name}` ADD KEY `idx_zaikon_order_id` (`zaikon_order_id`)");
+                if ($index_result !== false) {
+                    error_log('ZAIKON SCHEMA v1: Added zaikon_order_id column and index to rpos_orders');
+                } else {
+                    error_log('ZAIKON SCHEMA v1: Added zaikon_order_id column but failed to add index: ' . $wpdb->last_error);
+                }
             } else {
                 error_log('ZAIKON SCHEMA v1: Failed to add zaikon_order_id column: ' . $wpdb->last_error);
             }
         }
         
-        // Backfill existing records: match by order_number
-        $orders_without_mapping = $wpdb->get_results(
-            "SELECT r.id as rpos_id, r.order_number, z.id as zaikon_id
-             FROM {$wpdb->prefix}rpos_orders r
-             LEFT JOIN {$wpdb->prefix}zaikon_orders z ON r.order_number = z.order_number
-             WHERE r.zaikon_order_id IS NULL AND z.id IS NOT NULL
-             LIMIT 500"
-        );
+        // Backfill existing records in batches: match by order_number
+        // Process all records by looping until no more are found
+        $total_backfilled = 0;
+        $batch_size = 500;
         
-        $backfilled = 0;
-        foreach ($orders_without_mapping as $order) {
-            $result = $wpdb->update(
-                $wpdb->prefix . 'rpos_orders',
-                array('zaikon_order_id' => $order->zaikon_id),
-                array('id' => $order->rpos_id),
-                array('%d'),
-                array('%d')
+        do {
+            $orders_without_mapping = $wpdb->get_results(
+                "SELECT r.id as rpos_id, r.order_number, z.id as zaikon_id
+                 FROM {$wpdb->prefix}rpos_orders r
+                 LEFT JOIN {$wpdb->prefix}zaikon_orders z ON r.order_number = z.order_number
+                 WHERE r.zaikon_order_id IS NULL AND z.id IS NOT NULL
+                 LIMIT {$batch_size}"
             );
             
-            if ($result !== false) {
-                $backfilled++;
+            $batch_count = count($orders_without_mapping);
+            
+            foreach ($orders_without_mapping as $order) {
+                $result = $wpdb->update(
+                    $wpdb->prefix . 'rpos_orders',
+                    array('zaikon_order_id' => $order->zaikon_id),
+                    array('id' => $order->rpos_id),
+                    array('%d'),
+                    array('%d')
+                );
+                
+                if ($result !== false) {
+                    $total_backfilled++;
+                }
             }
-        }
+        } while ($batch_count === $batch_size); // Continue while we got a full batch
         
-        if ($backfilled > 0) {
-            error_log('ZAIKON SCHEMA v1: Backfilled zaikon_order_id for ' . $backfilled . ' existing orders');
+        if ($total_backfilled > 0) {
+            error_log('ZAIKON SCHEMA v1: Backfilled zaikon_order_id for ' . $total_backfilled . ' existing orders');
         }
         
         error_log('ZAIKON SCHEMA v1: Migration completed');
@@ -1931,6 +1945,8 @@ class RPOS_Install {
     private static function migrate_v2_ensure_tracking_token_index() {
         global $wpdb;
         
+        // Use the WordPress table prefix with known table name for security
+        // This avoids SQL injection risks from dynamic table names
         $table_name = $wpdb->prefix . 'zaikon_orders';
         
         // Verify table exists
@@ -1952,9 +1968,13 @@ class RPOS_Install {
         
         if (empty($column_exists)) {
             // Add the column with unique constraint
-            $safe_table = esc_sql($table_name);
-            $wpdb->query("ALTER TABLE `{$safe_table}` ADD COLUMN `tracking_token` varchar(100) UNIQUE DEFAULT NULL AFTER `order_number`");
-            error_log('ZAIKON SCHEMA v2: Added tracking_token column with unique constraint');
+            // Table name is constructed from $wpdb->prefix (trusted) + hardcoded string (trusted)
+            $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD COLUMN `tracking_token` varchar(100) UNIQUE DEFAULT NULL AFTER `order_number`");
+            if ($result !== false) {
+                error_log('ZAIKON SCHEMA v2: Added tracking_token column with unique constraint');
+            } else {
+                error_log('ZAIKON SCHEMA v2: Failed to add tracking_token column: ' . $wpdb->last_error);
+            }
         } else {
             // Column exists, check if unique index exists
             $index_exists = $wpdb->get_results($wpdb->prepare(
@@ -1969,9 +1989,13 @@ class RPOS_Install {
             
             if (empty($index_exists) && empty($unique_index_exists)) {
                 // Add unique index if neither exists
-                $safe_table = esc_sql($table_name);
-                $wpdb->query("ALTER TABLE `{$safe_table}` ADD UNIQUE INDEX `tracking_token_idx` (`tracking_token`)");
-                error_log('ZAIKON SCHEMA v2: Added unique index for tracking_token');
+                // Table name is constructed from $wpdb->prefix (trusted) + hardcoded string (trusted)
+                $result = $wpdb->query("ALTER TABLE `{$table_name}` ADD UNIQUE INDEX `tracking_token_idx` (`tracking_token`)");
+                if ($result !== false) {
+                    error_log('ZAIKON SCHEMA v2: Added unique index for tracking_token');
+                } else {
+                    error_log('ZAIKON SCHEMA v2: Failed to add unique index: ' . $wpdb->last_error);
+                }
             }
         }
         
