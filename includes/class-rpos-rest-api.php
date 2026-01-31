@@ -1521,6 +1521,8 @@ class RPOS_REST_API {
     
     /**
      * Update order status (active/completed/cancelled/replacement)
+     * 
+     * Updates status in zaikon_orders and syncs to rpos_orders for KDS visibility.
      */
     public function update_order_order_status($request) {
         global $wpdb;
@@ -1549,6 +1551,9 @@ class RPOS_REST_API {
             return new WP_Error('update_failed', 'Failed to update order status', array('status' => 500));
         }
         
+        // Sync status to rpos_orders for KDS visibility
+        $this->sync_status_to_legacy_order($order_id, $order_status);
+        
         return rest_ensure_response(array(
             'success' => true,
             'message' => 'Order status updated successfully'
@@ -1557,6 +1562,8 @@ class RPOS_REST_API {
     
     /**
      * Mark order as delivered
+     * 
+     * Updates status in zaikon_orders and syncs to rpos_orders for KDS visibility.
      */
     public function mark_order_delivered($request) {
         global $wpdb;
@@ -1578,6 +1585,9 @@ class RPOS_REST_API {
         if ($result === false) {
             return new WP_Error('update_failed', 'Failed to mark order as delivered', array('status' => 500));
         }
+        
+        // Sync status to rpos_orders for KDS visibility
+        $this->sync_status_to_legacy_order($order_id, 'completed');
         
         // Also update zaikon_deliveries table
         $delivery_result = $wpdb->update(
@@ -2307,5 +2317,63 @@ class RPOS_REST_API {
             'success' => true,
             'eta' => $eta
         ));
+    }
+    
+    /**
+     * Sync order status from zaikon_orders to rpos_orders
+     * 
+     * Maps zaikon status to rpos status and updates the corresponding
+     * record in rpos_orders for KDS visibility and synchronization.
+     * 
+     * @param int $zaikon_order_id The zaikon order ID
+     * @param string $status The status to sync
+     * @return bool True on success, false on failure
+     */
+    private function sync_status_to_legacy_order($zaikon_order_id, $status) {
+        global $wpdb;
+        
+        // Get the order number from zaikon_orders
+        $order_number = $wpdb->get_var($wpdb->prepare(
+            "SELECT order_number FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            $zaikon_order_id
+        ));
+        
+        if (!$order_number) {
+            error_log('ZAIKON: sync_status_to_legacy_order - Order #' . $zaikon_order_id . ' not found in zaikon_orders');
+            return false;
+        }
+        
+        // Map zaikon status to rpos status
+        $status_map = array(
+            'active' => 'new',
+            'delivered' => 'completed',
+            'completed' => 'completed',
+            'cancelled' => 'cancelled',
+            'replacement' => 'cancelled'
+        );
+        
+        $rpos_status = isset($status_map[$status]) ? $status_map[$status] : $status;
+        
+        // Find matching rpos_order by order_number
+        $rpos_order_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}rpos_orders WHERE order_number = %s",
+            $order_number
+        ));
+        
+        if (!$rpos_order_id) {
+            error_log('ZAIKON: sync_status_to_legacy_order - No matching rpos_order found for order #' . $order_number);
+            return false;
+        }
+        
+        // Update rpos_orders status
+        $result = RPOS_Orders::update_status($rpos_order_id, $rpos_status);
+        
+        if ($result) {
+            error_log('ZAIKON: sync_status_to_legacy_order - Successfully synced status "' . $status . '" -> "' . $rpos_status . '" for order #' . $order_number);
+        } else {
+            error_log('ZAIKON: sync_status_to_legacy_order - Failed to sync status for order #' . $order_number);
+        }
+        
+        return $result;
     }
 }
