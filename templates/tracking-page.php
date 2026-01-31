@@ -756,6 +756,37 @@
         const trackingToken = /^[a-f0-9]{16,64}$/.test(rawToken) ? rawToken : null;
         const apiBaseUrl = '<?php echo esc_js(rest_url("zaikon/v1/")); ?>';
         
+        // Server time synchronization for accurate countdown calculations
+        // This provides the server's current UTC time in milliseconds at page load
+        let serverUtcTimeMs = <?php echo (int)(current_time('timestamp', true) * 1000); ?>;
+        // This is the client's time when the sync was last calculated
+        let clientSyncTimeMs = Date.now();
+        // The offset between server UTC and client time (positive if client is ahead of server)
+        let serverClientTimeOffset = clientSyncTimeMs - serverUtcTimeMs;
+        
+        /**
+         * Update server time synchronization from API response.
+         * Called on each poll to maintain accurate time sync even if page is open for hours.
+         * @param {number} serverTime Server UTC time in milliseconds from API response
+         */
+        function updateServerTimeSync(serverTime) {
+            if (serverTime && !isNaN(serverTime)) {
+                serverUtcTimeMs = serverTime;
+                clientSyncTimeMs = Date.now();
+                serverClientTimeOffset = clientSyncTimeMs - serverUtcTimeMs;
+            }
+        }
+        
+        /**
+         * Get the current server UTC time in milliseconds.
+         * This compensates for any client-server time difference by using the
+         * offset calculated from the most recent API poll.
+         * @returns {number} Current server UTC time in milliseconds
+         */
+        function getServerUtcNow() {
+            return Date.now() - serverClientTimeOffset;
+        }
+        
         // State
         let currentOrderData = null;
         let pollInterval = null;
@@ -881,6 +912,12 @@
                     throw new Error(data.message || 'Unable to load order details.');
                 }
                 
+                // Update server time synchronization on each poll to maintain accuracy
+                // This compensates for any drift if the page remains open for extended periods
+                if (data.server_utc_ms) {
+                    updateServerTimeSync(data.server_utc_ms);
+                }
+                
                 // Log received data for debugging KDS sync issues
                 console.log('ZAIKON TRACKING: Order data received', {
                     order_number: data.order.order_number,
@@ -915,6 +952,11 @@
             cookingStartedAt = parseServerTimestamp(order.cooking_started_at);
             readyAt = parseServerTimestamp(order.ready_at);
             dispatchedAt = parseServerTimestamp(order.dispatched_at);
+            
+            // Debug logging for timezone validation (can be enabled by adding ?debug=time to URL)
+            if (window.location.search.includes('debug=time')) {
+                logOrderTimingDebugInfo(order, currentStep);
+            }
             
             // Render the 3 steps
             renderTrackingSteps(order, currentStep);
@@ -1065,13 +1107,70 @@
             return isNaN(parsed) ? null : parsed;
         }
         
+        // Debug logging function for order timing validation
+        // Enable by adding ?debug=time to the tracking URL
+        function logOrderTimingDebugInfo(order, currentStep) {
+            const serverNow = getServerUtcNow();
+            const browserNow = Date.now();
+            
+            console.group('🕐 ZAIKON Tracking Timer Debug Info');
+            console.log('=== Time Synchronization ===');
+            console.log('Server UTC (last sync):', new Date(serverUtcTimeMs).toISOString());
+            console.log('Client time (last sync):', new Date(clientSyncTimeMs).toISOString());
+            console.log('Server-Client offset (ms):', serverClientTimeOffset);
+            console.log('Current server UTC (calculated):', new Date(serverNow).toISOString());
+            console.log('Current browser time:', new Date(browserNow).toISOString());
+            
+            console.log('\n=== Stored Timestamps (from DB, UTC) ===');
+            console.log('Order status:', order.order_status);
+            console.log('cooking_started_at (raw):', order.cooking_started_at || 'NULL');
+            console.log('cooking_started_at (parsed ms):', cookingStartedAt);
+            console.log('ready_at (raw):', order.ready_at || 'NULL');
+            console.log('ready_at (parsed ms):', readyAt);
+            console.log('dispatched_at (raw):', order.dispatched_at || 'NULL');
+            console.log('dispatched_at (parsed ms):', dispatchedAt);
+            
+            console.log('\n=== Timer Calculations ===');
+            if (currentStep === 2 && cookingStartedAt) {
+                const elapsedMs = serverNow - cookingStartedAt;
+                const elapsedMinutes = elapsedMs / 60000;
+                const remainingMinutes = DEFAULT_COOKING_TIME_MINUTES - elapsedMinutes;
+                console.log('Cooking Timer:');
+                console.log('  Elapsed (minutes):', elapsedMinutes.toFixed(2));
+                console.log('  Remaining (minutes):', remainingMinutes.toFixed(2));
+                console.log('  Is Overtime:', elapsedMinutes > DEFAULT_COOKING_TIME_MINUTES);
+            }
+            
+            if (currentStep === 3 && (dispatchedAt || readyAt)) {
+                const deliveryStart = dispatchedAt || readyAt;
+                const elapsedMs = serverNow - deliveryStart;
+                const elapsedMinutes = elapsedMs / 60000;
+                const remainingMinutes = DEFAULT_DELIVERY_TIME_MINUTES - elapsedMinutes;
+                console.log('Delivery Timer:');
+                console.log('  Start timestamp:', deliveryStart ? new Date(deliveryStart).toISOString() : 'NULL');
+                console.log('  Elapsed (minutes):', elapsedMinutes.toFixed(2));
+                console.log('  Remaining (minutes):', remainingMinutes.toFixed(2));
+                console.log('  Is Overtime:', elapsedMinutes > DEFAULT_DELIVERY_TIME_MINUTES);
+            }
+            
+            console.log('\n=== Step Detection ===');
+            console.log('Current step:', currentStep);
+            console.log('Step 1 (Confirmed): order_status in [pending, confirmed]');
+            console.log('Step 2 (Preparing): order_status = cooking');
+            console.log('Step 3 (On The Way): order_status in [ready, dispatched, delivered]');
+            console.groupEnd();
+        }
+        
         // Helper function to calculate countdown timer state with overtime extension
+        // Uses server-synchronized UTC time for accurate calculations across different timezones
         function calculateCountdownState(startTime, defaultTimeMinutes, extensionMinutes) {
             if (!startTime || isNaN(startTime)) {
                 return { isValid: false };
             }
             
-            const now = Date.now();
+            // Use server-synchronized UTC time instead of browser's Date.now()
+            // This ensures consistent timer behavior across all browser timezones
+            const now = getServerUtcNow();
             const elapsedMs = now - startTime;
             const elapsedMinutes = elapsedMs / 60000;
             

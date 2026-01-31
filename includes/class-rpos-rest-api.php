@@ -2040,7 +2040,10 @@ class RPOS_REST_API {
         return rest_ensure_response(array(
             'success' => true,
             'order' => $order,
-            'eta' => $eta
+            'eta' => $eta,
+            // Include server UTC timestamp for client-side time synchronization
+            // This allows the tracking page to recalculate time offset on each poll
+            'server_utc_ms' => (int)(current_time('timestamp', true) * 1000)
         ));
     }
     

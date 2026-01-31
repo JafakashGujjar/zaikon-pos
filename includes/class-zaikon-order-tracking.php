@@ -531,8 +531,10 @@ class Zaikon_Order_Tracking {
             return false;
         }
         
-        $cooking_start = strtotime($order->cooking_started_at);
-        $current_time = time();
+        // Parse cooking_started_at as UTC timestamp (database stores UTC)
+        $cooking_start = strtotime($order->cooking_started_at . ' UTC');
+        // Use WordPress current UTC timestamp for consistency with database storage
+        $current_time = current_time('timestamp', true);
         $elapsed_minutes = ($current_time - $cooking_start) / 60;
         $eta_minutes = $order->cooking_eta_minutes ?: 20;
         
@@ -607,8 +609,10 @@ class Zaikon_Order_Tracking {
         
         // Calculate cooking ETA if in cooking status
         if ($order->order_status === 'cooking' && $order->cooking_started_at) {
-            $cooking_start = strtotime($order->cooking_started_at);
-            $current_time = time();
+            // Parse cooking_started_at as UTC timestamp (database stores UTC)
+            $cooking_start = strtotime($order->cooking_started_at . ' UTC');
+            // Use WordPress current UTC timestamp for consistency with database storage
+            $current_time = current_time('timestamp', true);
             $elapsed_minutes = ($current_time - $cooking_start) / 60;
             $eta_minutes = $order->cooking_eta_minutes ?: 20;
             $remaining = max(0, $eta_minutes - $elapsed_minutes);
@@ -620,8 +624,10 @@ class Zaikon_Order_Tracking {
         if (in_array($order->order_status, array('ready', 'dispatched'))) {
             $delivery_start_time = $order->dispatched_at ?: $order->ready_at;
             if ($delivery_start_time) {
-                $start_time = strtotime($delivery_start_time);
-                $current_time = time();
+                // Parse timestamp as UTC (database stores UTC)
+                $start_time = strtotime($delivery_start_time . ' UTC');
+                // Use WordPress current UTC timestamp for consistency with database storage
+                $current_time = current_time('timestamp', true);
                 $elapsed_minutes = ($current_time - $start_time) / 60;
                 $eta_minutes = $order->delivery_eta_minutes ?: 10; // 10 min default for delivery
                 $remaining = max(0, $eta_minutes - $elapsed_minutes);
@@ -657,8 +663,8 @@ class Zaikon_Order_Tracking {
             'details' => array()
         );
         
-        // Calculate the cutoff time (2 hours ago)
-        $cutoff_time = date('Y-m-d H:i:s', strtotime("-{$hours} hours"));
+        // Calculate the cutoff time in UTC (database stores UTC timestamps)
+        $cutoff_time = gmdate('Y-m-d H:i:s', current_time('timestamp', true) - ($hours * 3600));
         
         error_log('ZAIKON AUTO-COMPLETE: Starting auto-complete job. Cutoff time: ' . $cutoff_time . ' (orders older than ' . $hours . ' hours)');
         
@@ -791,8 +797,10 @@ class Zaikon_Order_Tracking {
             return false;
         }
         
-        $start_time = strtotime($delivery_start);
-        $current_time = time();
+        // Parse timestamp as UTC (database stores UTC)
+        $start_time = strtotime($delivery_start . ' UTC');
+        // Use WordPress current UTC timestamp for consistency with database storage
+        $current_time = current_time('timestamp', true);
         $elapsed_minutes = ($current_time - $start_time) / 60;
         // Use null coalescing since 0 is not a valid ETA value (minimum is 10 minutes)
         $eta_minutes = $order->delivery_eta_minutes ?? 10;
