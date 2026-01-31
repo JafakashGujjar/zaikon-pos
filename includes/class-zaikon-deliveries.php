@@ -10,6 +10,67 @@ if (!defined('ABSPATH')) {
 class Zaikon_Deliveries {
     
     /**
+     * Nullable columns that should be skipped if null/empty to avoid %d/%f format issues
+     * When these are null, we skip them so the database DEFAULT NULL is used
+     */
+    private static $nullable_columns = array(
+        'location_id',
+        'assigned_rider_id',
+        'rider_payout_amount',
+        'rider_payout_slab',
+        'payout_type',
+        'payout_per_km_rate',
+        'delivered_at'
+    );
+    
+    /**
+     * Get nullable integer value from data array
+     * Returns null if value is not set, empty, zero, or negative
+     * (Used for foreign key IDs which should be positive integers or NULL)
+     * 
+     * @param array $data Data array
+     * @param string $key Key to look up
+     * @return int|null Positive integer value or null
+     */
+    private static function get_nullable_int($data, $key) {
+        if (!isset($data[$key]) || $data[$key] === null || $data[$key] === '') {
+            return null;
+        }
+        $value = absint($data[$key]);
+        return $value > 0 ? $value : null;
+    }
+    
+    /**
+     * Get nullable float value from data array
+     * Returns null if value is not set or empty
+     * 
+     * @param array $data Data array
+     * @param string $key Key to look up
+     * @return float|null Float value or null
+     */
+    private static function get_nullable_float($data, $key) {
+        if (!isset($data[$key]) || $data[$key] === null || $data[$key] === '') {
+            return null;
+        }
+        return floatval($data[$key]);
+    }
+    
+    /**
+     * Get nullable string value from data array
+     * Returns null if value is not set or empty
+     * 
+     * @param array $data Data array
+     * @param string $key Key to look up
+     * @return string|null Sanitized string value or null
+     */
+    private static function get_nullable_string($data, $key) {
+        if (!isset($data[$key]) || $data[$key] === null || $data[$key] === '') {
+            return null;
+        }
+        return sanitize_text_field($data[$key]);
+    }
+    
+    /**
      * Create delivery record
      */
     public static function create($data) {
@@ -20,24 +81,25 @@ class Zaikon_Deliveries {
         $existing_columns = self::get_table_columns($table_name);
         
         // Build delivery data array with all fields
+        // For nullable fields, use helper methods to properly handle null/empty values
         $all_delivery_data = array(
             'order_id' => absint($data['order_id']),
             'customer_name' => sanitize_text_field($data['customer_name']),
             'customer_phone' => sanitize_text_field($data['customer_phone']),
-            'location_id' => isset($data['location_id']) ? absint($data['location_id']) : null,
+            'location_id' => self::get_nullable_int($data, 'location_id'),
             'location_name' => sanitize_text_field($data['location_name']),
             'distance_km' => floatval($data['distance_km']),
             'delivery_charges_rs' => floatval($data['delivery_charges_rs']),
             'is_free_delivery' => intval($data['is_free_delivery'] ?? 0),
             'special_instruction' => sanitize_text_field($data['special_instruction'] ?? ''),
             'delivery_instructions' => sanitize_text_field($data['delivery_instructions'] ?? ''),
-            'assigned_rider_id' => isset($data['assigned_rider_id']) ? absint($data['assigned_rider_id']) : null,
+            'assigned_rider_id' => self::get_nullable_int($data, 'assigned_rider_id'),
             'delivery_status' => sanitize_text_field($data['delivery_status'] ?? 'pending'),
-            'rider_payout_amount' => isset($data['rider_payout_amount']) ? floatval($data['rider_payout_amount']) : null,
-            'rider_payout_slab' => isset($data['rider_payout_slab']) ? sanitize_text_field($data['rider_payout_slab']) : null,
-            'payout_type' => isset($data['payout_type']) ? sanitize_text_field($data['payout_type']) : null,
+            'rider_payout_amount' => self::get_nullable_float($data, 'rider_payout_amount'),
+            'rider_payout_slab' => self::get_nullable_string($data, 'rider_payout_slab'),
+            'payout_type' => self::get_nullable_string($data, 'payout_type'),
             'fuel_multiplier' => isset($data['fuel_multiplier']) ? floatval($data['fuel_multiplier']) : 1.00,
-            'payout_per_km_rate' => isset($data['payout_per_km_rate']) ? floatval($data['payout_per_km_rate']) : null,
+            'payout_per_km_rate' => self::get_nullable_float($data, 'payout_per_km_rate'),
             'created_at' => RPOS_Timezone::current_utc_mysql(),
             'updated_at' => RPOS_Timezone::current_utc_mysql()
         );
@@ -53,11 +115,16 @@ class Zaikon_Deliveries {
         );
         
         // Filter data to only include columns that exist in the table
+        // Also skip nullable columns with null values to let database use DEFAULT NULL
         $delivery_data = array();
         $missing_columns = array();
         
         foreach ($all_delivery_data as $column => $value) {
             if (in_array($column, $existing_columns)) {
+                // Skip nullable columns with null values to avoid %d/%f format converting null to 0
+                if (in_array($column, self::$nullable_columns) && $value === null) {
+                    continue;
+                }
                 $delivery_data[$column] = $value;
             } elseif (in_array($column, $optional_columns)) {
                 $missing_columns[] = $column;
