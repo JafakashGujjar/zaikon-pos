@@ -1979,8 +1979,17 @@ class RPOS_REST_API {
     
     /**
      * Get order by tracking token (public endpoint)
+     * 
+     * Enterprise-grade tracking lookup with:
+     * - Token-based primary lookup
+     * - Order ID fallback when token mapping fails
+     * - Order number fallback as deterministic alternative
+     * - Safety rules to ensure tracking never lags behind KDS
+     * - Comprehensive logging for debugging sync issues
      */
     public function get_order_by_tracking_token($request) {
+        global $wpdb;
+        
         $token = $request->get_param('token');
         
         // Log the incoming request for debugging
@@ -1993,15 +2002,19 @@ class RPOS_REST_API {
             return new WP_Error('invalid_token', 'Invalid tracking link. Please check your URL.', array('status' => 400));
         }
         
+        // Log token lookup attempt
+        error_log('ZAIKON TRACKING API: Attempting token lookup for: ' . $token_preview);
+        
         $order = Zaikon_Order_Tracking::get_order_by_token($token);
         
         if (!$order) {
-            error_log('ZAIKON TRACKING API: Order not found for token: ' . $token_preview);
+            error_log('ZAIKON TRACKING API: Primary token lookup FAILED for token: ' . $token_preview);
             
-            // Fallback: Try direct database lookup to diagnose the issue
-            global $wpdb;
+            // ========== FALLBACK STRATEGY (Enterprise Requirement) ==========
+            // Per requirements: If token lookup fails, use deterministic fallback
+            // Token is only an access key, order_number is the source of truth
             
-            // Check if the token exists in the database (exact match)
+            // FALLBACK 1: Direct database lookup to find the order by token
             $direct_check = $wpdb->get_row($wpdb->prepare(
                 "SELECT id, order_number, order_status, tracking_token 
                  FROM {$wpdb->prefix}zaikon_orders 
@@ -2010,60 +2023,96 @@ class RPOS_REST_API {
             ));
             
             if ($direct_check) {
-                error_log('ZAIKON TRACKING API: DIRECT DB CHECK - Token FOUND! Order ID: ' . $direct_check->id . 
-                          ', Order#: ' . $direct_check->order_number . 
-                          '. But get_order_by_token returned NULL - possible JOIN issue');
+                // Token exists in DB but get_order_by_token failed (likely JOIN issue)
+                error_log('ZAIKON TRACKING API: FALLBACK 1 - Token found in DB. Order ID: ' . $direct_check->id . 
+                          ', Order#: ' . $direct_check->order_number . '. Primary lookup failed due to JOIN issue.');
                 
-                // The token exists but get_order_by_token failed - try getting order by ID
-                // Use the centralized method to avoid code duplication
-                error_log('ZAIKON TRACKING API: Trying fallback lookup by order ID');
+                // FALLBACK 1A: Try order ID lookup
+                error_log('ZAIKON TRACKING API: FALLBACK 1A - Attempting order ID lookup');
                 $order = Zaikon_Order_Tracking::get_order_by_id($direct_check->id);
                 
                 if ($order) {
-                    error_log('ZAIKON TRACKING API: Fallback lookup by ID SUCCESS! Order#: ' . $order->order_number);
+                    error_log('ZAIKON TRACKING API: FALLBACK 1A SUCCESS - Order found by ID: ' . $order->order_number);
                 } else {
-                    error_log('ZAIKON TRACKING API: Fallback lookup by ID also FAILED');
+                    // FALLBACK 1B: Try order number lookup (most reliable)
+                    error_log('ZAIKON TRACKING API: FALLBACK 1B - Attempting order_number lookup');
+                    $order = Zaikon_Order_Tracking::get_order_by_order_number($direct_check->order_number);
+                    
+                    if ($order) {
+                        error_log('ZAIKON TRACKING API: FALLBACK 1B SUCCESS - Order found by order_number: ' . $order->order_number);
+                    } else {
+                        error_log('ZAIKON TRACKING API: FALLBACK 1B FAILED - All fallback methods exhausted');
+                    }
                 }
             } else {
-                error_log('ZAIKON TRACKING API: DIRECT DB CHECK - Token NOT in database');
+                // Token not found in database at all
+                error_log('ZAIKON TRACKING API: Token NOT FOUND in database: ' . $token_preview);
                 
-                // Check for partial match or similar tokens (debugging)
-                $similar = $wpdb->get_results(
-                    "SELECT id, order_number, tracking_token, created_at 
+                // Log recent orders for debugging (helps identify sync issues)
+                $recent_orders = $wpdb->get_results(
+                    "SELECT id, order_number, tracking_token, order_status, created_at 
                      FROM {$wpdb->prefix}zaikon_orders 
-                     WHERE tracking_token IS NOT NULL 
+                     WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
                      ORDER BY created_at DESC 
                      LIMIT 5"
                 );
                 
-                if ($similar) {
-                    error_log('ZAIKON TRACKING API: Recent tokens in DB:');
-                    foreach ($similar as $s) {
-                        $s_preview = strlen($s->tracking_token) >= 12 ? 
-                            substr($s->tracking_token, 0, 8) . '...' . substr($s->tracking_token, -4) : '***';
-                        error_log('  - Order#: ' . $s->order_number . ', Token: ' . $s_preview . ', Created: ' . $s->created_at);
+                if ($recent_orders) {
+                    error_log('ZAIKON TRACKING API: Recent orders in DB (last 24h):');
+                    foreach ($recent_orders as $recent) {
+                        $t_preview = $recent->tracking_token 
+                            ? (strlen($recent->tracking_token) >= 12 
+                                ? substr($recent->tracking_token, 0, 8) . '...' . substr($recent->tracking_token, -4) 
+                                : '***')
+                            : 'NULL';
+                        error_log('  - Order#: ' . $recent->order_number . ', Token: ' . $t_preview . ', Status: ' . $recent->order_status);
                     }
+                } else {
+                    error_log('ZAIKON TRACKING API: No recent orders found in last 24 hours');
                 }
             }
             
+            // Final check - if order still not found, return error with helpful message
             if (!$order) {
-                return new WP_Error('not_found', 'Order not found. The tracking link may have expired or the order does not exist.', array('status' => 404));
+                error_log('ZAIKON TRACKING API: CRITICAL - Token verification FAILED. Token: ' . $token_preview);
+                return new WP_Error(
+                    'token_verification_failed', 
+                    'Failed to verify tracking token. Please try searching by order number instead.',
+                    array(
+                        'status' => 404,
+                        'suggestion' => 'Use the order number from your receipt to track your order'
+                    )
+                );
             }
         }
         
-        error_log('ZAIKON TRACKING API: Order found successfully! Order#: ' . $order->order_number);
+        // Log successful lookup with key details
+        error_log('ZAIKON TRACKING API: Order found successfully! Order#: ' . $order->order_number . 
+                  ', Status: ' . $order->order_status . 
+                  ', cooking_started_at: ' . ($order->cooking_started_at ?: 'NULL') .
+                  ', ready_at: ' . ($order->ready_at ?: 'NULL') .
+                  ', dispatched_at: ' . ($order->dispatched_at ?: 'NULL'));
         
         // Get ETA information
         $eta = Zaikon_Order_Tracking::get_remaining_eta($order->id);
         
-        return rest_ensure_response(array(
+        // Build response with safety rule indicator if applied
+        $response = array(
             'success' => true,
             'order' => $order,
             'eta' => $eta,
             // Include server UTC timestamp for client-side time synchronization
             // This allows the tracking page to recalculate time offset on each poll
             'server_utc_ms' => (int)(current_time('timestamp', true) * 1000)
-        ));
+        );
+        
+        // Add safety rule indicator if status was corrected
+        if (!empty($order->_safety_rule_applied)) {
+            $response['safety_rule_applied'] = true;
+            error_log('ZAIKON TRACKING API: Safety rule was applied for order #' . $order->order_number);
+        }
+        
+        return rest_ensure_response($response);
     }
     
     /**
@@ -2079,38 +2128,13 @@ class RPOS_REST_API {
             return new WP_Error('invalid_order_number', 'Please provide a valid order number.', array('status' => 400));
         }
         
-        // Get order with delivery details
-        $order = $wpdb->get_row($wpdb->prepare(
-            "SELECT o.id, o.order_number, o.order_type, o.items_subtotal_rs, 
-                    o.delivery_charges_rs AS order_delivery_charges_rs, o.discounts_rs, 
-                    o.taxes_rs, o.grand_total_rs, o.payment_status, o.payment_type, 
-                    o.order_status, o.cooking_eta_minutes, o.delivery_eta_minutes,
-                    o.confirmed_at, o.cooking_started_at, o.ready_at, o.dispatched_at,
-                    o.created_at, o.updated_at, o.tracking_token,
-                    d.customer_name, d.customer_phone, d.location_name, 
-                    d.delivery_status, d.special_instruction,
-                    d.delivery_charges_rs AS delivery_charges_rs,
-                    d.delivered_at,
-                    r.name AS rider_name, r.phone AS rider_phone, r.vehicle_number AS rider_vehicle
-             FROM {$wpdb->prefix}zaikon_orders o
-             LEFT JOIN {$wpdb->prefix}zaikon_deliveries d ON o.id = d.order_id
-             LEFT JOIN {$wpdb->prefix}zaikon_riders r ON d.assigned_rider_id = r.id
-             WHERE o.order_number = %s",
-            $order_number
-        ));
+        // Use centralized order lookup which applies safety rules
+        // This ensures tracking never lags behind KDS
+        $order = Zaikon_Order_Tracking::get_order_by_order_number($order_number);
         
         if (!$order) {
             return new WP_Error('not_found', 'Order not found. Please check your order number and try again.', array('status' => 404));
         }
-        
-        // Get order items
-        $order->items = $wpdb->get_results($wpdb->prepare(
-            "SELECT product_name, qty, unit_price_rs, line_total_rs
-             FROM {$wpdb->prefix}zaikon_order_items
-             WHERE order_id = %d
-             ORDER BY id ASC",
-            $order->id
-        ));
         
         // Generate tracking token if it doesn't exist or is invalid
         if (empty($order->tracking_token) || !preg_match(Zaikon_Order_Tracking::TOKEN_PATTERN, $order->tracking_token)) {
@@ -2125,12 +2149,22 @@ class RPOS_REST_API {
         // Get ETA information
         $eta = Zaikon_Order_Tracking::get_remaining_eta($order->id);
         
-        return rest_ensure_response(array(
+        // Build response
+        $response = array(
             'success' => true,
             'order' => $order,
             'eta' => $eta,
-            'tracking_url' => Zaikon_Order_Tracking::get_tracking_url($order->tracking_token)
-        ));
+            'tracking_url' => Zaikon_Order_Tracking::get_tracking_url($order->tracking_token),
+            'server_utc_ms' => (int)(current_time('timestamp', true) * 1000)
+        );
+        
+        // Add safety rule indicator if status was corrected
+        if (!empty($order->_safety_rule_applied)) {
+            $response['safety_rule_applied'] = true;
+            error_log('ZAIKON TRACKING API: Safety rule was applied for order #' . $order->order_number . ' (order_number lookup)');
+        }
+        
+        return rest_ensure_response($response);
     }
     
     /**

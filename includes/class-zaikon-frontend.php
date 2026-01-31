@@ -35,7 +35,12 @@ class Zaikon_Frontend {
         add_rewrite_rule('^zaikon-pos/deliveries/?$', 'index.php?zaikon_pos_page=deliveries', 'top');
         
         // Public tracking page - no login required
+        // Token-based tracking (primary - 32-character hex string)
         add_rewrite_rule('^track-order/([a-f0-9]+)/?$', 'index.php?zaikon_tracking_token=$matches[1]', 'top');
+        
+        // Order number-based tracking (fallback - deterministic, e.g., ORD-20260201-7A8D7F)
+        // This is the enterprise-grade fallback when token verification fails
+        add_rewrite_rule('^track-order/order/([a-zA-Z0-9-]+)/?$', 'index.php?zaikon_tracking_order_number=$matches[1]', 'top');
     }
     
     /**
@@ -44,6 +49,7 @@ class Zaikon_Frontend {
     public static function add_query_vars($vars) {
         $vars[] = 'zaikon_pos_page';
         $vars[] = 'zaikon_tracking_token';
+        $vars[] = 'zaikon_tracking_order_number';
         return $vars;
     }
     
@@ -53,10 +59,25 @@ class Zaikon_Frontend {
     public static function load_template($template) {
         $page = get_query_var('zaikon_pos_page');
         $tracking_token = get_query_var('zaikon_tracking_token');
+        $tracking_order_number = get_query_var('zaikon_tracking_order_number');
         
-        // Handle public tracking page (no login required)
+        // Handle public tracking page - token based (primary)
         if ($tracking_token) {
             error_log('ZAIKON FRONTEND: Tracking page loaded with token: ' . substr($tracking_token, 0, 8) . '...' . substr($tracking_token, -4));
+            
+            $tracking_template = RPOS_PLUGIN_DIR . 'templates/tracking-page.php';
+            
+            if (file_exists($tracking_template)) {
+                return $tracking_template;
+            }
+            
+            error_log('ZAIKON FRONTEND: Tracking template not found at: ' . $tracking_template);
+            return $template;
+        }
+        
+        // Handle public tracking page - order number based (fallback)
+        if ($tracking_order_number) {
+            error_log('ZAIKON FRONTEND: Tracking page loaded with order_number: ' . $tracking_order_number);
             
             $tracking_template = RPOS_PLUGIN_DIR . 'templates/tracking-page.php';
             

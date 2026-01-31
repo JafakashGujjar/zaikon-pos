@@ -751,9 +751,15 @@
     </div>
 
     <script>
-        // Configuration
+        // Configuration - Enterprise Grade Tracking
+        // Token-based tracking (primary identifier - 32-character hex string)
         const rawToken = '<?php echo esc_js(get_query_var("zaikon_tracking_token")); ?>';
         const trackingToken = /^[a-f0-9]{16,64}$/.test(rawToken) ? rawToken : null;
+        
+        // Order number-based tracking (fallback - deterministic identifier)
+        // Per enterprise requirements: order_number is the single source of truth
+        const trackingOrderNumber = '<?php echo esc_js(get_query_var("zaikon_tracking_order_number")); ?>';
+        
         const apiBaseUrl = '<?php echo esc_js(rest_url("zaikon/v1/")); ?>';
         
         // Server time synchronization for accurate countdown calculations
@@ -961,13 +967,42 @@
             }
         }
         
-        // Fetch order data
+        /**
+         * Fetch order data - supports both token and order number based tracking
+         * 
+         * Enterprise requirements:
+         * - Token-based tracking (primary) - uses /track/{token} endpoint
+         * - Order number-based tracking (fallback) - uses /track/order/{order_number} endpoint
+         * - If token fails, automatically falls back to order_number if available
+         */
         async function fetchOrderData() {
             console.log('ZAIKON TRACKING: Fetching order...');
             
             try {
-                const response = await fetch(`${apiBaseUrl}track/${trackingToken}`);
-                const data = await response.json();
+                let response;
+                let data;
+                
+                // Determine which tracking method to use
+                if (trackingToken) {
+                    // Primary: Token-based tracking
+                    console.log('ZAIKON TRACKING: Using token-based tracking');
+                    response = await fetch(`${apiBaseUrl}track/${trackingToken}`);
+                    data = await response.json();
+                    
+                    // If token lookup fails but we might have order number, try fallback
+                    if (!response.ok && trackingOrderNumber) {
+                        console.log('ZAIKON TRACKING: Token lookup failed, trying order_number fallback');
+                        response = await fetch(`${apiBaseUrl}track/order/${encodeURIComponent(trackingOrderNumber)}`);
+                        data = await response.json();
+                    }
+                } else if (trackingOrderNumber) {
+                    // Fallback: Order number-based tracking (deterministic, reliable)
+                    console.log('ZAIKON TRACKING: Using order_number-based tracking:', trackingOrderNumber);
+                    response = await fetch(`${apiBaseUrl}track/order/${encodeURIComponent(trackingOrderNumber)}`);
+                    data = await response.json();
+                } else {
+                    throw new Error('No tracking identifier provided. Please check your tracking link.');
+                }
                 
                 if (!response.ok || !data.success) {
                     console.error('ZAIKON TRACKING: Order lookup failed', data);
@@ -985,13 +1020,19 @@
                     updateServerTimeSync(data.server_utc_ms);
                 }
                 
+                // Log if safety rule was applied (KDS sync fix)
+                if (data.safety_rule_applied) {
+                    console.log('🔧 ZAIKON TRACKING: Safety rule applied - status synchronized with KDS');
+                }
+                
                 // Log received data for debugging KDS sync issues
                 console.log('ZAIKON TRACKING: Order data received', {
                     order_number: data.order.order_number,
                     status: data.order.order_status,
                     cooking_started_at: data.order.cooking_started_at,
                     ready_at: data.order.ready_at,
-                    dispatched_at: data.order.dispatched_at
+                    dispatched_at: data.order.dispatched_at,
+                    safety_rule_applied: data.safety_rule_applied || false
                 });
                 
                 currentOrderData = data;
@@ -1528,8 +1569,8 @@
             pollInterval = setInterval(fetchOrderData, POLL_INTERVAL_MS);
         }
         
-        // Initialize
-        if (trackingToken) {
+        // Initialize - supports both token-based and order_number-based tracking
+        if (trackingToken || trackingOrderNumber) {
             fetchOrderData();
             startPolling();
         } else {
@@ -1576,7 +1617,7 @@
                     deliveryCountdownInterval = null;
                 }
             } else {
-                if (trackingToken && !pollInterval) {
+                if ((trackingToken || trackingOrderNumber) && !pollInterval) {
                     fetchOrderData();
                     startPolling();
                 }
