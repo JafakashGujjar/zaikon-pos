@@ -589,6 +589,15 @@ class Zaikon_Order_Status_Service {
     /**
      * Map rpos_orders status to zaikon_orders status
      * 
+     * Status Mapping Logic:
+     * - 'new' (KDS: order received) → 'pending' (Tracking: Step 1 - Confirmed)
+     * - 'cooking' (KDS: cooking started) → 'cooking' (Tracking: Step 2 - Preparing)
+     * - 'ready' (KDS: food ready) → 'ready' (Tracking: ready for pickup/dispatch)
+     * - 'completed' (KDS: order completed) → 'dispatched' (Tracking: Step 3 - On the way)
+     *   Note: For delivery orders, KDS 'completed' triggers the dispatch countdown.
+     *   For non-delivery orders, this means the order is ready for customer pickup.
+     * - 'cancelled' → 'cancelled'
+     * 
      * @param string $rpos_status Status from rpos_orders
      * @return string|null Mapped zaikon status or null if no mapping
      */
@@ -597,7 +606,7 @@ class Zaikon_Order_Status_Service {
             'new' => 'pending',
             'cooking' => 'cooking',
             'ready' => 'ready',
-            'completed' => 'dispatched', // KDS complete triggers dispatch for delivery
+            'completed' => 'dispatched', // KDS complete triggers dispatch for delivery orders
             'cancelled' => 'cancelled'
         );
         
@@ -636,13 +645,18 @@ class Zaikon_Order_Status_Service {
             $mapped_status = 'pending';
         }
         
+        // Map order data to zaikon_orders format
+        // Notes on taxes_rs:
+        // - rpos_orders table does not have a separate tax column
+        // - grand_total_rs from rpos_orders is the final amount (tax-inclusive if applicable)
+        // - Tax tracking in zaikon system is optional; 0 means no separate tax tracking
         $zaikon_order_data = array(
             'order_number' => $rpos_order->order_number,
             'order_type' => sanitize_text_field($rpos_order->order_type ?? 'takeaway'),
             'items_subtotal_rs' => floatval($rpos_order->subtotal ?? 0),
             'delivery_charges_rs' => floatval($rpos_order->delivery_charge ?? 0),
             'discounts_rs' => floatval($rpos_order->discount ?? 0),
-            'taxes_rs' => 0, // rpos_orders does not store tax - calculated at UI level
+            'taxes_rs' => 0, // rpos_orders does not store tax separately; total is already final
             'grand_total_rs' => floatval($rpos_order->total ?? 0),
             'payment_type' => sanitize_text_field($rpos_order->payment_type ?? 'cash'),
             'payment_status' => sanitize_text_field($rpos_order->payment_status ?? 'paid'),
@@ -671,7 +685,10 @@ class Zaikon_Order_Status_Service {
                     'line_total_rs' => floatval($item->line_total ?? 0)
                 );
                 
-                Zaikon_Order_Items::create($item_data);
+                $item_result = Zaikon_Order_Items::create($item_data);
+                if (!$item_result) {
+                    error_log('ZAIKON AUTO-REPAIR: Failed to sync item (product_id: ' . ($item->product_id ?? 'unknown') . ') for order #' . $rpos_order->order_number);
+                }
             }
         }
         
