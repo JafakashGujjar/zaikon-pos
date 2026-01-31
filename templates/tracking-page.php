@@ -842,12 +842,12 @@
             
             switch(step) {
                 case 1:
-                    return isActive ? 'Order Confirmed' : (isCompleted ? 'Order Confirmed' : 'Order Confirmed');
+                    return 'Order Confirmed';
                 case 2:
-                    return isActive ? 'Preparing Your Order' : (isCompleted ? 'Preparation Complete' : 'Preparing Order');
+                    return isCompleted ? 'Preparation Complete' : 'Preparing Your Order';
                 case 3:
                     if (backendStatus === 'delivered') return 'Delivered';
-                    return isActive ? 'Rider On The Way' : 'Rider On The Way';
+                    return 'Rider On The Way';
                 default:
                     return '';
             }
@@ -892,9 +892,14 @@
             const statusText = getStepStatusText(currentStep, currentStep, order.order_status);
             document.getElementById('current-status-text').textContent = statusText;
             
-            // Store cooking started timestamp for countdown
+            // Store cooking started timestamp for countdown (handle various formats)
             if (order.cooking_started_at) {
-                cookingStartedAt = new Date(order.cooking_started_at + 'Z').getTime();
+                const tsValue = order.cooking_started_at;
+                // If timestamp doesn't contain timezone info, treat as UTC
+                const hasTimezone = /[Zz]|[+-]\d{2}:\d{2}$/.test(tsValue);
+                cookingStartedAt = new Date(hasTimezone ? tsValue : tsValue + 'Z').getTime();
+            } else {
+                cookingStartedAt = null;
             }
             
             // Render the 3 steps
@@ -1032,6 +1037,12 @@
             const containerElement = document.getElementById('countdown-timer');
             
             if (!timerElement || !containerElement) return;
+            
+            // Guard against null/undefined cookingStartedAt
+            if (!cookingStartedAt || isNaN(cookingStartedAt)) {
+                timerElement.textContent = '20:00';
+                return;
+            }
             
             const now = Date.now();
             const defaultEndTime = cookingStartedAt + (DEFAULT_COOKING_TIME_MINUTES * 60 * 1000);
