@@ -1008,7 +1008,8 @@ class RPOS_REST_API {
                                 '. Status: ' . $verify->order_status . 
                                 ', cooking_started_at: ' . ($verify->cooking_started_at ?: 'NULL') . 
                                 ', ready_at: ' . ($verify->ready_at ?: 'NULL') . 
-                                ', dispatched_at: ' . ($verify->dispatched_at ?: 'NULL'));
+                                ', dispatched_at: ' . ($verify->dispatched_at ?: 'NULL') . 
+                                ', delivered_at: ' . ($verify->delivered_at ?: 'NULL'));
                         } else {
                             error_log('RPOS KDS SYNC [WARNING]: Could not verify event processing for zaikon_orders #' . $zaikon_order_id);
                         }

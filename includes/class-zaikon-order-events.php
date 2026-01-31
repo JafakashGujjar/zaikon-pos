@@ -134,16 +134,19 @@ class Zaikon_Order_Events {
         $new_status = self::EVENT_STATUS_MAP[$event];
         $old_status = $order->order_status;
         
-        // Build update data
+        // Build update data with proper format specifiers
         $update_data = array(
             'order_status' => $new_status,
             'updated_at' => $timestamp
         );
         
+        $update_formats = array('%s', '%s'); // order_status, updated_at
+        
         // Set appropriate timestamp field based on event
         $timestamp_field = self::EVENT_TIMESTAMP_MAP[$event];
         if ($timestamp_field && $timestamp_field !== 'created_at') {
             $update_data[$timestamp_field] = $timestamp;
+            $update_formats[] = '%s'; // datetime fields use %s
         }
         
         // For rider assignment, also track rider_id in deliveries table
@@ -157,12 +160,12 @@ class Zaikon_Order_Events {
             );
         }
         
-        // Update order in database
+        // Update order in database with explicit format specifiers
         $updated = $wpdb->update(
             $wpdb->prefix . 'zaikon_orders',
             $update_data,
             array('id' => $order_id),
-            array_fill(0, count($update_data), '%s'),
+            $update_formats,
             array('%d')
         );
         
