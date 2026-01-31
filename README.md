@@ -250,7 +250,7 @@ The plugin provides REST API endpoints at `wp-json/restaurant-pos/v1/`:
 ## Support
 
 For issues, questions, or feature requests, please visit:
-- GitHub Repository: https://github.com/JafakashGujjar/gpt-pos
+- GitHub Repository: https://github.com/JafakashGujjar/zaikon-pos
 
 ## Version History
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Restaurant POS
- * Plugin URI: https://github.com/JafakashGujjar/gpt-pos
+ * Plugin URI: https://github.com/JafakashGujjar/zaikon-pos
  * Description: Complete Restaurant Point of Sale system with POS, Kitchen Display, Inventory Management, and Analytics
  * Version: 1.0.0
  * Author: Restaurant POS Team
