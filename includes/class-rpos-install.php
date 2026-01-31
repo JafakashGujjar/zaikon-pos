@@ -519,6 +519,13 @@ class RPOS_Install {
     public static function deactivate() {
         // Flush rewrite rules
         flush_rewrite_rules();
+        
+        // Unschedule cron jobs
+        $timestamp = wp_next_scheduled('zaikon_auto_complete_orders_cron');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'zaikon_auto_complete_orders_cron');
+            error_log('ZAIKON: Unscheduled auto-complete orders cron job');
+        }
     }
     
     /**
