@@ -323,17 +323,30 @@ class Zaikon_Order_Tracking {
     /**
      * Update order status and timestamps
      */
-    public static function update_status($order_id, $new_status, $user_id = null) {
+    public static function update_status($order_id, $new_status, $user_id = null, $source = 'api') {
         global $wpdb;
         
         if ($user_id === null) {
             $user_id = get_current_user_id();
         }
         
-        $valid_statuses = array('pending', 'confirmed', 'cooking', 'ready', 'dispatched', 'delivered', 'cancelled');
+        // Valid statuses matching DB enum: pending, confirmed, cooking, ready, dispatched, delivered, active, completed, cancelled, replacement
+        $valid_statuses = array('pending', 'confirmed', 'cooking', 'ready', 'dispatched', 'delivered', 'completed', 'cancelled', 'active', 'replacement');
         
         if (!in_array($new_status, $valid_statuses)) {
-            return new WP_Error('invalid_status', 'Invalid order status');
+            error_log('ZAIKON TRACKING: Invalid status "' . $new_status . '" attempted for order #' . $order_id . '. Valid: ' . implode(', ', $valid_statuses));
+            return new WP_Error('invalid_status', 'Invalid order status: ' . $new_status);
+        }
+        
+        // Get current status for audit logging
+        $old_status = $wpdb->get_var($wpdb->prepare(
+            "SELECT order_status FROM {$wpdb->prefix}zaikon_orders WHERE id = %d",
+            $order_id
+        ));
+        
+        // Idempotent: if status is same, return success without update
+        if ($old_status === $new_status) {
+            return true;
         }
         
         // Prepare update data
@@ -413,17 +426,52 @@ class Zaikon_Order_Tracking {
         );
         
         if ($result === false) {
-            error_log('ZAIKON: Failed to update order status. Error: ' . $wpdb->last_error);
-            return new WP_Error('update_failed', 'Failed to update order status');
+            // Enterprise traceability: strict logging on DB failures
+            error_log('ZAIKON TRACKING [ERROR]: Failed to update order #' . $order_id . ' status from "' . $old_status . '" to "' . $new_status . '". MySQL Error: ' . $wpdb->last_error);
+            
+            // Log failure to system events for audit trail
+            Zaikon_System_Events::log_error('order', $order_id, 'status_update_failed', 
+                'Database update failed: ' . $wpdb->last_error, array(
+                    'old_status' => $old_status,
+                    'new_status' => $new_status,
+                    'source' => $source,
+                    'user_id' => $user_id
+                ));
+            
+            return new WP_Error('update_failed', 'Failed to update order status. Please try again.');
         }
         
-        // Log to system events
+        // Extract timestamp fields that were set for audit logging
+        $timestamps_set = self::extract_timestamp_fields($update_data);
+        
+        // Enterprise audit logging with full traceability
         Zaikon_System_Events::log('order', $order_id, 'status_changed', array(
+            'old_status' => $old_status,
             'new_status' => $new_status,
-            'user_id' => $user_id
+            'source' => $source,
+            'user_id' => $user_id,
+            'timestamps_set' => $timestamps_set
         ));
         
+        error_log('ZAIKON TRACKING: Order #' . $order_id . ' status changed: "' . $old_status . '" → "' . $new_status . '" (source: ' . $source . ')');
+        
         return true;
+    }
+    
+    /**
+     * Extract timestamp field names from update data for audit logging
+     * 
+     * @param array $update_data The data being updated
+     * @return array List of timestamp field names that were set
+     */
+    private static function extract_timestamp_fields($update_data) {
+        $timestamp_fields = array();
+        foreach (array_keys($update_data) as $key) {
+            if (strpos($key, '_at') !== false || strpos($key, 'updated') !== false) {
+                $timestamp_fields[] = $key;
+            }
+        }
+        return $timestamp_fields;
     }
     
     /**

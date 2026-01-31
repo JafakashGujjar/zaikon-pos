@@ -37,12 +37,17 @@ class RPOS_REST_API {
     /**
      * Status mapping from rpos/KDS statuses to zaikon/tracking statuses
      * Used for syncing KDS updates to tracking system
+     * 
+     * Tracking step definitions (see templates/tracking-page.php line ~929):
+     * - Step 1: Confirmed (pending/confirmed status)
+     * - Step 2: Cooking (cooking status with 20-min countdown)
+     * - Step 3: Dispatched (dispatched/ready status with 10-min delivery countdown)
      */
     const STATUS_MAP_RPOS_TO_ZAIKON = array(
-        'new' => 'pending',
-        'cooking' => 'cooking',
-        'ready' => 'ready',
-        'completed' => 'delivered'
+        'new' => 'pending',            // Step 1: Order confirmed
+        'cooking' => 'cooking',        // Step 2: Kitchen preparing
+        'ready' => 'ready',            // Step 3: Food ready (pre-dispatch)
+        'completed' => 'dispatched'    // Step 3: KDS complete triggers dispatched for delivery countdown
     );
     
     public static function instance() {
@@ -402,6 +407,34 @@ class RPOS_REST_API {
             'methods' => 'GET',
             'callback' => array($this, 'get_cylinder_zones'),
             'permission_callback' => array($this, 'check_manage_inventory_permission')
+        ));
+        
+        // Health Check Endpoint (enterprise status monitoring)
+        register_rest_route($zaikon_namespace, '/status/health-check', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'status_health_check'),
+            'permission_callback' => array($this, 'check_manage_settings_permission')
+        ));
+        
+        // Auto-Repair Endpoint (fix status/timestamp issues)
+        register_rest_route($zaikon_namespace, '/status/auto-repair', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'status_auto_repair'),
+            'permission_callback' => array($this, 'check_manage_settings_permission')
+        ));
+        
+        // Status Audit History Endpoint
+        register_rest_route($zaikon_namespace, '/orders/(?P<id>\d+)/status-history', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_order_status_history'),
+            'permission_callback' => array($this, 'check_process_orders_permission')
+        ));
+        
+        // Status Transition Stats Endpoint
+        register_rest_route($zaikon_namespace, '/status/stats', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_status_transition_stats'),
+            'permission_callback' => array($this, 'check_manage_settings_permission')
         ));
     }
     
@@ -2467,5 +2500,72 @@ class RPOS_REST_API {
         }
         
         return $result;
+    }
+    
+    /**
+     * Health check endpoint - Find orders with status/timestamp inconsistencies
+     * 
+     * Enterprise monitoring for order status sync issues.
+     */
+    public function status_health_check($request) {
+        $issues = Zaikon_Order_Status_Service::health_check();
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'timestamp' => RPOS_Timezone::current_utc_mysql(),
+            'issues_found' => count($issues),
+            'issues' => $issues,
+            'status' => count($issues) === 0 ? 'healthy' : 'issues_detected'
+        ));
+    }
+    
+    /**
+     * Auto-repair endpoint - Fix status/timestamp issues
+     * 
+     * Enterprise self-healing for order status inconsistencies.
+     */
+    public function status_auto_repair($request) {
+        $params = $request->get_json_params();
+        $dry_run = isset($params['dry_run']) ? (bool)$params['dry_run'] : true;
+        
+        $results = Zaikon_Order_Status_Service::auto_repair($dry_run);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'dry_run' => $dry_run,
+            'timestamp' => RPOS_Timezone::current_utc_mysql(),
+            'results' => $results
+        ));
+    }
+    
+    /**
+     * Get order status history (audit trail)
+     */
+    public function get_order_status_history($request) {
+        $order_id = $request->get_param('id');
+        $limit = $request->get_param('limit') ?: 50;
+        
+        $history = Zaikon_Order_Status_Service::get_status_history($order_id, $limit);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'order_id' => $order_id,
+            'history' => $history
+        ));
+    }
+    
+    /**
+     * Get status transition statistics
+     */
+    public function get_status_transition_stats($request) {
+        $date_from = $request->get_param('date_from');
+        $date_to = $request->get_param('date_to');
+        
+        $stats = Zaikon_Order_Status_Service::get_transition_stats($date_from, $date_to);
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'stats' => $stats
+        ));
     }
 }

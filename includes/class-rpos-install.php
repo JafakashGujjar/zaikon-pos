@@ -1150,6 +1150,21 @@ class RPOS_Install {
             KEY rider_date_idx (rider_id, date)
         ) $charset_collate;";
         
+        // Zaikon Status Audit (enterprise status change tracking)
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_status_audit (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) unsigned NOT NULL,
+            status_from varchar(50) DEFAULT NULL,
+            status_to varchar(50) NOT NULL,
+            actor_user_id bigint(20) unsigned DEFAULT 0,
+            source enum('pos','kds','api','system','tracking') NOT NULL DEFAULT 'api',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY order_idx (order_id),
+            KEY source_idx (source),
+            KEY created_at_idx (created_at)
+        ) $charset_collate;";
+        
         // Zaikon System Events (audit log)
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}zaikon_system_events (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
