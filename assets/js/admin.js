@@ -2038,7 +2038,7 @@
             var filtered;
             if (this.currentFilter === 'all') {
                 filtered = this.orders;
-            } else if (this.currentFilter.indexOf(',') > -1) {
+            } else if (this.currentFilter.includes(',')) {
                 // Multiple statuses (comma-separated)
                 var statuses = this.currentFilter.split(',');
                 filtered = this.orders.filter(function(o) { 

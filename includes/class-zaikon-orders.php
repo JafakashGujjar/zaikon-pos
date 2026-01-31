@@ -247,7 +247,7 @@ class Zaikon_Orders {
         
         // Optimize: Load all items for all orders in a single query (prevents N+1)
         if (!empty($orders)) {
-            $order_ids = array_map(function($order) { return $order->id; }, $orders);
+            $order_ids = array_column($orders, 'id');
             $order_ids_placeholder = implode(',', array_fill(0, count($order_ids), '%d'));
             
             $items_query = "SELECT * FROM {$wpdb->prefix}zaikon_order_items 

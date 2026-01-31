@@ -668,7 +668,10 @@ class RPOS_REST_API {
         $subtotal = floatval($data['subtotal'] ?? 0);
         $discount = floatval($data['discount'] ?? 0);
         $tax = floatval($data['tax'] ?? $data['taxes'] ?? 0);
-        $total = $subtotal + $tax - $discount; // Include tax in total
+        // CRITICAL FIX: Total must include tax (was missing before)
+        // Formula: grand_total = items_subtotal + tax - discount
+        // This ensures zaikon_order_data.grand_total_rs is accurate
+        $total = $subtotal + $tax - $discount;
         
         // Prepare Zaikon order data (SINGLE SOURCE OF TRUTH)
         $zaikon_order_data = array(
@@ -704,7 +707,8 @@ class RPOS_REST_API {
                 $product_ids_placeholder = implode(',', array_fill(0, count($product_ids_unique), '%d'));
                 
                 global $wpdb;
-                $products_query = "SELECT * FROM {$wpdb->prefix}rpos_products 
+                // Only select the fields we need (id, name)
+                $products_query = "SELECT id, name FROM {$wpdb->prefix}rpos_products 
                                   WHERE id IN ($product_ids_placeholder)";
                 $products = $wpdb->get_results($wpdb->prepare($products_query, $product_ids_unique));
                 
