@@ -173,7 +173,6 @@
 
 .rpos-input-with-icon textarea {
     resize: vertical;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     line-height: 1.5;
 }
 
@@ -183,12 +182,6 @@
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.rpos-input-with-icon input:focus + .rpos-input-icon,
-.rpos-input-with-icon select:focus + .rpos-input-icon,
-.rpos-input-with-icon textarea:focus ~ .rpos-input-icon {
-    color: #667eea;
 }
 
 .rpos-input-with-icon input.error,

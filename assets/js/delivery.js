@@ -186,6 +186,13 @@
             $('#rpos-customer-phone').on('input', function() {
                 self.validatePhone(this);
             });
+            
+            // Icon color change on focus/blur
+            $('.rpos-input-with-icon input, .rpos-input-with-icon select, .rpos-input-with-icon textarea').on('focus', function() {
+                $(this).siblings('.rpos-input-icon').css('color', '#667eea');
+            }).on('blur', function() {
+                $(this).siblings('.rpos-input-icon').css('color', '#718096');
+            });
         },
         
         open: function(subtotal, callback) {
