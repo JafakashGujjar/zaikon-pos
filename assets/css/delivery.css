@@ -1,6 +1,6 @@
 /**
  * Delivery Modal Styles
- * Consistent with ZAIKON design system
+ * Enhanced UI/UX with icons and modern design
  */
 
 /* Modal Overlay */
@@ -11,7 +11,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
     z-index: 10000;
     align-items: center;
     justify-content: center;
@@ -24,130 +25,208 @@
 /* Modal Container */
 .rpos-delivery-modal {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    max-width: 500px;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 560px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideDown 0.3s ease-out;
+    animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideDown {
     from {
         opacity: 0;
-        transform: translateY(-20px);
+        transform: translateY(-40px) scale(0.95);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
 /* Modal Header */
 .rpos-delivery-modal-header {
-    padding: 24px;
-    border-bottom: 1px solid #e5e5e5;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    border-radius: 16px 16px 0 0;
 }
 
 .rpos-delivery-modal-header h2 {
     margin: 0;
-    font-size: 24px;
-    color: #1a1a1a;
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .rpos-delivery-modal-close {
-    background: none;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
-    font-size: 28px;
-    color: #666;
+    font-size: 24px;
+    color: #ffffff;
     cursor: pointer;
     padding: 0;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    transition: all 0.2s;
+    border-radius: 50%;
+    transition: all 0.3s;
 }
 
 .rpos-delivery-modal-close:hover {
-    background: #f5f5f5;
-    color: #1a1a1a;
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
 }
 
 /* Modal Body */
 .rpos-delivery-modal-body {
-    padding: 24px;
+    padding: 32px;
 }
 
+/* Form Sections */
+.rpos-form-section {
+    margin-bottom: 28px;
+}
+
+.rpos-form-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.rpos-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.rpos-section-title .dashicons {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    color: #667eea;
+}
+
+/* Form Groups */
 .rpos-delivery-form-group {
     margin-bottom: 20px;
+}
+
+.rpos-delivery-form-group:last-child {
+    margin-bottom: 0;
 }
 
 .rpos-delivery-form-group label {
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #1a1a1a;
+    color: #2d3748;
     font-size: 14px;
 }
 
 .rpos-delivery-form-group label .required {
-    color: #e74c3c;
+    color: #e53e3e;
     margin-left: 4px;
-}
-
-.rpos-delivery-form-group input,
-.rpos-delivery-form-group select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e5e5e5;
-    border-radius: 8px;
     font-size: 16px;
-    transition: border-color 0.2s;
 }
 
-.rpos-delivery-form-group input:focus,
-.rpos-delivery-form-group select:focus {
+/* Input with Icon Container */
+.rpos-input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.rpos-input-icon {
+    position: absolute;
+    left: 14px;
+    color: #718096;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.rpos-input-with-icon input,
+.rpos-input-with-icon select,
+.rpos-input-with-icon textarea {
+    width: 100%;
+    padding: 14px 14px 14px 44px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    color: #2d3748;
+}
+
+.rpos-input-with-icon textarea {
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.rpos-input-with-icon input:focus,
+.rpos-input-with-icon select:focus,
+.rpos-input-with-icon textarea:focus {
     outline: none;
-    border-color: #3498db;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.rpos-delivery-form-group input.error,
-.rpos-delivery-form-group select.error {
-    border-color: #e74c3c;
+.rpos-input-with-icon input.error,
+.rpos-input-with-icon select.error,
+.rpos-input-with-icon textarea.error {
+    border-color: #e53e3e;
+    background: #fff5f5;
+}
+
+.rpos-input-with-icon input::placeholder,
+.rpos-input-with-icon textarea::placeholder {
+    color: #a0aec0;
 }
 
 .rpos-delivery-form-group .error-message {
-    color: #e74c3c;
-    font-size: 12px;
-    margin-top: 4px;
+    color: #e53e3e;
+    font-size: 13px;
+    margin-top: 6px;
     display: none;
+    font-weight: 500;
 }
 
 .rpos-delivery-form-group .error-message.visible {
     display: block;
 }
 
+/* Delivery Charge Display */
 .rpos-delivery-charge-display {
-    background: #f8f9fa;
-    padding: 16px;
-    border-radius: 8px;
-    margin-top: 16px;
-    border: 2px solid #e5e5e5;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    padding: 0;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.rpos-charge-breakdown {
+    padding: 20px;
 }
 
 .rpos-delivery-charge-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    font-size: 16px;
+    margin-bottom: 12px;
+    font-size: 15px;
 }
 
 .rpos-delivery-charge-row:last-child {
@@ -155,91 +234,121 @@
 }
 
 .rpos-delivery-charge-row.total {
-    border-top: 2px solid #e5e5e5;
-    padding-top: 12px;
-    margin-top: 12px;
-    font-weight: bold;
+    border-top: 2px solid #cbd5e0;
+    padding-top: 16px;
+    margin-top: 16px;
+    font-weight: 700;
     font-size: 18px;
-    color: #1a1a1a;
+    color: #1a202c;
 }
 
 .rpos-delivery-charge-label {
-    color: #666;
+    color: #4a5568;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rpos-delivery-charge-label .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #667eea;
 }
 
 .rpos-delivery-charge-value {
-    color: #1a1a1a;
+    color: #1a202c;
     font-weight: 600;
+    font-size: 16px;
+}
+
+.rpos-delivery-charge-row.total .rpos-delivery-charge-value {
+    font-size: 20px;
+    color: #667eea;
 }
 
 .rpos-delivery-free-badge {
     display: inline-block;
-    background: #27ae60;
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
     color: #fff;
     padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: bold;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
     margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
 }
 
 /* Modal Footer */
 .rpos-delivery-modal-footer {
-    padding: 20px 24px;
-    border-top: 1px solid #e5e5e5;
+    padding: 24px 32px;
+    background: #f7fafc;
+    border-top: 2px solid #e2e8f0;
     display: flex;
     gap: 12px;
     justify-content: flex-end;
+    border-radius: 0 0 16px 16px;
 }
 
 .rpos-delivery-modal-footer button {
-    padding: 12px 24px;
+    padding: 14px 28px;
     border: none;
-    border-radius: 8px;
-    font-size: 16px;
+    border-radius: 10px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .rpos-delivery-modal-footer .btn-primary {
-    background: #3498db;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .rpos-delivery-modal-footer .btn-primary:hover {
-    background: #2980b9;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.rpos-delivery-modal-footer .btn-primary:active {
+    transform: translateY(0);
 }
 
 .rpos-delivery-modal-footer .btn-primary:disabled {
-    background: #bdc3c7;
+    background: #cbd5e0;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
 .rpos-delivery-modal-footer .btn-secondary {
-    background: #ecf0f1;
-    color: #7f8c8d;
+    background: #fff;
+    color: #4a5568;
+    border: 2px solid #e2e8f0;
 }
 
 .rpos-delivery-modal-footer .btn-secondary:hover {
-    background: #d5dbdb;
-    color: #34495e;
+    background: #f7fafc;
+    border-color: #cbd5e0;
+    color: #2d3748;
 }
 
 /* Loading State */
 .rpos-delivery-loading {
     text-align: center;
     padding: 20px;
-    color: #7f8c8d;
+    color: #718096;
 }
 
 .rpos-delivery-spinner {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #3498db;
+    border: 3px solid #e2e8f0;
+    border-top: 3px solid #667eea;
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -257,20 +366,39 @@
     .rpos-delivery-modal {
         width: 95%;
         max-height: 95vh;
+        border-radius: 12px;
     }
     
-    .rpos-delivery-modal-header,
-    .rpos-delivery-modal-body,
-    .rpos-delivery-modal-footer {
-        padding: 16px;
+    .rpos-delivery-modal-header {
+        padding: 20px;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .rpos-delivery-modal-header h2 {
+        font-size: 22px;
+    }
+    
+    .rpos-delivery-modal-body {
+        padding: 20px;
     }
     
     .rpos-delivery-modal-footer {
+        padding: 16px 20px;
         flex-direction: column;
+        border-radius: 0 0 12px 12px;
     }
     
     .rpos-delivery-modal-footer button {
         width: 100%;
+        justify-content: center;
+    }
+    
+    .rpos-section-title {
+        font-size: 15px;
+    }
+    
+    .rpos-form-section {
+        margin-bottom: 20px;
     }
 }
 

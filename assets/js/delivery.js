@@ -28,51 +28,116 @@
                         </div>
                         <div class="rpos-delivery-modal-body">
                             <form id="rpos-delivery-form">
-                                <div class="rpos-delivery-form-group">
-                                    <label for="rpos-delivery-area">
-                                        Delivery Area <span class="required">*</span>
-                                    </label>
-                                    <select id="rpos-delivery-area" name="area_id" required>
-                                        <option value="">-- Select Area --</option>
-                                    </select>
-                                    <span class="error-message" id="area-error">Please select a delivery area</span>
-                                </div>
-                                
-                                <div class="rpos-delivery-form-group">
-                                    <label for="rpos-customer-name">
-                                        Customer Name <span class="required">*</span>
-                                    </label>
-                                    <input type="text" id="rpos-customer-name" name="customer_name" placeholder="Enter customer name" required>
-                                    <span class="error-message" id="name-error">Please enter customer name</span>
-                                </div>
-                                
-                                <div class="rpos-delivery-form-group">
-                                    <label for="rpos-customer-phone">
-                                        Customer Phone <span class="required">*</span>
-                                    </label>
-                                    <input type="tel" id="rpos-customer-phone" name="customer_phone" placeholder="Enter phone number" required>
-                                    <span class="error-message" id="phone-error">Please enter a valid phone number</span>
-                                </div>
-                                
-                                <div class="rpos-delivery-form-group">
-                                    <label for="rpos-special-instructions">
-                                        Special Instructions
-                                    </label>
-                                    <textarea id="rpos-special-instructions" name="special_instructions" rows="3" placeholder="e.g., Call on arrival, Don't ring bell, Extra spicy"></textarea>
-                                </div>
-                                
-                                <div class="rpos-delivery-charge-display" id="rpos-delivery-charge-display" style="display: none;">
-                                    <div class="rpos-delivery-charge-row">
-                                        <span class="rpos-delivery-charge-label">Subtotal:</span>
-                                        <span class="rpos-delivery-charge-value" id="rpos-delivery-subtotal">$0.00</span>
+                                <!-- Location Section -->
+                                <div class="rpos-form-section">
+                                    <h3 class="rpos-section-title">
+                                        <span class="dashicons dashicons-location"></span>
+                                        Delivery Location
+                                    </h3>
+                                    
+                                    <div class="rpos-delivery-form-group">
+                                        <label for="rpos-delivery-area">
+                                            Area <span class="required">*</span>
+                                        </label>
+                                        <div class="rpos-input-with-icon">
+                                            <span class="dashicons dashicons-location-alt rpos-input-icon"></span>
+                                            <select id="rpos-delivery-area" name="area_id" required>
+                                                <option value="">-- Select Area --</option>
+                                            </select>
+                                        </div>
+                                        <span class="error-message" id="area-error">Please select a delivery area</span>
                                     </div>
-                                    <div class="rpos-delivery-charge-row">
-                                        <span class="rpos-delivery-charge-label">Delivery Charge:</span>
-                                        <span class="rpos-delivery-charge-value" id="rpos-delivery-charge-value">$0.00</span>
+                                    
+                                    <div class="rpos-delivery-form-group">
+                                        <label for="rpos-delivery-address">
+                                            Complete Address <span class="required">*</span>
+                                        </label>
+                                        <div class="rpos-input-with-icon">
+                                            <span class="dashicons dashicons-admin-home rpos-input-icon"></span>
+                                            <textarea id="rpos-delivery-address" name="delivery_address" rows="2" placeholder="House/Apt #, Street, Landmark" required></textarea>
+                                        </div>
+                                        <span class="error-message" id="address-error">Please enter delivery address</span>
                                     </div>
-                                    <div class="rpos-delivery-charge-row total">
-                                        <span class="rpos-delivery-charge-label">Total:</span>
-                                        <span class="rpos-delivery-charge-value" id="rpos-delivery-total">$0.00</span>
+                                </div>
+                                
+                                <!-- Customer Details Section -->
+                                <div class="rpos-form-section">
+                                    <h3 class="rpos-section-title">
+                                        <span class="dashicons dashicons-businessperson"></span>
+                                        Customer Information
+                                    </h3>
+                                    
+                                    <div class="rpos-delivery-form-group">
+                                        <label for="rpos-customer-name">
+                                            Name <span class="required">*</span>
+                                        </label>
+                                        <div class="rpos-input-with-icon">
+                                            <span class="dashicons dashicons-admin-users rpos-input-icon"></span>
+                                            <input type="text" id="rpos-customer-name" name="customer_name" placeholder="Enter customer name" required>
+                                        </div>
+                                        <span class="error-message" id="name-error">Please enter customer name</span>
+                                    </div>
+                                    
+                                    <div class="rpos-delivery-form-group">
+                                        <label for="rpos-customer-phone">
+                                            Phone Number <span class="required">*</span>
+                                        </label>
+                                        <div class="rpos-input-with-icon">
+                                            <span class="dashicons dashicons-phone rpos-input-icon"></span>
+                                            <input type="tel" id="rpos-customer-phone" name="customer_phone" placeholder="+1 (555) 123-4567" required>
+                                        </div>
+                                        <span class="error-message" id="phone-error">Please enter a valid phone number</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Additional Instructions Section -->
+                                <div class="rpos-form-section">
+                                    <h3 class="rpos-section-title">
+                                        <span class="dashicons dashicons-edit"></span>
+                                        Additional Details
+                                    </h3>
+                                    
+                                    <div class="rpos-delivery-form-group">
+                                        <label for="rpos-special-instructions">
+                                            Special Instructions
+                                        </label>
+                                        <div class="rpos-input-with-icon">
+                                            <span class="dashicons dashicons-testimonial rpos-input-icon"></span>
+                                            <textarea id="rpos-special-instructions" name="special_instructions" rows="3" placeholder="e.g., Call on arrival, Don't ring bell, Gate code: 1234"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Order Summary Section -->
+                                <div class="rpos-form-section">
+                                    <div class="rpos-delivery-charge-display" id="rpos-delivery-charge-display" style="display: none;">
+                                        <h3 class="rpos-section-title">
+                                            <span class="dashicons dashicons-cart"></span>
+                                            Order Summary
+                                        </h3>
+                                        <div class="rpos-charge-breakdown">
+                                            <div class="rpos-delivery-charge-row">
+                                                <span class="rpos-delivery-charge-label">
+                                                    <span class="dashicons dashicons-food"></span>
+                                                    Subtotal
+                                                </span>
+                                                <span class="rpos-delivery-charge-value" id="rpos-delivery-subtotal">$0.00</span>
+                                            </div>
+                                            <div class="rpos-delivery-charge-row">
+                                                <span class="rpos-delivery-charge-label">
+                                                    <span class="dashicons dashicons-car"></span>
+                                                    Delivery Charge
+                                                </span>
+                                                <span class="rpos-delivery-charge-value" id="rpos-delivery-charge-value">$0.00</span>
+                                            </div>
+                                            <div class="rpos-delivery-charge-row total">
+                                                <span class="rpos-delivery-charge-label">
+                                                    <span class="dashicons dashicons-yes-alt"></span>
+                                                    Total Amount
+                                                </span>
+                                                <span class="rpos-delivery-charge-value" id="rpos-delivery-total">$0.00</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -120,6 +185,13 @@
             // Real-time validation
             $('#rpos-customer-phone').on('input', function() {
                 self.validatePhone(this);
+            });
+            
+            // Icon color change on focus/blur
+            $('.rpos-input-with-icon input, .rpos-input-with-icon select, .rpos-input-with-icon textarea').on('focus', function() {
+                $(this).siblings('.rpos-input-icon').css('color', '#667eea');
+            }).on('blur', function() {
+                $(this).siblings('.rpos-input-icon').css('color', '#718096');
             });
         },
         
@@ -269,6 +341,17 @@
                 $('#area-error').removeClass('visible');
             }
             
+            // Validate address
+            var address = $('#rpos-delivery-address').val().trim();
+            if (!address) {
+                $('#rpos-delivery-address').addClass('error');
+                $('#address-error').addClass('visible');
+                isValid = false;
+            } else {
+                $('#rpos-delivery-address').removeClass('error');
+                $('#address-error').removeClass('visible');
+            }
+            
             // Validate name
             var name = $('#rpos-customer-name').val().trim();
             if (!name) {
@@ -313,6 +396,7 @@
                 location_name: areaName,
                 customer_name: $('#rpos-customer-name').val().trim(),
                 customer_phone: $('#rpos-customer-phone').val().trim(),
+                delivery_address: $('#rpos-delivery-address').val().trim(),
                 special_instructions: $('#rpos-special-instructions').val().trim(),
                 delivery_charge: this.deliveryData ? this.deliveryData.delivery_charge : 0,
                 is_free_delivery: this.deliveryData ? (this.deliveryData.is_free ? 1 : 0) : 0,
