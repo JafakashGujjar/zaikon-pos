@@ -497,7 +497,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
     <div class="zaikon-modal-content zaikon-delivery-modal-content zaikon-animate-scaleIn">
         <div class="zaikon-modal-header zaikon-delivery-modal-header">
             <h3>
-                <span class="dashicons dashicons-cart"></span>
+                <span class="dashicons dashicons-location-alt"></span>
                 <?php echo esc_html__('Delivery Details', 'restaurant-pos'); ?>
             </h3>
             <button class="zaikon-modal-close zaikon-delivery-modal-close" id="zaikon-delivery-modal-close">&times;</button>
@@ -506,19 +506,19 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
             <!-- Customer Information Section -->
             <div class="zaikon-delivery-section">
                 <h4 class="zaikon-delivery-section-title">
-                    <span class="dashicons dashicons-admin-users"></span>
+                    <span class="dashicons dashicons-businessperson"></span>
                     <?php echo esc_html__('Customer Information', 'restaurant-pos'); ?>
                 </h4>
                 <div class="zaikon-delivery-fields-row">
                     <div class="zaikon-delivery-field">
                         <label for="zaikon-delivery-name"><?php echo esc_html__('Customer Name', 'restaurant-pos'); ?> <span class="required">*</span></label>
                         <div class="zaikon-input-with-icon">
-                            <span class="dashicons dashicons-businessperson"></span>
+                            <span class="dashicons dashicons-admin-users"></span>
                             <input type="text" id="zaikon-delivery-name" placeholder="<?php echo esc_attr__('Enter customer name', 'restaurant-pos'); ?>" required>
                         </div>
                     </div>
                     <div class="zaikon-delivery-field">
-                        <label for="zaikon-delivery-phone"><?php echo esc_html__('Customer Phone', 'restaurant-pos'); ?> <span class="required">*</span></label>
+                        <label for="zaikon-delivery-phone"><?php echo esc_html__('Phone Number', 'restaurant-pos'); ?> <span class="required">*</span></label>
                         <div class="zaikon-input-with-icon">
                             <span class="dashicons dashicons-phone"></span>
                             <input type="tel" id="zaikon-delivery-phone" placeholder="<?php echo esc_attr__('Enter phone number', 'restaurant-pos'); ?>" required>
@@ -527,13 +527,13 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                 </div>
             </div>
             
-            <!-- Delivery Information Section -->
+            <!-- Delivery Address Section -->
             <div class="zaikon-delivery-section">
                 <h4 class="zaikon-delivery-section-title">
-                    <span class="dashicons dashicons-location-alt"></span>
-                    <?php echo esc_html__('Delivery Information', 'restaurant-pos'); ?>
+                    <span class="dashicons dashicons-admin-home"></span>
+                    <?php echo esc_html__('Delivery Address', 'restaurant-pos'); ?>
                 </h4>
-                <div class="zaikon-delivery-fields-row zaikon-delivery-fields-row-3">
+                <div class="zaikon-delivery-fields-row">
                     <div class="zaikon-delivery-field">
                         <label for="zaikon-delivery-area"><?php echo esc_html__('Delivery Area', 'restaurant-pos'); ?> <span class="required">*</span></label>
                         <div class="zaikon-input-with-icon">
@@ -544,29 +544,50 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
                         </div>
                     </div>
                     <div class="zaikon-delivery-field">
-                        <label for="zaikon-delivery-distance"><?php echo esc_html__('Distance (KM)', 'restaurant-pos'); ?></label>
+                        <label for="zaikon-delivery-address"><?php echo esc_html__('Complete Address', 'restaurant-pos'); ?> <span class="required">*</span></label>
                         <div class="zaikon-input-with-icon">
-                            <span class="dashicons dashicons-admin-site-alt3"></span>
-                            <input type="text" id="zaikon-delivery-distance" placeholder="<?php echo esc_attr__('Auto-calculated', 'restaurant-pos'); ?>" readonly>
-                        </div>
-                    </div>
-                    <div class="zaikon-delivery-field">
-                        <label for="zaikon-delivery-charge"><?php echo esc_html__('Delivery Charge (Rs)', 'restaurant-pos'); ?></label>
-                        <div class="zaikon-delivery-charge-wrapper">
-                            <div class="zaikon-input-with-icon">
-                                <span class="dashicons dashicons-cart"></span>
-                                <input type="text" id="zaikon-delivery-charge" placeholder="<?php echo esc_attr__('Auto-calculated', 'restaurant-pos'); ?>" readonly>
-                            </div>
-                            <span id="zaikon-free-delivery-badge" class="zaikon-free-badge" style="display:none;"><?php echo esc_html__('FREE', 'restaurant-pos'); ?></span>
+                            <span class="dashicons dashicons-building"></span>
+                            <input type="text" id="zaikon-delivery-address" placeholder="<?php echo esc_attr__('House #, Street, Landmark', 'restaurant-pos'); ?>" required>
                         </div>
                     </div>
                 </div>
                 <div class="zaikon-delivery-fields-row">
                     <div class="zaikon-delivery-field zaikon-delivery-field-full">
-                        <label for="zaikon-delivery-instructions"><?php echo esc_html__('Delivery Instructions', 'restaurant-pos'); ?></label>
+                        <label for="zaikon-delivery-instructions"><?php echo esc_html__('Special Instructions', 'restaurant-pos'); ?></label>
                         <div class="zaikon-input-with-icon">
-                            <span class="dashicons dashicons-edit"></span>
-                            <input type="text" id="zaikon-delivery-instructions" placeholder="<?php echo esc_attr__('e.g., Near mosque, Call on arrival, Ring doorbell', 'restaurant-pos'); ?>">
+                            <span class="dashicons dashicons-testimonial"></span>
+                            <textarea id="zaikon-delivery-instructions" rows="2" placeholder="<?php echo esc_attr__('e.g., Call on arrival, Don\'t ring bell, Gate code', 'restaurant-pos'); ?>"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary Section -->
+            <div class="zaikon-delivery-section zaikon-delivery-summary-section">
+                <h4 class="zaikon-delivery-section-title">
+                    <span class="dashicons dashicons-cart"></span>
+                    <?php echo esc_html__('Order Summary', 'restaurant-pos'); ?>
+                </h4>
+                <div class="zaikon-delivery-summary-grid">
+                    <div class="zaikon-delivery-summary-item">
+                        <div class="zaikon-summary-icon-wrapper">
+                            <span class="dashicons dashicons-admin-site-alt3"></span>
+                        </div>
+                        <div class="zaikon-summary-content">
+                            <span class="zaikon-summary-label"><?php echo esc_html__('Distance', 'restaurant-pos'); ?></span>
+                            <input type="text" id="zaikon-delivery-distance" class="zaikon-summary-value" placeholder="<?php echo esc_attr__('Auto-calculated', 'restaurant-pos'); ?>" readonly>
+                        </div>
+                    </div>
+                    <div class="zaikon-delivery-summary-item">
+                        <div class="zaikon-summary-icon-wrapper">
+                            <span class="dashicons dashicons-money-alt"></span>
+                        </div>
+                        <div class="zaikon-summary-content">
+                            <span class="zaikon-summary-label"><?php echo esc_html__('Delivery Charge', 'restaurant-pos'); ?></span>
+                            <div class="zaikon-delivery-charge-wrapper">
+                                <input type="text" id="zaikon-delivery-charge" class="zaikon-summary-value" placeholder="<?php echo esc_attr__('Auto-calculated', 'restaurant-pos'); ?>" readonly>
+                                <span id="zaikon-free-delivery-badge" class="zaikon-free-badge" style="display:none;"><?php echo esc_html__('FREE', 'restaurant-pos'); ?></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -575,14 +596,14 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
             <!-- Rider Information Section -->
             <div class="zaikon-delivery-section">
                 <h4 class="zaikon-delivery-section-title">
-                    <span class="dashicons dashicons-admin-users"></span>
+                    <span class="dashicons dashicons-groups"></span>
                     <?php echo esc_html__('Rider Assignment', 'restaurant-pos'); ?>
                 </h4>
                 <div class="zaikon-delivery-fields-row">
-                    <div class="zaikon-delivery-field">
+                    <div class="zaikon-delivery-field zaikon-delivery-field-full">
                         <label for="zaikon-delivery-rider"><?php echo esc_html__('Assign Rider', 'restaurant-pos'); ?></label>
                         <div class="zaikon-input-with-icon">
-                            <span class="dashicons dashicons-groups"></span>
+                            <span class="dashicons dashicons-admin-users"></span>
                             <select id="zaikon-delivery-rider">
                                 <option value=""><?php echo esc_html__('-- Select Rider (Optional) --', 'restaurant-pos'); ?></option>
                             </select>
@@ -598,7 +619,7 @@ $pos_logo_url = RPOS_Settings::get('pos_logo_url', '');
             </button>
             <button type="button" class="zaikon-btn zaikon-delivery-btn-primary" id="zaikon-save-delivery">
                 <span class="dashicons dashicons-yes-alt"></span>
-                <?php echo esc_html__('Save Delivery Details', 'restaurant-pos'); ?>
+                <?php echo esc_html__('Confirm Delivery', 'restaurant-pos'); ?>
             </button>
         </div>
     </div>
