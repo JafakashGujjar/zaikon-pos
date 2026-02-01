@@ -1025,113 +1025,132 @@
 
 /* Modal Content Container */
 .zaikon-delivery-modal-content {
-    max-width: 700px;
+    max-width: 750px;
     width: 95%;
-    border-radius: 16px;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.3);
 }
 
-/* Modal Header - Yellow with Black Text for Accessibility */
+/* Modal Header - Enhanced Gradient with Icon */
 .zaikon-delivery-modal-header {
-    background: var(--zaikon-yellow);
+    background: linear-gradient(135deg, var(--zaikon-yellow) 0%, #f0c419 100%);
     color: #000;
-    padding: 20px 24px;
+    padding: 24px 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .zaikon-delivery-modal-header h3 {
     margin: 0;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
     color: #000;
     letter-spacing: -0.3px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .zaikon-delivery-modal-header h3 .dashicons {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 6px;
+    border-radius: 10px;
 }
 
 .zaikon-delivery-modal-close {
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.15);
     border: none;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    font-size: 24px;
+    font-size: 26px;
     color: #000;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
     line-height: 1;
 }
 
 .zaikon-delivery-modal-close:hover {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.25);
+    transform: rotate(90deg);
 }
 
 /* Modal Body */
 .zaikon-delivery-modal-body {
-    padding: 24px;
-    background: #fff;
+    padding: 28px;
+    background: #fafafa;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
-/* Section Grouping */
+/* Section Grouping - Enhanced Cards */
 .zaikon-delivery-section {
-    margin-bottom: 24px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.zaikon-delivery-section:hover {
+    border-color: var(--zaikon-yellow);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15);
 }
 
 .zaikon-delivery-section:last-child {
     margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
+}
+
+/* Order Summary Section - Special Styling */
+.zaikon-delivery-summary-section {
+    background: linear-gradient(135deg, #fff9e6 0%, #fff 100%);
+    border-color: var(--zaikon-yellow);
 }
 
 .zaikon-delivery-section-title {
-    margin: 0 0 16px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #000;
+    margin: 0 0 18px 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .zaikon-delivery-section-title .dashicons {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    color: var(--zaikon-yellow);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #000;
+    background: var(--zaikon-yellow);
+    padding: 8px;
+    border-radius: 8px;
 }
 
 .zaikon-delivery-section-title::before {
-    content: '';
-    width: 4px;
-    height: 16px;
-    background: var(--zaikon-yellow);
-    border-radius: 2px;
+    display: none;
 }
 
 /* Field Rows */
 .zaikon-delivery-fields-row {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 18px;
+    margin-bottom: 18px;
 }
 
 .zaikon-delivery-fields-row:last-child {
@@ -1168,49 +1187,42 @@
     color: #6b7280;
     pointer-events: none;
     z-index: 1;
-    transition: color 0.2s ease;
+    transition: color 0.3s ease, transform 0.2s ease;
 }
 
 .zaikon-input-with-icon input[type="text"],
 .zaikon-input-with-icon input[type="tel"],
 .zaikon-input-with-icon select {
-    padding-left: 48px !important;
+    padding-left: 50px !important;
 }
 
-/* Icon color change on input focus */
+.zaikon-input-with-icon textarea {
+    padding-left: 50px !important;
+}
+
+/* Icon color and animation on input focus */
 .zaikon-input-with-icon:focus-within .dashicons {
     color: var(--zaikon-yellow);
+    transform: scale(1.1);
 }
 
 .zaikon-delivery-field label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-weight: 600;
     font-size: 13px;
-    color: #000;
-    letter-spacing: 0.1px;
+    color: #1a1a1a;
+    letter-spacing: 0.2px;
 }
 
 .zaikon-delivery-field .required {
     color: #dc2626;
     font-weight: 700;
-    margin-left: 2px;
+    margin-left: 3px;
 }
 
-/* Required field indicator animation - with fallback for older browsers */
+/* Required field indicator animation */
 .zaikon-delivery-field label .required::after {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    background: #dc2626;
-    border-radius: 50%;
-    margin-left: 6px;
-    animation: pulse 2s ease-in-out infinite;
-}
-
-/* Modern browser support with :has() pseudo-class */
-.zaikon-delivery-field label:has(.required)::after {
     content: '';
     display: inline-block;
     width: 6px;
@@ -1230,21 +1242,21 @@
     }
 }
 
-/* Input Styling - Touch-Friendly */
+/* Input Styling - Enhanced Touch-Friendly Design */
 .zaikon-delivery-field input[type="text"],
 .zaikon-delivery-field input[type="tel"],
 .zaikon-delivery-field select,
 .zaikon-delivery-field textarea {
     width: 100%;
-    padding: 14px 16px;
+    padding: 15px 18px;
     border: 2px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 15px;
     font-weight: 500;
-    color: #000;
+    color: #1a1a1a;
     background: #fff;
-    transition: all 0.2s ease;
-    min-height: 48px; /* Touch-friendly */
+    transition: all 0.3s ease;
+    min-height: 52px;
     box-sizing: border-box;
 }
 
@@ -1257,34 +1269,110 @@
 
 .zaikon-delivery-field select {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 44px;
+    background-position: right 16px center;
+    padding-right: 48px;
     cursor: pointer;
 }
 
-/* Focus States */
+/* Enhanced Focus States */
 .zaikon-delivery-field input[type="text"]:focus,
 .zaikon-delivery-field input[type="tel"]:focus,
 .zaikon-delivery-field select:focus,
 .zaikon-delivery-field textarea:focus {
     outline: none;
     border-color: var(--zaikon-yellow);
-    box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.2);
+    box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Hover States for Better Interaction */
+.zaikon-delivery-field input[type="text"]:hover:not(:focus):not([readonly]),
+.zaikon-delivery-field input[type="tel"]:hover:not(:focus):not([readonly]),
+.zaikon-delivery-field select:hover:not(:focus),
+.zaikon-delivery-field textarea:hover:not(:focus) {
+    border-color: #cbd5e0;
 }
 
 /* Readonly Fields */
 .zaikon-delivery-field input[readonly] {
     background: #f9fafb;
     color: #6b7280;
-    cursor: default;
+    cursor: not-allowed;
     border-color: #e5e7eb;
 }
 
 .zaikon-delivery-field textarea {
     resize: vertical;
-    min-height: 60px;
+    min-height: 72px;
+    line-height: 1.6;
+    padding-top: 14px;
+}
+
+/* Order Summary Grid Layout */
+.zaikon-delivery-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.zaikon-delivery-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: #fff;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+}
+
+.zaikon-summary-icon-wrapper {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--zaikon-yellow) 0%, #f0c419 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zaikon-summary-icon-wrapper .dashicons {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    color: #000;
+}
+
+.zaikon-summary-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.zaikon-summary-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.zaikon-summary-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    min-height: auto !important;
+}
+
+.zaikon-summary-value:focus {
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 /* Delivery Charge Wrapper */
@@ -1292,7 +1380,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .zaikon-delivery-charge-wrapper .zaikon-input-with-icon {
@@ -1303,95 +1391,117 @@
     width: 100%;
 }
 
-/* Free Delivery Badge */
+/* Free Delivery Badge - Enhanced Design */
 .zaikon-free-badge {
     display: inline-flex;
     align-items: center;
-    padding: 6px 12px;
-    background: #10b981;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #fff;
     font-size: 11px;
     font-weight: 700;
-    border-radius: 20px;
+    border-radius: 24px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    animation: badge-pulse 2s ease-in-out infinite;
 }
 
-/* Modal Footer - Delivery Specific */
+@keyframes badge-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Modal Footer - Enhanced Design */
 .zaikon-delivery-modal-footer {
-    padding: 20px 24px;
-    background: #f9fafb;
-    border-top: 1px solid #e5e7eb;
+    padding: 24px 28px;
+    background: #fff;
+    border-top: 2px solid #e5e7eb;
     display: flex;
-    gap: 12px;
+    gap: 14px;
     justify-content: flex-end;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* Primary Button - Yellow with Black Text */
+/* Primary Button - Enhanced Yellow Design */
 .zaikon-delivery-btn-primary {
-    background: var(--zaikon-yellow);
+    background: linear-gradient(135deg, var(--zaikon-yellow) 0%, #f0c419 100%);
     color: #000;
     border: 2px solid var(--zaikon-yellow);
-    padding: 14px 28px;
-    font-size: 15px;
+    padding: 16px 32px;
+    font-size: 16px;
     font-weight: 700;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    min-height: 48px;
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
+    transition: all 0.3s ease;
+    min-height: 52px;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     justify-content: center;
+    letter-spacing: 0.3px;
 }
 
 .zaikon-delivery-btn-primary .dashicons {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
 }
 
 .zaikon-delivery-btn-primary:hover {
-    background: var(--zaikon-yellow-dark);
-    border-color: var(--zaikon-yellow-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.35);
+    background: linear-gradient(135deg, #f0c419 0%, var(--zaikon-yellow) 100%);
+    border-color: #f0c419;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
 }
 
 .zaikon-delivery-btn-primary:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
 }
 
-/* Secondary Button - Neutral/Dark for Cancel */
+/* Secondary Button - Enhanced Neutral Design */
 .zaikon-delivery-modal-footer .zaikon-btn-secondary {
     background: #fff;
     color: #374151;
     border: 2px solid #d1d5db;
-    padding: 14px 24px;
-    font-size: 15px;
+    padding: 16px 28px;
+    font-size: 16px;
     font-weight: 600;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    min-height: 48px;
+    transition: all 0.3s ease;
+    min-height: 52px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     justify-content: center;
+    letter-spacing: 0.2px;
 }
 
 .zaikon-delivery-modal-footer .zaikon-btn-secondary .dashicons {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
 }
 
 .zaikon-delivery-modal-footer .zaikon-btn-secondary:hover {
     background: #f3f4f6;
     border-color: #9ca3af;
+    color: #1f2937;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.zaikon-delivery-modal-footer .zaikon-btn-secondary:active {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 /* Legacy Button Styles (kept for backwards compatibility) */
@@ -1472,8 +1582,12 @@
     }
     
     .zaikon-delivery-modal-header {
-        padding: 16px 20px;
+        padding: 18px 20px;
         flex-shrink: 0;
+    }
+    
+    .zaikon-delivery-modal-header h3 {
+        font-size: 19px;
     }
     
     .zaikon-delivery-modal-body {
@@ -1482,28 +1596,39 @@
         flex: 1;
     }
     
+    .zaikon-delivery-section {
+        margin-bottom: 16px;
+        padding: 16px;
+    }
+    
+    .zaikon-delivery-section-title {
+        font-size: 13px;
+        margin-bottom: 14px;
+    }
+    
     .zaikon-delivery-fields-row,
     .zaikon-delivery-fields-row-3 {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 16px;
     }
     
     .zaikon-delivery-fields-row-3 > .zaikon-delivery-field:last-child {
         grid-column: 1;
     }
     
-    .zaikon-delivery-section {
-        margin-bottom: 20px;
-        padding-bottom: 16px;
+    /* Order Summary Grid - Stack on Mobile */
+    .zaikon-delivery-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
     
     .zaikon-delivery-modal-footer {
         flex-direction: column;
-        gap: 10px;
-        padding: 16px 20px;
+        gap: 12px;
+        padding: 18px 20px;
         flex-shrink: 0;
         background: #fff;
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
     }
     
     .zaikon-delivery-modal-footer .zaikon-btn,
@@ -1521,9 +1646,20 @@
     .zaikon-delivery-field input[type="text"],
     .zaikon-delivery-field input[type="tel"],
     .zaikon-delivery-field select {
-        padding: 16px;
+        padding: 16px 18px;
         font-size: 16px;
-        min-height: 52px;
+        min-height: 54px;
+    }
+    
+    .zaikon-input-with-icon input[type="text"],
+    .zaikon-input-with-icon input[type="tel"],
+    .zaikon-input-with-icon select {
+        padding-left: 50px !important;
+    }
+    
+    .zaikon-delivery-field textarea {
+        min-height: 80px;
+        padding: 14px 18px 14px 50px;
     }
 }
 

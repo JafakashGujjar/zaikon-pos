@@ -334,6 +334,7 @@
                 $('#zaikon-delivery-phone').val('');
                 $('#zaikon-delivery-name').val('');
                 $('#zaikon-delivery-area').val('');
+                $('#zaikon-delivery-address').val('');
                 $('#zaikon-delivery-distance').val('');
                 $('#zaikon-delivery-charge').val('');
                 $('#zaikon-delivery-instructions').val('');
@@ -1720,6 +1721,7 @@
             var phone = $('#zaikon-delivery-phone').val().trim();
             var name = $('#zaikon-delivery-name').val().trim();
             var areaId = $('#zaikon-delivery-area').val();
+            var address = $('#zaikon-delivery-address').val().trim();
             
             if (!phone) {
                 ZAIKON_Toast.error('Please enter customer phone number');
@@ -1736,6 +1738,12 @@
             if (!areaId) {
                 ZAIKON_Toast.error('Please select delivery area');
                 $('#zaikon-delivery-area').focus();
+                return;
+            }
+            
+            if (!address) {
+                ZAIKON_Toast.error('Please enter delivery address');
+                $('#zaikon-delivery-address').focus();
                 return;
             }
             
@@ -1760,6 +1768,7 @@
                 is_free_delivery: this.deliveryCalculation.is_free_delivery ? 1 : 0,
                 customer_name: name,
                 customer_phone: phone,
+                delivery_address: address,
                 delivery_instructions: instructions,
                 rider_id: (riderId && riderId !== '') ? parseInt(riderId) : null,
                 rider_name: riderName
@@ -1792,6 +1801,7 @@
             $('#zaikon-delivery-phone').val('');
             $('#zaikon-delivery-name').val('');
             $('#zaikon-delivery-area').val('');
+            $('#zaikon-delivery-address').val('');
             $('#zaikon-delivery-distance').val('');
             $('#zaikon-delivery-charge').val('');
             $('#zaikon-delivery-instructions').val('');
