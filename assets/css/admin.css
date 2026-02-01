@@ -1049,6 +1049,15 @@
     font-weight: 700;
     color: #000;
     letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.zaikon-delivery-modal-header h3 .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
 }
 
 .zaikon-delivery-modal-close {
@@ -1102,6 +1111,13 @@
     gap: 8px;
 }
 
+.zaikon-delivery-section-title .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--zaikon-yellow);
+}
+
 .zaikon-delivery-section-title::before {
     content: '';
     width: 4px;
@@ -1136,6 +1152,35 @@
     grid-column: 1 / -1;
 }
 
+/* Input with Icon Wrapper */
+.zaikon-input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.zaikon-input-with-icon .dashicons {
+    position: absolute;
+    left: 16px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #6b7280;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.zaikon-input-with-icon input[type="text"],
+.zaikon-input-with-icon input[type="tel"],
+.zaikon-input-with-icon select {
+    padding-left: 48px !important;
+}
+
+.zaikon-input-with-icon input:focus ~ .dashicons,
+.zaikon-input-with-icon select:focus ~ .dashicons {
+    color: var(--zaikon-yellow);
+}
+
 .zaikon-delivery-field label {
     display: block;
     margin-bottom: 8px;
@@ -1149,6 +1194,27 @@
     color: #dc2626;
     font-weight: 700;
     margin-left: 2px;
+}
+
+/* Required field indicator animation */
+.zaikon-delivery-field label:has(.required)::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #dc2626;
+    border-radius: 50%;
+    margin-left: 6px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
 }
 
 /* Input Styling - Touch-Friendly */
@@ -1216,8 +1282,12 @@
     gap: 8px;
 }
 
-.zaikon-delivery-charge-wrapper input {
+.zaikon-delivery-charge-wrapper .zaikon-input-with-icon {
     flex: 1;
+}
+
+.zaikon-delivery-charge-wrapper input {
+    width: 100%;
 }
 
 /* Free Delivery Badge */
@@ -1258,6 +1328,16 @@
     transition: all 0.2s ease;
     min-height: 48px;
     box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.zaikon-delivery-btn-primary .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
 }
 
 .zaikon-delivery-btn-primary:hover {
@@ -1284,6 +1364,16 @@
     cursor: pointer;
     transition: all 0.2s ease;
     min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.zaikon-delivery-modal-footer .zaikon-btn-secondary .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
 }
 
 .zaikon-delivery-modal-footer .zaikon-btn-secondary:hover {
