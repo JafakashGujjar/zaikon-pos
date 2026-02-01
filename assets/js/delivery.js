@@ -394,9 +394,9 @@
             var data = {
                 area_id: areaId,
                 location_name: areaName,
-                delivery_address: $('#rpos-delivery-address').val().trim(),
                 customer_name: $('#rpos-customer-name').val().trim(),
                 customer_phone: $('#rpos-customer-phone').val().trim(),
+                delivery_address: $('#rpos-delivery-address').val().trim(),
                 special_instructions: $('#rpos-special-instructions').val().trim(),
                 delivery_charge: this.deliveryData ? this.deliveryData.delivery_charge : 0,
                 is_free_delivery: this.deliveryData ? (this.deliveryData.is_free ? 1 : 0) : 0,
