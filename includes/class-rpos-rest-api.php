@@ -961,6 +961,8 @@ class RPOS_REST_API {
      * Create delivery order using Zaikon v2 system
      */
     private function create_delivery_order_v2($data) {
+        global $wpdb;
+        
         // Add debug logging (mask sensitive data for security)
         // For privacy, only show first 1-2 chars of name/phone with ***
         $mask_string = function($str) {
