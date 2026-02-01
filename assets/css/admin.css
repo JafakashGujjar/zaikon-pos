@@ -1168,6 +1168,7 @@
     color: #6b7280;
     pointer-events: none;
     z-index: 1;
+    transition: color 0.2s ease;
 }
 
 .zaikon-input-with-icon input[type="text"],
@@ -1176,8 +1177,8 @@
     padding-left: 48px !important;
 }
 
-.zaikon-input-with-icon input:focus ~ .dashicons,
-.zaikon-input-with-icon select:focus ~ .dashicons {
+/* Icon color change on input focus */
+.zaikon-input-with-icon:focus-within .dashicons {
     color: var(--zaikon-yellow);
 }
 
@@ -1196,7 +1197,19 @@
     margin-left: 2px;
 }
 
-/* Required field indicator animation */
+/* Required field indicator animation - with fallback for older browsers */
+.zaikon-delivery-field label .required::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #dc2626;
+    border-radius: 50%;
+    margin-left: 6px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Modern browser support with :has() pseudo-class */
 .zaikon-delivery-field label:has(.required)::after {
     content: '';
     display: inline-block;
